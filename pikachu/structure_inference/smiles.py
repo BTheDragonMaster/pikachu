@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+from pikachu.structure_inference.structures import Structure
+from pikachu.structure_inference.atom import Atom
+from pikachu.structure_inference.bond import Bond
+
 from typing import *
 from dataclasses import dataclass
 import sys
