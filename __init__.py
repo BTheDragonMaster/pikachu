@@ -1,3 +1,9 @@
+import structure_inference.smiles.Smiles as Smiles
+import structure_inference.structure.Structure as Structure
+import structure_inference.bond.Bond as Bond
+import structure_inference.atom.Atom as Atom
+import structure_inference.electron.Electron as Electron
+
 import importlib
 import pkgutil
 
@@ -19,4 +25,4 @@ def import_submodules(package, recursive=True):
             results.update(import_submodules(full_name))
     return results
 
-import_submodules(__name__)
+#import_submodules(__name__)
