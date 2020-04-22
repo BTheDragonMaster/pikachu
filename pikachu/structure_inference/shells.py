@@ -1,3 +1,7 @@
+from pikachu.structure_inference.electron import Electron
+from pikachu.structure_inference.atom import ATOM_PROPERTIES
+
+
 class Shell:
     
     def __init__(self, atom, shell_nr):

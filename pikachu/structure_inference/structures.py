@@ -1,6 +1,9 @@
 #import matplotlib
 #matplotlib.use('TkAgg')
 #from matplotlib import pyplot as plt
+from pikachu.structure_inference.bond import Bond
+from pikachu.structure_inference.atom import Atom
+from pikachu.structure_inference import find_cycles
 from pprint import pprint
 import copy
 from collections import OrderedDict, defaultdict

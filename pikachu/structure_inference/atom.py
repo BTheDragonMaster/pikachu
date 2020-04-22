@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from pikachu.structure_inference.shells import Shell
+from pikachu.structure_inference.bond import BOND_PROPERTIES
 
 class AtomProperties:
     valence_dict = {'C': [4],
