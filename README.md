@@ -29,6 +29,29 @@ pprint(structure.graph)
 Step 6: Now, you can manipulate your structure with the reactions in reactions.py (only hydrolysis has been fully tested). First, define the bond you want to break with BondDefiner:
 
 ```
-PEPTIDEBOND = BondDefiner('peptide_bond', 'C(=O)NC', 0, 2)
+peptide_bond = reactions.BondDefiner('peptide_bond', 'C(=O)NC', 0, 2)
 ```
 This function takes a custom bond name, a SMILES string of the bond you want to (in this case) hydrolise, an the atom indices of the two atoms between which the bond needs to be hydrolysed.
+
+Now, find occurrences of this bond in your structure:
+```
+bonds = reactions.find_bonds(structure, peptide_bond)
+```
+
+Then, you can hydrolyse any or all of these bonds with the hydrolysis function. Note: this edits the structure in place, so you might want to make a copy of the original structure first.
+
+```
+import copy
+
+product = copy.deepcopy(structure)
+for bond in bonds:
+    reactions.hydrolyse(bond, product)
+```
+
+Finally, you can split the resulting (possibly disconnected) graph(s) into separate graphs and visualise them:
+
+```
+products = product.split_disconnected_structures()
+for product in products:
+    pprint(product)
+```
