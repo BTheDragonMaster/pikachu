@@ -12,8 +12,11 @@ Step 3: Open python
 
 Step 4: Import required modules
 
-`import pikachu`
-`import reactions`
+```
+import pikachu
+import reactions
+```
 
 Step 5: Load your SMILES string of interest
 
+`smiles =
