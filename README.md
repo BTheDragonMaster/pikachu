@@ -53,5 +53,5 @@ Finally, you can split the resulting (possibly disconnected) graph(s) into separ
 ```
 products = product.split_disconnected_structures()
 for product in products:
-    pprint(product)
+    pprint(product.graph)
 ```
