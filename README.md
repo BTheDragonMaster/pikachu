@@ -31,7 +31,7 @@ Step 6: Now, you can manipulate your structure with the reactions in reactions.p
 ```
 peptide_bond = reactions.BondDefiner('peptide_bond', 'C(=O)NC', 0, 2)
 ```
-This function takes a custom bond name, a SMILES string of the bond you want to (in this case) hydrolise, an the atom indices of the two atoms between which the bond needs to be hydrolysed.
+This function takes a custom bond name, a SMILES string of the bond you want to (in this case) hydrolyse, an the atom indices of the two atoms between which the bond needs to be hydrolysed.
 
 Now, find occurrences of this bond in your structure:
 ```
