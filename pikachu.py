@@ -381,6 +381,10 @@ class Structure:
         else:
             self.bond_lookup = {}
 
+    def graph_to_smiles(self):
+        pass
+        
+
     def get_atom_representations(self):
         atoms = sorted(self.graph.keys())
         atom_to_repr = {}
@@ -413,7 +417,8 @@ class Structure:
         pass
 
     def find_next_atom_nr(self):
-        """Return the next available integer to label an atom
+        """
+        Return the next available integer to label an atom
 
         Output
         ------
@@ -439,7 +444,8 @@ class Structure:
         return next_atom_nr
 
     def get_steric_atoms(self):
-        """Return list of atoms that are chiral centres
+        """
+        Return list of atoms that are chiral centres
 
         Output
         ------
@@ -454,7 +460,8 @@ class Structure:
         return steric_atoms
 
     def find_next_bond_nr(self):
-        """Return the next available integer to label a bond
+        """
+        Return the next available integer to label a bond
 
         Output
         ------
@@ -476,7 +483,8 @@ class Structure:
         return next_bond_nr
 
     def make_bond_lookup(self):
-        """Update bond_lookup from current collection of bonds
+        """
+        Update bond_lookup from current collection of bonds
         """
         self.bond_lookup = {}
         for bond in self.bonds:
@@ -491,7 +499,8 @@ class Structure:
             
 
     def make_atom_index(self):
-        """Return dict of {atom nr: atom}
+        """
+        Return dict of {atom nr: atom}
 
         Output
         ------
@@ -505,11 +514,23 @@ class Structure:
             atom_nr_to_atom[atom.nr] = atom
         return atom_nr_to_atom
 
-    def make_atom(self, atom_type, neighbours, chiral = None, charge = 0):
+    def add_atom(self, atom_type, neighbours, chiral = None, charge = 0, aromatic = False):
+        """
+        Add a new atom to an already existing structure
+
+        Input
+        -----
+        atom_type: str, an abbreviation of an element of the periodic table
+        neighbours: list of Atom objects
+        chiral: str or None, str indicating the chirality (clockwise or 
+            counterclockwise) if the new atom is a chiral centre, None
+            if the new atom is not a chiral centre
+        charge: int, charge of the new atom
+        """
 
         
         next_atom_nr = self.find_next_atom_nr()
-        atom = Atom(atom_type, next_atom_nr, chiral, charge)
+        atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
         atom.add_shell_layout()
 
         
@@ -517,12 +538,16 @@ class Structure:
             next_bond_nr = self.find_next_bond_nr()
             self.make_bond(atom, neighbour, next_bond_nr)
 
-        return atom
-
     def find_cycles(self):
+        """
+        Find all cycles in a structure and store them
+        """
         self.cycles = find_cycles.Cycles(self)
 
-    def fix_electrons_five_rings(self):
+    def promote_electrons_in_five_rings(self):
+        """
+        Promote electrons in aromatic five rings to p-orbitals
+        """
         five_rings = self.cycles.find_five_membered()
         for five_ring in five_rings:
             aromatic, heteroatom = check_five_ring(five_ring)
@@ -530,13 +555,38 @@ class Structure:
                 heteroatom.promote_lone_pair_to_p_orbital()
                 
     def find_aromatic_systems(self):
-        ring_systems = self.cycles.find_cyclic_systems()
-        for ring_system in ring_systems:
-            print(ring_system, check_aromatic(ring_system))
+        """
+        Return ring systems that are aromatic
 
+        Output
+        ------
+        aromatic_ring_systems: list of [[Atom, ->], ->], with each list of
+            atoms the atoms that comprise an aromatic ring system
+        """
+        
+        ring_systems = self.cycles.find_cyclic_systems()
+        aromatic_ring_systems = []
+        for ring_system in ring_systems:
+            if check_aromatic(ring_system):
+                aromatic_ring_systems.append(ring_system)
+
+        return aromatic_ring_systems
+
+    def set_bonds_to_aromatic(self, aromatic_systems):
+        for aromatic_system in aromatic_systems:
+            for atom_1 in aromatic_system:
+                atom_1.aromatic = True
+                for atom_2 in aromatic_system:
+                    if atom_1 in self.graph[atom_2]:
+                        bond = self.bond_lookup[atom_1][atom_2]
+                        if bond.type != 'aromatic':
+                            bond.make_aromatic()
+
+        pprint(self.bonds)
 
     def refine_structure(self):
-        self.make_atoms_upper_case()
+        """
+        """
         
         self.add_shells()
         self.add_hydrogens()
@@ -546,56 +596,95 @@ class Structure:
 
         self.refine_p_bonds()
         self.hybridise_atoms()
+        
         self.refine_s_bonds()
         self.drop_electrons()
         self.set_atom_neighbours()
         self.set_connectivities()
         self.make_bond_lookup()
         self.find_cycles()
-        self.fix_electrons_five_rings()
+        self.promote_electrons_in_five_rings()
+        aromatic_systems = self.find_aromatic_systems()
+        self.set_bonds_to_aromatic(aromatic_systems)
+        pprint(aromatic_systems)
 
-    def break_bond_nr(self, bond):
+    def break_bond(self, bond):
+        """
+        Break a bond in the structure
+
+        Input
+        -----
+        bond: Bond object
+        """
+        
+        atom_1 = bond.atom_1
+        atom_2 = bond.atom_2
+        
+        bond.break_bond()
+        
+        del self.bond_lookup[atom_1][atom_2]
+        del self.bond_lookup[atom_2][atom_1]
+        del self.bonds[bond.nr]
+
+        if atom_2 in self.graph[atom_1]:
+            self.graph[atom_1].remove(atom_2)
+        if atom_1 in self.graph[atom_2]:
+            self.graph[atom_2].remove(atom_1)
+        
+
+    def break_bond_by_nr(self, bond):
+        """
+        Break a bond in the structure based on bond number
+
+        Input
+        -----
+        bond: Bond object or int, with int the number of a bond in the graph
+        """
         if type(bond) == int:
             bond_nr = bond
             bond = self.bonds[bond]
-            
 
-        else:
-            bond_nr = bond.nr
-            
-        bond.break_bond()
-        
-        del self.bonds[bond_nr]
+        self.break_bond(bond)
 
+    def break_bond_between_atoms(self, atom_1, atom_2):
+        """
+        Break a bond in the structure based on the numbers of neighbouring
+        atoms
 
-    def remove_atom(self, atom_to_remove):
+        Input
+        -----
+        atom_1: Atom object or int, with int the number of an atom in the graph
+        atom_2: Atom object or int, with int the number of an atom in the graph
 
-        for bond in atom_to_remove.bonds:
-            self.break_bond_nr(bond.nr)
-            
-        for atom in self.graph:
-            if atom_to_remove in self.graph[atom]:
-                self.graph[atom].remove(atom_to_remove)
-
-        del self.graph[atom_to_remove]
-
-    def break_bond_atoms(self, atom_1, atom_2):
+        """
         atom_nr_to_atom = self.make_atom_index()
+        
         if atom_1.type == int:
             atom_1 = atom_nr_to_atom[atom_1]
         if atom_2.type == int:
             atom_2 = atom_nr_to_atom[atom_2]
 
         bond = self.bond_lookup[atom_1][atom_2]
+        self.break_bond(bond)
 
-        bond_nr = bond.nr
+    def remove_atom(self, atom_to_remove):
+        """
+        Remove an atom from the structure
 
-        bond.break_bond()
+        Input
+        -----
+        atom_to_remove: Atom object, atom that is to be removed from the
+            structure
+        """
 
-        del self.bonds[bond_nr]
-        
-        self.graph[bond.atom_1].remove(bond.atom_2)
-        self.graph[bond.atom_2].remove(bond.atom_1)
+        for bond in atom_to_remove.bonds:
+            self.break_bond_by_nr(bond.nr)
+            
+        for atom in self.graph:
+            if atom_to_remove in self.graph[atom]:
+                self.graph[atom].remove(atom_to_remove)
+
+        del self.graph[atom_to_remove]
 
     def set_connectivities(self):
         for atom in self.graph:
@@ -650,9 +739,6 @@ class Structure:
                     break
 
         return chirality_matches
-
-            
-        
 
     def check_chiral_centres(self, child, match):
         chirality_matches = True
@@ -858,11 +944,8 @@ class Structure:
         return new_child_candidate, new_parent_candidate
 
     def find_substructure_in_structure(self, child):
-
- #       parent_dfs_structure, parent_edges, parent_edge_lookup = self.make_dfs_graph()
-        
+       
         atom_connectivities_child = child.get_connectivities()
- #       atom_connectivities_parent = Structure(parent_dfs_structure, parent_edges).get_substructure_connectivities(atom_connectivities_child)
         atom_connectivities_parent = self.get_substructure_connectivities(atom_connectivities_child)
         #Sort based on the complexity of the connectivity
         
@@ -878,8 +961,6 @@ class Structure:
         for seed in seeds:
 
             self.reset_visited()
-
- #           parent_dfs_structure, parent_edges, parent_edge_lookup = self.make_dfs_graph()
 
             child_bond_dict = child.make_bond_dict()
             
@@ -984,12 +1065,6 @@ class Structure:
         self.remove_visited()
 
         return matches
-                        
-
-    def make_atoms_upper_case(self):
-        for atom in self.graph:
-            if len(atom.type) == 1:
-                atom.type = atom.type.upper()
 
     def drop_electrons(self):
         for atom in self.graph:
@@ -1019,7 +1094,7 @@ class Structure:
             for i in range(hydrogens_to_add):
                 max_atom_nr += 1
                 max_bond_nr += 1
-                hydrogen = Atom('H', max_atom_nr, None, 0)
+                hydrogen = Atom('H', max_atom_nr, None, 0, False)
                 self.add_bond(atom, hydrogen, 'single', max_bond_nr)
                 
 
@@ -1047,7 +1122,7 @@ class Structure:
         return atom_counts
             
 
-    def add_atom(self, atom):
+    def add_disconnected_atom(self, atom):
         self.graph[atom] = []
 
     def sort_by_nr(self):
@@ -1768,8 +1843,10 @@ class Bond:
         
         if orientation == 'cis':
             opposite_orientation = 'trans'
-        else:
+        elif orientation == 'trans':
             opposite_orientation = 'cis'
+        else:
+            raise Exception("Double bond orientation must be cis or trans!")
 
         self.chiral_dict[atom_1][atom_2] = orientation
         self.chiral_dict[atom_1][atom_2_2] = opposite_orientation
@@ -1781,9 +1858,31 @@ class Bond:
         self.chiral_dict[atom_1_2][atom_2_2] = orientation
         
         self.chiral_dict[atom_2_2][atom_1] = opposite_orientation
-        self.chiral_dict[atom_2_2][atom_1_2] = opposite_orientation
+        self.chiral_dict[atom_2_2][atom_1_2] = orientation
 
         self.chiral = True
+
+    def make_aromatic(self):
+        self.type = 'aromatic'
+
+        self.atom_1.aromatic = True
+        self.atom_2.aromatic = True
+
+        for orbital_name, orbital in self.atom_1.valence_shell.orbitals.items():
+            if orbital.orbital_type == 'p':
+                for electron in orbital.electrons:
+                    if electron.atom != self.atom_1:
+                        orbital.remove_electron(electron)
+                    else:
+                        electron.set_aromatic()
+
+        for orbital_name, orbital in self.atom_2.valence_shell.orbitals.items():
+            if orbital.orbital_type == 'p':
+                for electron in orbital.electrons:
+                    if electron.atom != self.atom_2:
+                        orbital.remove_electron(electron)
+                    else:
+                        electron.set_aromatic()
             
         
 
@@ -1805,10 +1904,6 @@ class Bond:
                 break
 
         return same_chirality
-        
-        
-            
-                
 
     def break_bond(self):
         assert self.type == 'single'
@@ -1879,66 +1974,69 @@ class Bond:
     def combine_p_orbitals(self):
         assert self.type != 'single'
 
-        p_bonding_orbitals_1 = []
-        electrons_found = 0
-        
-        for orbital_name in self.atom_1.valence_shell.orbitals:
-            orbital = self.atom_1.valence_shell.orbitals[orbital_name]
-            if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
-                if (orbital.electrons[0].aromatic and self.type == 'aromatic') or not orbital.electrons[0].aromatic:
-                    electrons_found += 1
-                    p_bonding_orbitals_1.append(orbital)
-
-                    if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
-                        break
-
-
-        p_bonding_orbitals_2 = []
-        electrons_found = 0
-                
-        for orbital_name in self.atom_2.valence_shell.orbitals:
-            orbital = self.atom_2.valence_shell.orbitals[orbital_name]
-            if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
-                if (orbital.electrons[0].aromatic and self.type == 'aromatic') or not orbital.electrons[0].aromatic:
-                    electrons_found += 1
-                    p_bonding_orbitals_2.append(orbital)
-                    
-                    if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
-                        break
-
-
-        assert len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2)
-
-        if self.type == 'aromatic':
-            assert len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2) == 1
-            electron_1 = p_bonding_orbitals_1[0].electrons[0]
-            electron_2 = p_bonding_orbitals_2[0].electrons[0]
-            
-            electron_1.set_aromatic()
-            electron_2.set_aromatic()
-
-            self.electrons.append(electron_1)
-            self.electrons.append(electron_2)
-            
-            p_bonding_orbitals_1[0].set_bond(self, 'pi')
-            p_bonding_orbitals_2[0].set_bond(self, 'pi')
         
 
+        if self.atom_1.pyrrole or self.atom_2.pyrrole:
+            pass
         else:
+            p_bonding_orbitals_1 = []
+            electrons_found = 0
+           
+            for orbital_name, orbital in self.atom_1.valence_shell.orbitals.items():
+                if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
+                    if (orbital.electrons[0].aromatic and self.type == 'aromatic') or not orbital.electrons[0].aromatic:
+                        electrons_found += 1
+                        p_bonding_orbitals_1.append(orbital)
 
-            for i in range(len(p_bonding_orbitals_1)):
-                electron_1 = p_bonding_orbitals_1[i].electrons[0]
-                electron_2 = p_bonding_orbitals_2[i].electrons[0]
+                        if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
+                            break
+
+
+            p_bonding_orbitals_2 = []
+            electrons_found = 0
+                    
+            for orbital_name, orbital in self.atom_2.valence_shell.orbitals.items():
+                if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
+                    if (orbital.electrons[0].aromatic and self.type == 'aromatic') or not orbital.electrons[0].aromatic:
+                        electrons_found += 1
+                        p_bonding_orbitals_2.append(orbital)
+                        
+                        if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
+                            break
+
+
+            assert len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2)
+
+            if self.type == 'aromatic':
+                assert len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2) == 1
+                electron_1 = p_bonding_orbitals_1[0].electrons[0]
+                electron_2 = p_bonding_orbitals_2[0].electrons[0]
                 
-
-                p_bonding_orbitals_1[i].add_electron(electron_2)
-                p_bonding_orbitals_2[i].add_electron(electron_1)
+                electron_1.set_aromatic()
+                electron_2.set_aromatic()
 
                 self.electrons.append(electron_1)
                 self.electrons.append(electron_2)
                 
-                p_bonding_orbitals_1[i].set_bond(self, 'pi')
-                p_bonding_orbitals_2[i].set_bond(self, 'pi')
+                p_bonding_orbitals_1[0].set_bond(self, 'pi')
+                p_bonding_orbitals_2[0].set_bond(self, 'pi')
+            
+
+            else:
+
+                for i in range(len(p_bonding_orbitals_1)):
+                    electron_1 = p_bonding_orbitals_1[i].electrons[0]
+                    electron_2 = p_bonding_orbitals_2[i].electrons[0]
+                    
+
+                    p_bonding_orbitals_1[i].add_electron(electron_2)
+                    p_bonding_orbitals_2[i].add_electron(electron_1)
+
+                    self.electrons.append(electron_1)
+                    self.electrons.append(electron_2)
+                    
+                    p_bonding_orbitals_1[i].set_bond(self, 'pi')
+                    p_bonding_orbitals_2[i].set_bond(self, 'pi')
 
 
 
@@ -2348,9 +2446,9 @@ class Orbital():
             self.electrons[0].unpair()
  
 
-class Atom():
+class Atom:
 
-    def __new__(cls, atom_type, atom_nr, chiral, charge):
+    def __new__(cls, atom_type, atom_nr, chiral, charge, aromatic):
         self = super().__new__(cls)  # Must explicitly create the new object
         # Aside from explicit construction and return, rest of __new__
         # is same as __init__
@@ -2358,25 +2456,29 @@ class Atom():
         self.nr = atom_nr
         self.chiral = chiral
         self.charge = charge
+        self.aromatic = aromatic
         self.shells = {}
         
         return self  # __new__ returns the new object
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__
-        return (self.type, self.nr, self.chiral, self.charge)
+        return (self.type, self.nr, self.chiral, self.charge, self.aromatic)
 
-    def __init__(self, atom_type, atom_nr, chiral, charge):
+    def __init__(self, atom_type, atom_nr, chiral, charge, aromatic):
         
         self.type = atom_type
         self.nr = atom_nr
+        self.aromatic = aromatic
  #       self.atomic_nr = ATOM_PROPERTIES.element_to_atomic_nr[self.type]
         self.bonds = []
 
         self.chiral = chiral
         # remove?
         self.charge = charge
+        self.pyrrole = False
         self.shells = {}
+        
         
     def __eq__(self, atom):
         return self.nr == atom.nr
@@ -2518,8 +2620,7 @@ class Atom():
         electron_nr = 0
         orbital_nr = len(list(self.valence_shell.orbitals.keys()))
         
-        for orbital_name in self.valence_shell.orbitals:
-            orbital = self.valence_shell.orbitals[orbital_name]
+        for orbital_name, orbital in self.valence_shell.orbitals.items():
             if orbital.electron_nr == 1:
                 electron_nr += 1
             elif orbital.electron_nr == 2:
@@ -2532,11 +2633,8 @@ class Atom():
 
         unbonded_electrons = electron_nr - bonds_to_make
 
-        
-
         if unbonded_electrons % 2 != 0:
             print("Warning! Rogue electron.")
-            print(self.valence_shell.orbitals)
 
         electron_pair_nr = int(unbonded_electrons / 2)
         
@@ -2565,7 +2663,10 @@ class Atom():
                 aromatic_bond_nr += 1
 
         if aromatic_bond_nr == 2:
-            bond_nr += 3
+            if not self.pyrrole:
+                bond_nr += 3
+            else:
+                bond_nr += 2
         elif aromatic_bond_nr == 3:
             bond_nr += 4
 
@@ -2589,8 +2690,7 @@ class Atom():
         p_orbitals = []
         sp2_orbitals = []
 
-        for orbital_name in self.valence_shell.orbitals:
-            orbital = self.valence_shell.orbitals[orbital_name]
+        for orbital_name, orbital in self.valence_shell.orbitals.items():
             if orbital.electron_nr == 2:
                 if orbital.electrons[0].atom != orbital.electrons[1].atom:
                     sp2_orbitals.append(orbital)
@@ -2610,11 +2710,12 @@ class Atom():
 
         self.hybridisation = 'sp2'
 
-        for orbital_name in self.valence_shell.orbitals:
-            orbital = self.valence_shell.orbitals[orbital_name]
+        for orbital_name, orbital in self.valence_shell.orbitals.items():
             for electron in orbital.electrons:
                 if electron.atom == self:
                     electron.set_orbital(orbital)
+                    if orbital.orbital_type == 'p':
+                        electron.set_aromatic()
             
 
     def promote_pi_bond_to_d_orbital(self):
@@ -3074,6 +3175,7 @@ class Smiles():
         
 
         explicit = False
+        pyrrole = False
 
         atom_nr = -1
         bond_nr = -1
@@ -3096,6 +3198,8 @@ class Smiles():
 
             elif label == "atom":
 
+                
+
                 if not explicit:
                     element = component
                     chiral = None
@@ -3103,14 +3207,25 @@ class Smiles():
                     hydrogens = 0
                 else:
                     element, chiral, charge, hydrogens = parse_explicit(component)
+                    if element == 'n' and hydrogens == 1:
+                        pyrrole = True
                     explicit = False
+
+                if element.islower():
+                    aromatic = True
+                    element = element.upper()
+                else:
+                    aromatic = False
 
                 #Determine atom
                 
                 atom_nr += 1
 
                 #Turn atom into an atom object
-                atom_2 = Atom(element, atom_nr, chiral, charge)
+                atom_2 = Atom(element, atom_nr, chiral, charge, aromatic)
+                if pyrrole:
+                    atom_2.pyrrole = True
+                    pyrrole = False
 
                 #Keep track of atoms surrounding chiral double bonds
                 try:
@@ -3125,7 +3240,7 @@ class Smiles():
                 for i in range(hydrogens):
                     atom_nr += 1
                     bond_nr += 1
-                    hydrogen = Atom('H', atom_nr, None, 0)
+                    hydrogen = Atom('H', atom_nr, None, 0, False)
                     structure.add_bond(atom_2, hydrogen, 'single', bond_nr)
 
                 
@@ -3145,7 +3260,7 @@ class Smiles():
                 if atom_1:
                     bond_nr += 1
                     
-                    if atom_1.type.islower() and atom_2.type.islower():
+                    if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
                             bond_type = 'aromatic'
                         else:
@@ -3175,7 +3290,7 @@ class Smiles():
                     
                     #This happens only if atom_2 is completely disconnected
                     #of any atoms already in the graph
-                    structure.add_atom(atom_2)
+                    structure.add_disconnected_atom(atom_2)
                     if atom_2.chiral:
                         chiral_dict[atom_2] = []
                         if hydrogens == 1:
@@ -3232,7 +3347,7 @@ class Smiles():
                     atom_1, atom_2 = self.end_cycle(cycle_nr, atom,
                                                     cyclic_dict)
                     
-                    if atom_1.type.islower() and atom_2.type.islower():
+                    if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
                             bond_type = 'aromatic'
                         else:

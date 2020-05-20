@@ -40,11 +40,11 @@ def do_hydrolysis(product, bond, heteroatom, other_atom):
     Auxillary function to 'hydrolyse'.
     """
     
-    product.break_bond_nr(bond)
+    product.break_bond_by_nr(bond)
 
-    oxygen = product.make_atom('O', [other_atom])
-    hydrogen_1 = product.make_atom('H', [oxygen])
-    hydrogen_2 = product.make_atom('H', [heteroatom])
+    product.add_atom('O', [other_atom])
+    product.add_atom('H', [oxygen])
+    product.add_atom('H', [heteroatom])
     
     
 def hydrolyse(bond, structure, oxygen_recipient = None):
@@ -97,8 +97,8 @@ def hydrolyse(bond, structure, oxygen_recipient = None):
 
 def do_condensation(structure, hydrogen_donor, hydrogen, oxygen_donor, oxygen):
 
-    structure.break_bond_atoms(hydrogen_donor, hydrogen)
-    structure.break_bond_atoms(oxygen_donor, oxygen)
+    structure.break_bond_between_atoms(hydrogen_donor, hydrogen)
+    structure.break_bond_between_atoms(oxygen_donor, oxygen)
     
     for atom in oxygen.neighbours:
         if atom.type == 'H':

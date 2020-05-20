@@ -5,6 +5,25 @@
 from collections import OrderedDict, defaultdict
 import copy
 
+def is_reverse_cycle(cycle_1, cycle_2):
+    reversed_2 = list(reversed(cycle_2))
+
+    starting_index = None
+
+    for i, atom in enumerate(reversed_2):
+        if atom == cycle_1[0]:
+            starting_index = i
+
+    if starting_index == None:
+        return False
+
+    else:
+        new_reversed = reversed_2[i:] + reversed_2[:i]
+        if new_reversed == cycle_1:
+            return True
+        else:
+            return False
+    
 def simple_cycles(G):
     # Yield every elementary cycle in python graph G exactly once
     # Expects a dictionary mapping from vertices to iterables of vertices
