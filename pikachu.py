@@ -582,7 +582,6 @@ class Structure:
                         if bond.type != 'aromatic':
                             bond.make_aromatic()
 
-        pprint(self.bonds)
 
     def refine_structure(self):
         """
@@ -606,7 +605,6 @@ class Structure:
         self.promote_electrons_in_five_rings()
         aromatic_systems = self.find_aromatic_systems()
         self.set_bonds_to_aromatic(aromatic_systems)
-        pprint(aromatic_systems)
 
     def break_bond(self, bond):
         """

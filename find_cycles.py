@@ -137,14 +137,33 @@ class Cycles():
                 five_membered.append(cycle)
 
         return five_membered
-        
 
-    
+    def find_minimal_cycles(self):
+        nodes = set()
+        cycles = sorted(self.unique_cycles, key=lambda x: len(x))
+
+        minimal_cycles = []
+
+        for cycle in cycles:
+            already_covered = True
+            for node in cycle:
+                if node not in nodes:
+                    already_covered = False
+                nodes.add(node)
+
+            if not already_covered:
+                minimal_cycles.append(cycle)
+
+
+        return minimal_cycles
+
+
+
 
     def find_unique_cycles(self, structure):
         all_cycles = simple_cycles(structure.graph)
 
-        unique_cycles = set([])
+        unique_cycles = set()
         for cycle in all_cycles:
             if len(cycle) > 2:
                 cycle_components = sorted(cycle, key = lambda x: x.nr)
