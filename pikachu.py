@@ -553,6 +553,8 @@ class Structure:
             aromatic, heteroatom = check_five_ring(five_ring)
             if aromatic:
                 heteroatom.promote_lone_pair_to_p_orbital()
+                if heteroatom.type == 'N':
+                    heteroatom.pyrrole = True
                 
     def find_aromatic_systems(self):
         """
@@ -565,10 +567,14 @@ class Structure:
         """
         
         ring_systems = self.cycles.find_cyclic_systems()
+        print(ring_systems)
+        print(self.cycles.unique_cycles)
         aromatic_ring_systems = []
         for ring_system in ring_systems:
             if check_aromatic(ring_system):
                 aromatic_ring_systems.append(ring_system)
+
+        print(aromatic_ring_systems)
 
         return aromatic_ring_systems
 
@@ -605,6 +611,20 @@ class Structure:
         self.promote_electrons_in_five_rings()
         aromatic_systems = self.find_aromatic_systems()
         self.set_bonds_to_aromatic(aromatic_systems)
+
+    def remove_bond_between_atoms(self, atom_1, atom_2):
+        bond = self.bond_lookup[atom_1][atom_2]
+
+        del self.bond_lookup[atom_1][atom_2]
+        del self.bond_lookup[atom_2][atom_1]
+        del self.bonds[bond.nr]
+
+
+        if atom_2 in self.graph[atom_1]:
+            self.graph[atom_1].remove(atom_2)
+        if atom_1 in self.graph[atom_2]:
+            self.graph[atom_2].remove(atom_1)
+
 
     def break_bond(self, bond):
         """
@@ -643,6 +663,8 @@ class Structure:
             bond = self.bonds[bond]
 
         self.break_bond(bond)
+
+
 
     def break_bond_between_atoms(self, atom_1, atom_2):
         """
