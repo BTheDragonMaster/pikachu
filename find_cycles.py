@@ -5,6 +5,64 @@
 from collections import OrderedDict, defaultdict
 import copy
 
+
+def check_aromatic(atom_set):
+    aromatic = True
+    for atom in atom_set:
+        if atom.hybridisation == 'sp2':
+            pass
+        else:
+            aromatic = False
+            break
+
+    if aromatic:
+        pi_electron_nr = 0
+        for atom in atom_set:
+            for orbital_name in atom.valence_shell.orbitals:
+                orbital = atom.valence_shell.orbitals[orbital_name]
+                if orbital.orbital_type == 'p':
+                    for electron in orbital.electrons:
+                        if electron.atom == atom:
+                            pi_electron_nr += 1
+
+        if not pi_electron_nr % 4 == 2:
+            aromatic = False
+
+    return aromatic
+
+
+def check_five_ring(atom_set):
+    assert len(atom_set) == 5
+
+    sp2_hybridised = []
+    sp3_hybridised_lone_pair = []
+
+    aromatic = False
+    heteroatom = None
+
+    for atom in atom_set:
+        if atom.hybridisation == 'sp2':
+            sp2_hybridised.append(atom)
+        elif atom.hybridisation == 'sp3':
+            if atom.calc_electron_pair_nr() > 0:
+                sp3_hybridised_lone_pair.append(atom)
+
+    if len(sp2_hybridised) == 4 and len(sp3_hybridised_lone_pair) == 1:
+
+        pi_electron_nr = 0
+        for atom in sp2_hybridised:
+            for orbital_name in atom.valence_shell.orbitals:
+                orbital = atom.valence_shell.orbitals[orbital_name]
+                if orbital.orbital_type == 'p':
+                    for electron in orbital.electrons:
+                        if electron.atom == atom:
+                            pi_electron_nr += 1
+            if pi_electron_nr % 4 == 0:
+                aromatic = True
+                heteroatom = sp3_hybridised_lone_pair[0]
+
+    return aromatic, heteroatom
+
 def is_reverse_cycle(cycle_1, cycle_2):
     reversed_2 = list(reversed(cycle_2))
 
@@ -192,66 +250,69 @@ class Cycles():
 
     def find_cyclic_systems(self):
         working_graph = copy.deepcopy(self)
-        new_graphs = []
-        working_graph.make_bond_nr_dict()
-        
 
-        working_graph.remove_connectors()
+        if working_graph.graph:
+            new_graphs = []
+            working_graph.make_bond_nr_dict()
 
-        start_node = list(working_graph.graph.keys())[0]
+            working_graph.remove_connectors()
 
-        paths_collection = []
-        paths = []
+            start_node = list(working_graph.graph.keys())[0]
 
-        while start_node:
-            path = working_graph.find_a_path(start_node)
-            paths.append(path)
+            paths_collection = []
+            paths = []
 
-            potential_start_nodes = working_graph.find_start_nodes(paths)
+            while start_node:
+                path = working_graph.find_a_path(start_node)
+                paths.append(path)
 
-            try:
-                start_node = potential_start_nodes[0]
-                
-            except IndexError:
-                paths_collection.append(paths)
-                paths = []
-                potential_start_nodes = working_graph.find_new_start_node()
-                
-                
+                potential_start_nodes = working_graph.find_start_nodes(paths)
+
                 try:
                     start_node = potential_start_nodes[0]
-                    
+
                 except IndexError:
                     paths_collection.append(paths)
-                    start_node = None
-                
-        for paths in paths_collection:
-            if paths:
-                new_graph = working_graph.put_paths_in_graph(paths)
-                new_graphs.append(new_graph)
+                    paths = []
+                    potential_start_nodes = working_graph.find_new_start_node()
 
-        #add back connectors
+                    try:
+                        start_node = potential_start_nodes[0]
 
-        for new_graph in new_graphs:
-            for node in new_graph:
-                new_graph[node] = self.graph[node]
+                    except IndexError:
+                        paths_collection.append(paths)
+                        start_node = None
 
-        #Add lone atoms
-        if working_graph.graph:
-            for atom in working_graph.graph:
-                new_graph = {atom: []}
-                if new_graph not in new_graphs:
+            for paths in paths_collection:
+                if paths:
+                    new_graph = working_graph.put_paths_in_graph(paths)
                     new_graphs.append(new_graph)
 
-        new_cycles = []
+            # add back connectors
 
+            for new_graph in new_graphs:
+                for node in new_graph:
+                    new_graph[node] = self.graph[node]
 
-        for new_graph in new_graphs:
-            new_cycle = set([])
-            for cycle in new_graph.keys():
-                for atom in cycle:
-                    new_cycle.add(atom)
-            new_cycles.append(tuple(new_cycle))
+            # Add lone atoms
+            if working_graph.graph:
+                for atom in working_graph.graph:
+                    new_graph = {atom: []}
+                    if new_graph not in new_graphs:
+                        new_graphs.append(new_graph)
+
+            new_cycles = []
+
+            for new_graph in new_graphs:
+                new_cycle = set([])
+                for cycle in new_graph.keys():
+                    for atom in cycle:
+                        new_cycle.add(atom)
+                new_cycles.append(tuple(new_cycle))
+
+        else:
+            new_cycles = []
+
 
         return new_cycles
 

@@ -156,6 +156,11 @@ class BondProperties:
         the number of p orbitals involved in the formation of that bond
     """
 
+    type_to_dash2d_input = {'single': 1,
+                            'double': 2,
+                            'triple': 3,
+                            'quadruple': 4}
+
     bond_type_to_weight = {'single': 1,
                            'double': 2,
                            'triple': 3,
@@ -383,7 +388,32 @@ class Structure:
 
     def graph_to_smiles(self):
         pass
-        
+
+    def to_dash_molecule2d_input(self):
+        nodes = {}
+        links = {}
+
+        kekulised_structure = self.kekulise()
+
+        for atom in kekulised_structure.graph:
+            atom_dict = {}
+            atom_dict['id'] = atom.nr
+            atom_dict['atom'] = atom.type
+            nodes.append(atom_dict)
+
+        for bond_nr, bond in kekulised_structure.bonds.items():
+            bond_dict = {}
+
+            bond_dict['id'] = bond_nr
+            bond_dict['source'] = bond.atom_1
+            bond_dict['target'] = bond.atom_2
+            bond_dict['bond'] = BOND_PROPERTIES.type_to_dash2d_input[bond.type]
+            links.append(bond_dict)
+
+        dash_molecule2d_input = {'nodes': nodes, 'links': links}
+        return dash_molecule2d_input
+
+
 
     def get_atom_representations(self):
         atoms = sorted(self.graph.keys())
@@ -555,6 +585,23 @@ class Structure:
                 heteroatom.promote_lone_pair_to_p_orbital()
                 if heteroatom.type == 'N':
                     heteroatom.pyrrole = True
+
+    def find_aromatic_cycles(self):
+        """
+        Returns cycles that are aromatic
+
+        Output
+        ------
+        aromatic_cycles: list of [[Atom, ->], ->], with each list of
+            atoms the atoms that comprise an aromatic cycle
+
+        """
+        aromatic_cycles = []
+        for cycle in self.cycles.unique_cycles:
+            if check_aromatic(cycle):
+                aromatic_cycles.append(cycle)
+
+        return aromatic_cycles
                 
     def find_aromatic_systems(self):
         """
@@ -567,14 +614,10 @@ class Structure:
         """
         
         ring_systems = self.cycles.find_cyclic_systems()
-        print(ring_systems)
-        print(self.cycles.unique_cycles)
         aromatic_ring_systems = []
         for ring_system in ring_systems:
             if check_aromatic(ring_system):
                 aromatic_ring_systems.append(ring_system)
-
-        print(aromatic_ring_systems)
 
         return aromatic_ring_systems
 
@@ -610,7 +653,9 @@ class Structure:
         self.find_cycles()
         self.promote_electrons_in_five_rings()
         aromatic_systems = self.find_aromatic_systems()
+        aromatic_cycles = self.find_aromatic_cycles()
         self.set_bonds_to_aromatic(aromatic_systems)
+        self.set_bonds_to_aromatic(aromatic_cycles)
 
     def remove_bond_between_atoms(self, atom_1, atom_2):
         bond = self.bond_lookup[atom_1][atom_2]
@@ -1794,6 +1839,7 @@ class RingSystem():
 
 class Bond:
     bond_types = {'single', 'double', 'triple', 'quadruple', 'aromatic', 'ionic', 'dummy'}
+
     
                  
     def __init__(self, atom_1, atom_2, bond_type, bond_nr):
@@ -1830,6 +1876,8 @@ class Bond:
     def __repr__(self):
         return f'{self.type}_{self.nr}:{self.atom_1}_{self.atom_2}'
 
+
+
     def set_double_bond_chirality(self, atom_1, atom_2, orientation):
 
         self.chiral_dict = {}
@@ -1842,6 +1890,12 @@ class Bond:
                 side_1 = atom
             elif atom_2 in atom.neighbours:
                 side_2 = atom
+
+        print("bond neighbours", self.neighbours)
+        print("atom 1", atom_1)
+        print("atom 2", atom_2)
+        print("atom neighbours", self.neighbours[0].neighbours)
+        print("atom neighbours", self.neighbours[1].neighbours)
 
         atom_1_2 = None
         atom_2_2 = None
@@ -3252,7 +3306,15 @@ class Smiles():
                     if double_chiral_active_dict[branch_level]:
                         last_double_bond, last_double_bond_index = last_double_bond_dict[branch_level]
 
-                        chiral_double_bond_dict[last_double_bond]['atom 2'] = atom_2
+
+                        atom_1_double_bond = chiral_double_bond_dict[last_double_bond]['atom 1']
+                        last_double_bond_object = structure.bonds[last_double_bond]
+                        print(last_double_bond_object)
+                        #checks if the current and previous atoms are adjacent to the same double bond
+                        if len(set(structure.graph[atom_1_double_bond]).intersection(set(last_double_bond_object.neighbours))) > 0:
+
+                            chiral_double_bond_dict[last_double_bond]['atom 2'] = atom_2
+
                         double_chiral_active_dict[branch_level] = False
                 except KeyError:
                     pass
@@ -3683,10 +3745,20 @@ class Smiles():
 if __name__ == "__main__":
     smiles = 'CCCCC'
     structure_1 = Smiles(smiles).smiles_to_structure()
-    pprint(structure_1.graph)
+
     structure_2 = Smiles('CC').smiles_to_structure()
     matches = structure_1.find_substructures(structure_2)
     print(matches)
+
+    smiles = 'C/C=C/C=C/C=C/C=C/C'
+    smiles = 'C\C=C/C=CC=C/C=C\C'
+    structure_3 = Smiles(smiles).smiles_to_structure()
+    pprint(structure_3.graph)
+    for bond_nr, bond in structure_3.bonds.items():
+        if bond.chiral:
+            print(bond.nr, bond.atom_1, bond.atom_2)
+            print(bond.chiral_dict)
+
 
  #   graph = build_graph()
 #    print(graph.nodes)

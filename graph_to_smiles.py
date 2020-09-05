@@ -154,6 +154,7 @@ class GraphToSmiles:
         self.atom_to_index = {}
         self.cycle_nr_to_atoms = {}
         self.atom_to_cycle_nr = {}
+        self.bonds_to_index = {}
 
         is_branched = {}
         cycle_nr = 0
@@ -193,9 +194,10 @@ class GraphToSmiles:
                 bond_type = working_graph.bond_lookup[current_atom][next_atom].type
                 bond_symbol = pikachu.BOND_PROPERTIES.bond_type_to_symbol[bond_type]
 
+                if bond_type == 'single' and current_atom.aromatic and next_atom.aromatic:
+                    bond_symbol = '-'
+
                 if cyclic:
-
-
 
                     if bond_symbol:
                         cyclic_label_idx_1 = self.atom_to_index[next_atom]
@@ -488,10 +490,12 @@ if __name__ == "__main__":
     smiles = 'c12ccccc1cccc2'
  #   smiles = 'c1ccccc1'
     smiles = 'C1=CC=C(C=C1)C[C@@H](C(=O)O)N'
- #   smiles = 'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
- #   smiles = 'CCCCCCCCCC(=O)NC(CC1=CNC2=CC=CC=C21)C(=O)NC(CC(=O)N)C(=O)NC(CC(=O)O)C(=O)NC3C(OC(=O)C(NC(=O)C(NC(=O)C(NC(=O)CNC(=O)C(NC(=O)C(NC(=O)C(NC(=O)C(NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)C(C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
+    smiles = 'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
+  #  smiles = 'CCCCCCCCCC(=O)NC(CC1=CNC2=CC=CC=C21)C(=O)NC(CC(=O)N)C(=O)NC(CC(=O)O)C(=O)NC3C(OC(=O)C(NC(=O)C(NC(=O)C(NC(=O)CNC(=O)C(NC(=O)C(NC(=O)C(NC(=O)C(NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)C(C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
     smiles = 'CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O'
   #  smiles = 'CN1CCC23C4C1CC5=C2C(=C(C=C5)O)OC3C(C=C4)O'
+#    smiles = 'c1ccccc1-c2ccccc2'
+    smiles = "C12=C3C4=C5C6=C1C7=C8C9=C1C%10=C%11C(=C29)C3=C2C3=C4C4=C5C5=C9C6=C7C6=C7C8=C1C1=C8C%10=C%10C%11=C2C2=C3C3=C4C4=C5C5=C%11C%12=C(C6=C95)C7=C1C1=C%12C5=C%11C4=C3C3=C5C(=C81)C%10=C23"
     structure = pikachu.Smiles(smiles).smiles_to_structure()
     collapsed_structure = GraphToSmiles(structure)
  #   pprint(collapsed_structure.collapsed_graph)
