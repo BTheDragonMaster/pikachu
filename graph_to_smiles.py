@@ -147,6 +147,23 @@ class GraphToSmiles:
                 chiral_centre_index = self.atom_to_index[atom]
                 self.components[chiral_centre_index] = self.components[chiral_centre_index].replace('X', chiral_symbol)
 
+    def get_branch_levels(self):
+        atom_to_branch = []
+        index_to_atom = {}
+        for atom, index in atom_to_index.items():
+            atom_to_branch[atom] = None
+            index_to_atom[index] = atom
+
+
+        branch = 0
+        for i, component in enumerate(self.components):
+            if component == '(':
+                branch += 1
+            elif component == ')':
+                branch -= 1
+            else:
+                if i in index_to_atom:
+                    atom = index_to_atom[i]
 
 
     def make_smiles_components(self):
@@ -495,7 +512,7 @@ if __name__ == "__main__":
     smiles = 'CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O'
   #  smiles = 'CN1CCC23C4C1CC5=C2C(=C(C=C5)O)OC3C(C=C4)O'
 #    smiles = 'c1ccccc1-c2ccccc2'
-    smiles = "C12=C3C4=C5C6=C1C7=C8C9=C1C%10=C%11C(=C29)C3=C2C3=C4C4=C5C5=C9C6=C7C6=C7C8=C1C1=C8C%10=C%10C%11=C2C2=C3C3=C4C4=C5C5=C%11C%12=C(C6=C95)C7=C1C1=C%12C5=C%11C4=C3C3=C5C(=C81)C%10=C23"
+  #  smiles = "C12=C3C4=C5C6=C1C7=C8C9=C1C%10=C%11C(=C29)C3=C2C3=C4C4=C5C5=C9C6=C7C6=C7C8=C1C1=C8C%10=C%10C%11=C2C2=C3C3=C4C4=C5C5=C%11C%12=C(C6=C95)C7=C1C1=C%12C5=C%11C4=C3C3=C5C(=C81)C%10=C23"
     structure = pikachu.Smiles(smiles).smiles_to_structure()
     collapsed_structure = GraphToSmiles(structure)
  #   pprint(collapsed_structure.collapsed_graph)
@@ -505,6 +522,13 @@ if __name__ == "__main__":
 #    pprint(collapsed_structure.simplified_graph)
 #    pprint(collapsed_structure.representations)
 #    pprint(collapsed_structure.node_to_edge_dict)
+
+    smiles = 'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
+    smiles = 'c1ccc2c(c1)c(c[nH]2)C[C@@H](C(=O)O)N'
+    structure = pikachu.Smiles(smiles).smiles_to_structure()
+    kekule_structure = structure.kekulise()
+    GraphToSmiles(kekule_structure)
+    GraphToSmiles(structure)
     
     
 
