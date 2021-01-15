@@ -5,7 +5,7 @@ import copy
 from sssr import SSSR
 import pikachu
 from rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
-
+from math_functions import Vector, add_vectors, subtract_vectors
 
 class Drawer:
     def __init__(self, structure, options=None):
@@ -63,12 +63,85 @@ class Drawer:
             if not previous_atom:
                 dummy = Vector(self.options.bond_length, 0)
                 dummy.rotate(-60)
+
                 atom.draw.previous_position = dummy
+                atom.draw.set_position(Vector(self.options.bond_length, 0))
+                atom.draw.angle = -60
+
+                if atom.draw.bridged_ring == None:
+                    atom.draw.positioned = True
+
+            elif len(previous_atom.draw.rings) > 0:
+                neighbours = previous_atom.neighbours
+                joined_vertex = None
+                position = Vector(0, 0)
+
+                if previous_atom.draw.bridged_ring == None and len(previous_atom.draw.rings) > 1:
+                    for neighbour in neighbours:
+                        if len(set(neighbour.draw.rings) & set(previous_atom.draw.rings)) == len(previous_atom.draw.rings):
+                            joined_vertex = neighbour
+                            break
+
+                if not joined_vertex:
+                    for neighbour in neighbours:
+                        if neighbour.draw.positioned and self.atoms_are_in_same_ring(neighbour, previous_atom):
+                            position.add(Vector.subtract_vectors(neighbour.draw.position, previous_atom.draw.position))
+
+                    position.invert()
+                    position.normalise()
+                    position.multiply_by_scalar(self.options.bond_length)
+                    position.add(previous_atom.position)
+
+                else:
+
+                    position = joined_vertex.copy()
+                    position.rotate_around_vector(180, previous_atom.draw.position)
+
+                atom.draw.previous_position = previous_atom.position
+                atom.draw.set_position(position)
+                atom.draw.positioned = True
+
+            else:
+                position = Vector(self.options.bond_length, 0)
+                position.rotate(angle)
+                position.add(previous_atom.position)
+
+                atom.set_position(position)
+                atom.previous_position = previous_atom.position
+                atom.positioned = True
+
+        if atom.draw.bridged_ring != None:
+            next_ring = self.id_to_ring(atom.draw.bridged_ring)
+
+            if not next_ring.positioned:
+                next_center = Vector.subtract_vectors(atom.draw.previous_position, atom.draw.position)
+                next_center.invert()
+                next_center.normalise()
+                scalar = Polygon.find_polygon_radius(self.options.bond_length, len(next_ring.members))
+
+                next_center.multiply_by_scalar(scalar)
+                next_center.add(atom.draw.position)
+
+                self.create_ring(next_ring, next_center, atom)
+
+    def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
+        if ring.positioned:
+            return
+
+        if center == None:
+            center = Vector(0, 0)
+
+        ordered_neighbours = ring.get_ordered_neighbours(self.ring_overlaps)
 
 
 
 
-
+    def atoms_are_in_same_ring(self, atom_1, atom_2):
+        for ring_id_1 in atom_1.draw.rings:
+            for ring_id_2 in atom_2.draw.rings:
+                if ring_id_1 == ring_id_2:
+                    return True
+        return False
 
     def define_rings(self):
         rings = SSSR(self.structure).get_rings()
@@ -165,7 +238,7 @@ class Drawer:
         leftovers = set()
 
         for atom in atoms:
-            intersect = involved_ring_ids.intersection(atom.draw.rings)
+            intersect = involved_ring_ids & atom.draw.rings
 
             if len(atom.draw.rings) == 1 or len(intersect) == 1:
                 ring_members.add(atom)

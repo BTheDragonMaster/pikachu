@@ -29,6 +29,19 @@ class Ring:
     def __repr__(self):
         return str(self.id) + ' ' + '-'.join([atom.__repr__() for atom in self.members])
 
+    def get_ordered_neighbours(self, ring_overlaps):
+        ordered_neighbours_and_atom_nrs = []
+
+        for neighbour_id in self.neighbouring_rings:
+            atoms = RingOverlap.get_vertices(ring_overlaps, self.id, neighbour_id)
+            ordered_neighbours_and_atom_nrs.append((len(atoms), neighbour_id))
+
+        ordered_neighbours_and_atom_nrs = sorted(ordered_neighbours_and_atom_nrs, key=lambda x: x[0], reverse=True)
+        ordered_neighbours = [x[1] for x in ordered_neighbours_and_atom_nrs]
+
+        return ordered_neighbours
+
+
 class RingOverlap:
     def __init__(self, ring_1, ring_2):
         self.id = None
@@ -69,6 +82,14 @@ class RingOverlap:
                 return True
 
         return False
+
+    @staticmethod
+    def get_vertices(ring_overlaps, ring_id_1, ring_id_2):
+        for ring_overlap in ring_overlaps:
+            if (ring_overlap.ring_id_1 == ring_id_1 and ring_overlap.ring_id_2 == ring_id_2) or\
+                    (ring_overlap.ring_id_1 == ring_id_2 and ring_overlap.ring_id_2 == ring_id_1):
+                return ring_overlap.atoms
+
 
 
 

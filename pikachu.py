@@ -3,6 +3,7 @@ from pprint import pprint
 import copy
 from collections import OrderedDict, defaultdict
 import find_cycles
+from math_functions import *
 from math import sqrt
 
 
@@ -10,6 +11,7 @@ from typing import *
 from dataclasses import dataclass
 import sys
 sys.setrecursionlimit(100000)
+
 
 def read_smiles(smiles_string):
     smiles = Smiles(smiles_string)
@@ -2641,7 +2643,10 @@ class Atom:
         self.draw = AtomDrawProperties()
         
     def __eq__(self, atom):
-        return self.nr == atom.nr
+        if type(atom) == Atom:
+            return self.nr == atom.nr
+        else:
+            return False
 
     def __hash__(self):
         return self.nr
@@ -4100,7 +4105,7 @@ class Match:
 #=============================================================================
 
 class AtomDrawProperties:
-    def __init__(self):
+    def __init__(self, x=0, y=0):
         self.rings = []
         self.original_rings = []
         self.ring_anchors = set()
@@ -4110,7 +4115,13 @@ class AtomDrawProperties:
         self.is_drawn = True
         self.has_hydrogen = False
         self.positioned = False
-        self.previous_position = None
+        self.previous_position = Vector(0, 0)
+        self.position = Vector(x, y)
+        self.angle = None
+
+    def set_position(self, vector):
+        self.position = vector
+
 
 
 if __name__ == "__main__":
