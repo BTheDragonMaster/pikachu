@@ -2638,7 +2638,7 @@ class Atom:
         self.charge = charge
         self.pyrrole = False
         self.shells = {}
-        
+        self.draw = AtomDrawProperties()
         
     def __eq__(self, atom):
         return self.nr == atom.nr
@@ -4098,7 +4098,20 @@ class Match:
 
 
 #=============================================================================
-        
+
+class AtomDrawProperties:
+    def __init__(self):
+        self.rings = []
+        self.original_rings = []
+        self.ring_anchors = set()
+        self.is_bridge_atom = False
+        self.is_bridge = False
+        self.bridged_ring = None
+        self.is_drawn = True
+        self.has_hydrogen = False
+        self.positioned = False
+        self.previous_position = None
+
 
 if __name__ == "__main__":
     smiles = 'CCCCC'
@@ -4132,5 +4145,7 @@ if __name__ == "__main__":
 
 #    nx.draw(graph)
 #    plt.show()
+
+
     
         
