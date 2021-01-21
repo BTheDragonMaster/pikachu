@@ -4,8 +4,8 @@ import math
 
 class Vector:
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
+        self.x = float(x)
+        self.y = float(y)
 
     def __repr__(self):
         return str(self.x) + ', ' + str(self.y)
@@ -33,11 +33,18 @@ class Vector:
         self.x = self.x * -1
         self.y = self.y * -1
 
+    def divide(self, scalar):
+        self.x = self.x / scalar
+        self.y = self.y / scalar
+
     def normalise(self):
         self.divide(self.length())
 
+    def angle(self):
+        return math.degrees(math.atan2(self.y, self.x))
+
     def length(self):
-        return math.sqrt((self.x^2) + (self.y^2))
+        return math.sqrt((self.x**2) + (self.y**2))
 
     def divide(self, scalar):
         self.x = self.x / scalar
@@ -71,6 +78,20 @@ class Vector:
         y = vector_1.y + vector_2.y
         return Vector(x, y)
 
+    @staticmethod
+    def get_midpoint(vector_1, vector_2):
+        x = (vector_1.x + vector_2.x) / 2
+        y = (vector_1.y + vector_2.y) / 2
+
+        return Vector(x, y)
+
+    @staticmethod
+    def get_normals(vector_1, vector_2):
+        delta = Vector.subtract_vectors(vector_2, vector_1)
+
+        return [Vector(-delta.y, delta.x), Vector(delta.y, -delta.x)]
+
+
 class Polygon:
     def __init__(self, edge_number):
         self.edge_number = edge_number
@@ -78,6 +99,10 @@ class Polygon:
     @staticmethod
     def find_polygon_radius(edge_length, edge_number):
         return edge_length / (2 * math.sin(math.pi / edge_number))
+
+    @staticmethod
+    def get_central_angle(edge_number):
+        return float(360) / edge_number
 
 
 if __name__ == "__main__":

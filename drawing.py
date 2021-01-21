@@ -5,7 +5,253 @@ import copy
 from sssr import SSSR
 import pikachu
 from rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
-from math_functions import Vector, add_vectors, subtract_vectors
+from math_functions import Vector, Polygon
+import math
+
+class KKLayout:
+
+    def __init__(self, structure, atoms, center, start_atom, bond_length,
+                 threshold=0.1, inner_threshold=0.1, max_iteration=2000,
+                 max_inner_iteration=50, max_energy=1e9):
+        self.structure = structure
+        self.atoms = atoms
+        self.center = center
+        self.start_atom = start_atom
+        self.edge_strength = bond_length
+        self.threshold = threshold
+        self.inner_threshold = inner_threshold
+        self.max_iteration = max_iteration
+        self.max_inner_iteration = max_inner_iteration
+        self.max_energy = max_energy
+
+        self.initialise_matrices()
+        self.get_kk_layout()
+
+    def initialise_matrices(self):
+
+        self.distance_matrix = self.get_subgraph_distance_matrix(self.atoms)
+        length = len(self.atoms)
+
+        radius = Polygon.find_polygon_radius(500, length)
+        angle = Polygon.get_central_angle(length)
+
+        a = 0.0
+
+        self.x_positions = {}
+        self.y_positions = {}
+        self.positioned = {}
+
+        for atom in self.atoms:
+            if not atom.draw.positioned:
+                self.x_positions[atom] = center.x + math.cos(a) * radius
+                self.y_positions[atom] = center.y + math.sin(a) * radius
+            else:
+                self.x_positions[atom] = atom.draw.position.x
+                self.y_positions[atom] = atom.draw.position.y
+
+            self.positioned[atom] = atom.draw.positioned
+            a += angle
+
+        self.length_matrix = {}
+        self.spring_strengths = {}
+        self.energy_matrix = {}
+
+        self.energy_sums_x = {}
+        self.energy_sums_y = {}
+
+        for atom_1 in self.atoms:
+            self.length_matrix[atom_1] = {}
+            self.spring_strengths[atom_1] = {}
+            self.energy_matrix[atom_1] = {}
+
+            self.energy_sums_x[atom_1] = None
+            self.energy_sums_y[atom_1] = None
+
+            for atom_2 in self.atoms:
+                self.length_matrix[atom_1][atom_2] = self.edge_strength * self.distance_matrix[atom_1][atom_2]
+                self.spring_strengths[atom_1][atom_2] = self.edge_strength * self.distance_matrix[atom_1][atom_2] ** -2.0
+                self.energy_matrix[atom_1][atom_2] = None
+
+        for atom_1 in self.atoms:
+            ux = self.x_positions[atom_1]
+            uy = self.y_positions[atom_1]
+            d_ex = 0.0
+            d_ey = 0.0
+
+            for atom_2 in self.atoms:
+
+                vx = self.x_positions[atom_2]
+                vy = self.y_positions[atom_2]
+
+                denom = 1.0 / math.sqrt((ux - vx) ** 2 + (uy - vy) ** 2)
+
+                self.energy_matrix[atom_1][atom_2] = (self.spring_strengths[atom_1][atom_2] * ((ux - vx) - self.length_matrix[atom_1][atom_2] * (ux - vx) * denom),
+                                                      self.spring_strengths[atom_1][atom_2] * ((uy - vy) - self.length_matrix[atom_1][atom_2] * (uy - vy) * denom))
+
+                self.energy_matrix[atom_2][atom_1] = self.energy_matrix[atom_1][atom_2]
+
+                d_ex += self.energy_matrix[atom_1][atom_2][0]
+                d_ey += self.energy_matrix[atom_1][atom_2][1]
+
+            self.energy_sums_x[atom_1] = d_ex
+            self.energy_sums_y[atom_1] = d_ey
+
+
+    def get_kk_layout(self):
+        iteration = 0
+
+        while self.max_energy > self.threshold and self.max_iteration > iteration:
+            iteration += 1
+            max_energy_atom, max_energy, d_ex, d_ey = self.highest_energy()
+            delta = max_energy
+            inner_iteration = 0
+
+            while delta > self.inner_threshold and self.max_inner_iteration > inner_iteration:
+                inner_iteration += 1
+                self.update(max_energy_atom, d_ex, d_ey)
+                delta, d_ex, d_ey = energy(max_energy_atom)
+
+        for atom in atoms:
+            atom.draw.position.x = self.x_positions[atom]
+            atom.draw.position.y = self.y_positions[atom]
+            atom.draw.positioned = True
+            atom.draw.force_positioned = True
+
+    def energy(self, atom):
+        energy = [self.energy_sums_x[atom]**2 + self.energy_sums_y[atom]**2, self.energy_sums_x[atom], self.energy_sums_y[atom]]
+        return energy
+
+    def highest_energy(self):
+        max_energy = 0.0
+        max_energy_atom = None
+        max_d_ex = 0.0
+        max_d_ey = 0.0
+
+        for atom in self.atoms:
+            delta, d_ex, d_ey = self.energy(atom)
+
+            if delta > max_energy and self.positioned[atom] == False:
+                max_energy = delta
+                max_energy_atom = atom
+                max_d_ex = d_ex
+                max_d_ey = d_ey
+
+        return max_energy_atom, max_energy, max_d_ex, max_d_ey
+
+    def update(self, atom, d_ex, d_ey):
+        dxx = 0.0
+        dyy = 0.0
+        dxy = 0.0
+
+        ux = self.x_positions[atom]
+        uy = self.y_positions[atom]
+
+        lengths_array = self.length_matrix[atom]
+        strengths_array = self.spring_strengths[atom]
+
+        for atom_2 in self.atoms:
+            if atom == atom_2:
+                continue
+
+            vx = self.x_positions[atom_2]
+            vy = self.y_positions[atom_2]
+
+            length = lengths_array[atom_2]
+            strength = strengths_array[atom_2]
+
+            squared_xdiff = (ux - vx) ** 2
+            squared_ydiff = (uy - vy) ** 2
+
+            denom = 1.0 / (squared_xdiff * squared_ydiff) ** 1.5
+
+            dxx += strength * (1 - length * squared_ydiff * denom)
+            dyy += strength * (1 - length * squared_xdiff * denom)
+            dxy += strength * (length * (ux - vx) * (uy - vy) * denom)
+
+        if dxx == 0:
+            dxx = 0.1
+
+        if dyy == 0:
+            dyy = 0.1
+
+        if dxy == 0:
+            dxy = 0.1
+
+        dy = (d_ex / dxx + d_ey / dxy) / (dxy / dxx - dyy / dxy)
+        dx = -(dxy * dy + d_ex) / dxx
+
+        self.x_positions[atom] += dx
+        self.y_positions[atom] += dy
+
+        d_ex = 0.0
+        d_ey = 0.0
+
+        ux = self.x_positions[atom]
+        uy = self.y_positions[atom]
+
+        for atom_2 in self.atoms:
+            if atom == atom_2:
+                continue
+
+            vx = self.x_positions[atom_2]
+            vy = self.y_positions[atom_2]
+
+            previous_ex = self.energy_matrix[atom][atom_2][0]
+            previous_ey = self.energy_matrix[atom][atom_2][1]
+
+            denom = 1.0 / math.sqrt((ux - vx) ** 2 + (uy - vy) ** 2)
+            dx = strengths_array[atom_2] * ((ux - vx) - lengths_array[atom_2] * (ux - vx) * denom)
+            dy = strengths_array[atom_2] * ((uy - vy) - lengths_array[atom_2] * (uy - vy) * denom)
+
+            self.energy_matrix[atom][atom_2] = [dx, dy]
+
+            d_ex += dx
+            d_ey += dy
+
+            self.energy_sums_x += dx - previous_ex
+            self.energy_sums_y += dy - previous_ey
+
+        self.energy_sums_x = d_ex
+        self.energy_sums_y = d_ey
+
+
+    def get_subgraph_distance_matrix(self, atoms):
+        adjacency_matrix = self.get_subgraph_adjacency_matrix(atoms)
+        distance_matrix = {}
+
+        for atom_1 in atoms:
+            for atom_2 in atoms:
+                distance_matrix[atom_1][atom_2] = float('inf')
+                if adjacency_matrix[atom_1][atom_2] == 1:
+                    distance_matrix[atom_1][atom_2] = 1
+
+
+        for atom_1 in atoms:
+            for atom_2 in atoms:
+                for atom_3 in atoms:
+                    if distance_matrix[atom_2][atom_3] > distance_matrix[atom_2][atom_1] + distance_matrix[atom_1][atom_3]:
+                        distance_matrix[atom_2][atom_3] = distance_matrix[atom_2][atom_1] + distance_matrix[atom_1][atom_3]
+
+        return distance_matrix
+
+    def get_subgraph_adjacency_matrix(self, atoms):
+        adjacency_matrix = {}
+
+        for atom_1 in atoms:
+            adjacency_matrix[atom_1] = {}
+            for atom_2 in atoms:
+                adjacency_matrix[atom_1][atom_2] = 0
+
+        for atom_1 in atoms:
+            for atom_2 in atoms:
+                if atom_1 != atom_2:
+                    if atom_1 in self.structure.bond_lookup[atom_2]:
+                        adjacency_matrix[atom_1][atom_2] = 1
+
+        return adjacency_matrix
+
+
+
 
 class Drawer:
     def __init__(self, structure, options=None):
@@ -131,7 +377,77 @@ class Drawer:
         if center == None:
             center = Vector(0, 0)
 
-        ordered_neighbours = ring.get_ordered_neighbours(self.ring_overlaps)
+        ordered_neighbour_ids = ring.get_ordered_neighbours(self.ring_overlaps)
+        starting_angle = 0
+
+        if start_atom:
+            starting_angle = Vector.subtract_vectors(start_atom.position, center).angle()
+
+        ring_size = len(ring.members)
+
+        radius = Polygon.find_polygon_radius(self.options.bond_length, ring_size)
+        angle = Polygon.get_central_angle(ring_size)
+
+        ring.central_angle = angle
+
+        if start_atom not in ring.members:
+            if start_atom:
+                start_atom.positioned = False
+            start_atom = ring.members[0]
+
+        if ring.bridged:
+            KKLayout(self.structure, ring.members, center, start_atom,
+                     self.options.bond_length, self.options.kk_threshold, self.options.kk_inner_threshold,
+                     self.options.kk_max_inner_iteration, self.options.kk_max_inner_iteration,
+                     self.kk_max_energy)
+            ring.positioned = True
+
+            self.set_ring_center(ring)
+            center = ring.center
+
+            for subring in ring.subrings:
+                self.set_ring_center(subring)
+        else:
+            ring.set_member_positions(self.structure, start_atom, previous_atom)
+
+        ring.positioned = True
+        ring.center = center
+
+        for neighbour_id in ordered_neighbour_ids:
+            neighbour = self.id_to_ring(neighbour_id)
+            if neighbour.positioned:
+                continue
+
+            atoms = RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id)
+
+            if len(atoms == 2):
+                #This ring is fused
+                ring.fused = True
+                neighbour.fused = True
+
+                atom_1 = atoms[0]
+                atom_2 = atoms[1]
+
+                midpoint = Vector.get_midpoint(atom_1.draw.position, atom_2.draw.position)
+                normals = Vector.get_normals(atom_1.draw.position, atom_2.draw.position)
+
+                normals[0].normalise()
+                normals[1].normalise()
+
+
+    def set_ring_center(self, ring):
+        total = Vector(0, 0)
+        for atom in ring.members:
+            total.add(atom.draw.position)
+
+        ring.center = total.divide(len(ring.members))
+
+
+
+
+
+
+
 
 
 
@@ -203,7 +519,7 @@ class Drawer:
 
             neighbour = atom.neighbours[0]
             neighbour.draw.has_hydrogen = True
-            if not neighbour.chiral or (len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None) or\
+            if not neighbour.chiral or (len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None) or \
                     (neighbour.draw.bridged_ring != None and len(neighbour.draw.original_rings) < 2):
                 atom.draw.is_drawn = False
                 hidden.append(atom)
@@ -217,7 +533,7 @@ class Drawer:
 
         for neighbour_id in ring.neighbouring_rings:
             if neighbour_id not in involved_ring_ids and neighbour_id != ring_id and \
-                rings_connected_by_bridge(self.ring_overlaps, ring_id, neighbour_id):
+                    rings_connected_by_bridge(self.ring_overlaps, ring_id, neighbour_id):
                 self.get_bridged_ring_subrings(neighbour_id, involved_ring_ids)
 
     def create_bridged_ring(self, involved_ring_ids):
@@ -372,6 +688,11 @@ class Options:
         self.padding = 20
         self.font_size_large = 5
         self.font_size_small = 3
+        self.kk_threshold = 0.1
+        self.kk_inner_threshold = 0.1
+        self.kk_max_iteration = 2000
+        self.kk_max_inner_iteration = 50
+        self.kk_max_energy = 1e9
 
 
 if __name__ == "__main__":

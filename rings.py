@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import pikachu
-from sssr import SSSR
+from math_functions import Vector
+import math
 
 class Ring:
     def __init__(self, members):
@@ -11,7 +11,7 @@ class Ring:
         self.inside_vertices = []
         self.neighbouring_rings = []
         self.positioned = False
-        self.center = (0, 0)
+        self.center = Vector(0, 0)
         self.subrings = []
         self.bridged = False
         self.subring_of_bridged = False
@@ -37,9 +37,39 @@ class Ring:
             ordered_neighbours_and_atom_nrs.append((len(atoms), neighbour_id))
 
         ordered_neighbours_and_atom_nrs = sorted(ordered_neighbours_and_atom_nrs, key=lambda x: x[0], reverse=True)
-        ordered_neighbours = [x[1] for x in ordered_neighbours_and_atom_nrs]
+        ordered_neighbour_ids = [x[1] for x in ordered_neighbours_and_atom_nrs]
 
-        return ordered_neighbours
+        return ordered_neighbour_ids
+
+    def set_member_positions(self, structure, start_atom, previous_atom, center, a, radius, angle):
+        current_atom = start_atom
+        iteration = 0
+
+        while current_atom != None and iteration < 100:
+            previous = current_atom
+
+            if not previous.draw.positioned:
+                x = center.x + math.cos(math.radians(a)) * radius
+                y = center.y + math.sin(math.radians(a)) * radius
+                previous.draw.set_position(Vector(x, y))
+
+            a += angle
+
+            if not self.is_bridged or len(self.subrings) < 3:
+                previous.draw.angle = a
+                previous.positioned = True
+
+            current_atom = structure.get_next_in_ring(self, current_atom, previous_atom)
+            previous_atom = previous
+
+            if current_atom == start_atom:
+                current_atom = None
+
+            iteration += 1
+
+
+
+
 
 
 class RingOverlap:
@@ -82,6 +112,7 @@ class RingOverlap:
                 return True
 
         return False
+
 
     @staticmethod
     def get_vertices(ring_overlaps, ring_id_1, ring_id_2):

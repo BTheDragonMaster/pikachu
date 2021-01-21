@@ -394,8 +394,16 @@ class Structure:
         else:
             self.bond_lookup = {}
 
-    def graph_to_smiles(self):
-        pass
+    def get_next_in_ring(self, ring, current_atom, previous_atom):
+        neighbours = self.graph[current_atom]
+
+        for neighbour in neighbours:
+            for member in ring.members:
+                if neighbour == member:
+                    if previous_atom != neighbour:
+                        return neighbour
+
+        return None
 
     def to_dash_molecule2d_input(self):
         nodes = []
@@ -1906,6 +1914,10 @@ class Structure:
                 start_nodes.append(atom)
 
         return start_nodes
+
+
+
+
 
 class WorkingStructure(Structure):
     def __init__(self, graph = {}, bonds = {}):
@@ -4118,6 +4130,7 @@ class AtomDrawProperties:
         self.previous_position = Vector(0, 0)
         self.position = Vector(x, y)
         self.angle = None
+        self.force_positioned = False
 
     def set_position(self, vector):
         self.position = vector
