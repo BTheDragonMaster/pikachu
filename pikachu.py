@@ -1967,6 +1967,8 @@ class Bond:
         else:
             self.cbond = 0.1
 
+        self.draw = BondDrawProperties()
+
     def __eq__(self, bond):
         return self.nr == bond.nr
 
@@ -2736,6 +2738,15 @@ class Atom:
         for neighbour in self.neighbours:
             if neighbour.type != 'H':
                 self.order += 1
+
+    def get_drawn_neighbours(self):
+        drawn_neighbours = []
+        for neighbour in self.neighbours:
+            if neighbour.draw.is_drawn:
+                drawn_neighbours.append(neighbour)
+
+        return drawn_neighbours
+
             
             
 
@@ -4131,9 +4142,28 @@ class AtomDrawProperties:
         self.position = Vector(x, y)
         self.angle = None
         self.force_positioned = False
+        self.connected_to_ring = False
+        self.draw_explicit = False
+        self.previous_atom = None
 
     def set_position(self, vector):
         self.position = vector
+
+    def set_previous_position(self, previous_atom):
+        self.previous_position = previous_atom.previous_position
+        self.previous_atom = previous_atom
+
+    def get_angle(self, reference_vector=None):
+        if not reference_vector:
+            vector = Vector.subtract_vectors(self.position, self.previous_position)
+        else:
+            vector = Vector.subtract_vectors(self.position, reference_vector)
+
+        return vector.angle()
+
+class BondDrawProperties:
+    def __init__(self):
+        self.center = False
 
 
 
@@ -4159,6 +4189,18 @@ if __name__ == "__main__":
     structure = Smiles(smiles).smiles_to_structure()
     print(structure.to_dash_molecule2d_input())
     kekule_structure = structure.kekulise()
+
+    structure = read_smiles('F/C=C(C)/N')
+    for bond_nr, bond in structure.bonds.items():
+        if bond.type == 'double':
+            pprint(bond.chiral_dict)
+
+    print('\n')
+
+    structure = read_smiles('F/C=C(/C)N')
+    for bond_nr, bond in structure.bonds.items():
+        if bond.type == 'double':
+            pprint(bond.chiral_dict)
 
 
 

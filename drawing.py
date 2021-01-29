@@ -299,7 +299,7 @@ class Drawer:
         self.create_next_bond(start_atom, None, 0.0)
 
     def create_next_bond(self, atom, previous_atom = None, angle = 0.0,
-                         origin_is_shortest = False, skip_positioning = False):
+                         previous_branch_shortest = False, skip_positioning = False):
         if atom.draw.positioned and not skip_positioning:
             return
 
@@ -311,6 +311,7 @@ class Drawer:
                 dummy.rotate(-60)
 
                 atom.draw.previous_position = dummy
+                atom.draw.previous_atom = None
                 atom.draw.set_position(Vector(self.options.bond_length, 0))
                 atom.draw.angle = -60
 
@@ -343,7 +344,7 @@ class Drawer:
                     position = joined_vertex.copy()
                     position.rotate_around_vector(180, previous_atom.draw.position)
 
-                atom.draw.previous_position = previous_atom.position
+                atom.draw.set_previous_position(previous_atom)
                 atom.draw.set_position(position)
                 atom.draw.positioned = True
 
@@ -352,9 +353,9 @@ class Drawer:
                 position.rotate(angle)
                 position.add(previous_atom.position)
 
-                atom.set_position(position)
-                atom.previous_position = previous_atom.position
-                atom.positioned = True
+                atom.draw.set_position(position)
+                atom.draw.set_previous_position(previous_atom)
+                atom.draw.positioned = True
 
         if atom.draw.bridged_ring != None:
             next_ring = self.id_to_ring(atom.draw.bridged_ring)
@@ -369,6 +370,215 @@ class Drawer:
                 next_center.add(atom.draw.position)
 
                 self.create_ring(next_ring, next_center, atom)
+
+        elif len(atom.draw.rings) > 0:
+            next_ring = self.id_to_ring(atom.draw.rings[0])
+
+            if not next_ring.positioned:
+                next_center = Vector.subtract_vectors(atom.draw.previous_position, atom.draw.position)
+                next_center.invert()
+                next_center.normalise()
+
+                radius = Polygon.find_polygon_radius(self.options.bond_length, len(next_ring.members))
+
+                next_center.multiply_by_scalar(radius)
+                next_center.add(atom.position)
+
+                self.create_ring(next_ring, next_center, vertex)
+
+        else:
+            neighbours = atom.get_drawn_neighbours()
+
+            if previous_atom:
+                if previous_atom in neighbours:
+                    neighbours.remove(previous_atom)
+
+            previous_angle = atom.get_angle()
+
+            if len(neighbours) == 1:
+                next_atom = neighbours[0]
+
+                current_bond = self.structure.bond_lookup[atom][next_atom]
+                previous_bond = None
+
+                if previous_atom:
+                    previous_bond = self.structure.bond_lookup[previous_atom][atom]
+
+
+                if current_bond.type == 'triple' or previous_bond.type == 'triple' or \
+                        (current_bond.type == 'double' and previous_bond.type == 'double' and
+                         previous_atom and len(previous_atom.draw.rings) == 0):
+                    #shouldn't this be true?
+                    atom.draw.draw_explicit = False
+
+                    if previous_atom:
+                        previous_bond.draw.center = True
+
+                    current_bond.draw.center = True
+
+                    if current_bond.type == 'triple' or (previous_atom and previous_bond.type == 'triple'):
+                        next_atom.draw.angle = 0.0
+
+                    next_atom.draw.draw_explicit = True
+
+                    self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
+
+                elif previous_atom and len(previous_atom.draw.rings) > 0:
+                    proposed_angle_1 = 60
+                    proposed_angle_2 = -60
+
+                    proposed_vector_1 = Vector(self.options.bond_length, 0)
+                    proposed_vector_2 = Vector(self.options.bond_length, 0)
+
+                    proposed_vector_1.rotate(proposed_angle_1).add(atom.draw.position)
+                    proposed_vector_2.rotate(proposed_angle_2).add(atom.draw.position)
+
+                    centre_of_mass = self.get_current_centre_of_mass()
+                    distance_1 = proposed_vector_1.get_squared_distance(centre_of_mass)
+                    distance_2 = proposed_vector_2.get_squared_distance(centre_of_mass)
+
+                    if distance_1 < distance_2:
+                        next_atom.draw.angle = proposed_angle_2
+                    else:
+                        next_atom.draw.angle = proposed_angle_1
+
+                    self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
+
+                else:
+                    a = atom.draw.angle
+
+                    if previous_atom and len(previous_atom.neighbours) > 3:
+                        if a > 0:
+                            a = min([60, a])
+                        elif a < 0:
+                            a = max([-60, a])
+                        else:
+                            a = 60
+
+                    elif a == None:
+                        last_angled_atom = self.get_last_atom_with_angle(atom)
+                        a = last_angled_atom.angle
+
+                        if a == None:
+                            #NOT DONE HERE
+                            a = 60
+
+                    if previous_atom:
+                        bond = self.structure.bond_lookup[previous_atom][atom]
+                        if bond.type == 'double' and bond.chiral:
+                            previous_previous_atom = previous_atom.draw.previous_atom
+                            if previous_previous_atom:
+                                configuration = bond.chiral_dict[previous_previous_atom][next_atom]
+                                if configuration == 'cis':
+                                    a = -a
+
+                    if previous_branch_shortest:
+                        next_atom.draw.angle = a
+                    else:
+                        next_atom.draw.angle = -a
+
+                    self.create_next_bond(next_atom, atom, previous_angle + next_atom.angle)
+
+            elif len(neighbours) == 2:
+                a = atom.draw.angle
+                if a == None:
+                    a = 60
+
+                neighbour_1, neighbour_2 = neighbours
+
+
+
+                subgraph_1_size = self.get_subgraph_size(neighbour_1, atom)
+                subgraph_2_size = self.get_subgraph_size(neighbour_2, atom)
+
+                if previous_atom:
+
+                    subgraph_3_size = self.get_subgraph_size(previous_atom, atom)
+
+                else:
+                    subgraph_3_size = 0
+
+
+                cis_atom_index = 0
+                trans_atom_index = 1
+
+                if neighbour_2.type == 'C' and neighbour_1.type != 'C' and subgraph_2_size > 1 and subgraph_1_size < 5:
+                    cis_atom_index = 1
+                    trans_atom_index = 0
+
+                elif neighbour_2.type != 'C' and neighbour_1.type == 'C' and subgraph_1_size > 1 and subgraph_2_size < 5:
+                    cis_atom_index = 0
+                    trans_atom_index = 1
+
+                elif subgraph_2_size > subgraph_1_size:
+                    cis_atom_index = 1
+                    trans_atom_index = 0
+
+                cis_atom = neighbours[cis_atom_index]
+                trans_atom = neighbours[trans_atom_index]
+
+                cis_edge = self.structure.bond_lookup[cis_atom][atom]
+                trans_edge = self.structure.bond_lookup[trans_atom][atom]
+
+                previous_branch_shortest = False
+
+                if subgraph_3_size < subgraph_2_size and subgraph_3_size < subgraph_1_size:
+                    previous_branch_shortest = True
+
+                trans_atom.draw.angle = a
+                cis_atom.draw.angle = -a
+
+                cis_bond = self.structure.bond_lookup[atom][cis_atom]
+                trans_bond = self.structure.bond_lookup[atom][trans_atom]
+
+                if cis_bond.type == 'double':
+                    if cis_bond.chiral and previous_atom:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def get_subgraph_size(self, atom, masked_atom):
+        seen_atoms = {masked_atom, atom}
+
+        for neighbour in atom.get_drawn_neighbours():
+            if neighbour not in seen_atoms:
+                self.get_subgraph_size(neighbour, seen_atoms)
+
+        return len(seen_atoms) - 1
+
+
+    def get_last_atom_with_angle(self, atom):
+        angle = None
+
+        parent_atom = atom.draw.previous_atom
+
+        while parent_atom and angle == None:
+            parent_atom = atom.draw.previous_atom
+            angle = parent_atom.draw.angle
+
+        return parent_atom
+
+
+
 
     def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
         if ring.positioned:
@@ -420,7 +630,7 @@ class Drawer:
 
             atoms = RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id)
 
-            if len(atoms == 2):
+            if len(atoms) == 2:
                 #This ring is fused
                 ring.fused = True
                 neighbour.fused = True
@@ -434,6 +644,57 @@ class Drawer:
                 normals[0].normalise()
                 normals[1].normalise()
 
+                apothem = Polygon.get_apothem_from_side_length(self.options.bond_length,
+                                                               len(neighbour.members))
+
+                normals[0].multiply_by_scalar(apothem).add(midpoint)
+                normals[1].multiply_by_scalar(apothem).add(midpoint)
+
+                next_center = normals[0]
+
+                distance_to_center_1 = Vector.subtract_vectors(center, normals[0]).get_squared_length()
+                distance_to_center_2 = Vector.subtract_vectors(center, normals[1]).get_squared_length()
+
+                if distance_to_center_2 > distance_to_center_1:
+                    next_center = normals[1]
+
+                position_1 = Vector.subtract_vectors(atom_1.draw.position, next_center)
+                position_2 = Vector.subtract_vectors(atom_2.draw.position, next_center)
+
+                if position_1.get_clockwise_orientation(position_2) == 'clockwise':
+                    if not neighbour.positioned:
+                        self.create_ring(neighbour, next_center, atom_1, atom_2)
+
+                else:
+                    if not neighbour.positioned:
+                        self.create_ring(neighbour, next_center, atom_2, atom_1)
+
+            elif len(atoms) == 1:
+                #This ring is a spiro
+                ring.spiro = True
+                neighbour.spiro = True
+
+                atom = atoms[0]
+                next_center = Vector.subtract_vectors(center, atom.draw.position)
+
+                next_center.invert()
+                next_center.normalise()
+
+                distance_to_center = Polygon.find_polygon_radius(self.options.bond_length, len(neighbour.members))
+                next_center.multiply_by_scalar(distance_to_center)
+                next_center.add(atom.draw.position)
+
+                if not neighbour.positioned:
+                    self.create_ring(neighbour, next_center, atom)
+
+        for atom in ring.members:
+            for neighbour in atom.neighbours:
+                if neighbour.positioned:
+                    continue
+
+                atom.draw.connected_to_ring = True
+                self.create_next_bond(neighbour, atom, 0.0)
+
 
     def set_ring_center(self, ring):
         total = Vector(0, 0)
@@ -441,6 +702,17 @@ class Drawer:
             total.add(atom.draw.position)
 
         ring.center = total.divide(len(ring.members))
+
+    def get_current_centre_of_mass(self):
+        total = Vector(0, 0)
+        count = 0
+
+        for atom in self.structure.graph:
+            if atom.draw.positioned:
+                total.add(atom.draw.position)
+                count += 1
+
+        return total.divide(count)
 
 
 
@@ -509,6 +781,7 @@ class Drawer:
             for involved_ring_id in involved_ring_ids:
                 involved_ring = self.id_to_ring[involved_ring_id]
                 self.remove_ring(involved_ring)
+
 
     def hide_hydrogens(self):
         hidden = []

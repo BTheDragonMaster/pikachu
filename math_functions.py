@@ -46,10 +46,6 @@ class Vector:
     def length(self):
         return math.sqrt((self.x**2) + (self.y**2))
 
-    def divide(self, scalar):
-        self.x = self.x / scalar
-        self.y = self.y / scalar
-
     def multiply_by_scalar(self, scalar):
         self.x = self.x * scalar
         self.y = self.y * scalar
@@ -65,6 +61,23 @@ class Vector:
 
         self.x = x + vector.x
         self.y = y + vector.y
+
+    def get_squared_length(self):
+        return self.x ** 2 + self.y ** 2
+
+    def get_squared_distance(self, vector):
+        return (vector.x - self.x) ** 2 + (vector.y - self.y) ** 2
+
+    def get_clockwise_orientation(self, vector):
+        a = self.y * vector.x
+        b = self.x * vector.y
+
+        if a > b:
+            return 'clockwise'
+        elif a == b:
+            return 'neutral'
+        else:
+            return 'counterclockwise'
 
     @staticmethod
     def subtract_vectors(vector_1, vector_2):
@@ -103,6 +116,15 @@ class Polygon:
     @staticmethod
     def get_central_angle(edge_number):
         return float(360) / edge_number
+
+    @staticmethod
+    def get_apothem(radius, edge_number):
+        return radius * math.cos(math.pi / edge_number)
+
+    @staticmethod
+    def get_apothem_from_side_length(length, edge_number):
+        radius = Polygon.find_polygon_radius(length, edge_number)
+        return Polygon.get_apothem(radius, edge_number)
 
 
 if __name__ == "__main__":
