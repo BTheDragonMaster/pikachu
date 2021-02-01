@@ -131,7 +131,7 @@ if __name__ == "__main__":
     vector_1 = Vector(1, 0)
     vector_2 = Vector(0, 5)
 
-    print(Vector.subtract(vector_1, vector_2))
+    print(Vector.subtract_vectors(vector_1, vector_2))
     print(vector_1)
 
 
@@ -140,6 +140,8 @@ if __name__ == "__main__":
 
     print(vector_1.subtract(vector_2))
     print(vector_1)
+
+
 
 
 

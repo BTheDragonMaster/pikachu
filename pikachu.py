@@ -3416,22 +3416,20 @@ class Smiles():
                     pyrrole = False
 
                 #Keep track of atoms surrounding chiral double bonds
-                try:
+                if branch_level in double_chiral_active_dict:
                     if double_chiral_active_dict[branch_level]:
                         last_double_bond, last_double_bond_index = last_double_bond_dict[branch_level]
 
 
                         atom_1_double_bond = chiral_double_bond_dict[last_double_bond]['atom 1']
                         last_double_bond_object = structure.bonds[last_double_bond]
-                        print(last_double_bond_object)
                         #checks if the current and previous atoms are adjacent to the same double bond
                         if len(set(structure.graph[atom_1_double_bond]).intersection(set(last_double_bond_object.neighbours))) > 0:
 
                             chiral_double_bond_dict[last_double_bond]['atom 2'] = atom_2
 
                         double_chiral_active_dict[branch_level] = False
-                except KeyError:
-                    pass
+
                     
                 for i in range(hydrogens):
                     atom_nr += 1
@@ -4185,12 +4183,14 @@ if __name__ == "__main__":
             print(bond.chiral_dict)
 
     smiles = 'C1=CC=C2C(=C1)C(=CN2)C[C@@H](C(=O)O)N'
-   # smiles = 'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
+    smiles = 'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
     structure = Smiles(smiles).smiles_to_structure()
-    print(structure.to_dash_molecule2d_input())
+    #print(structure.to_dash_molecule2d_input())
+    pprint(structure.bond_lookup)
+    exit()
     kekule_structure = structure.kekulise()
 
-    structure = read_smiles('F/C=C(C)/N')
+    structure = read_smiles('F/C=C(C)\\N')
     for bond_nr, bond in structure.bonds.items():
         if bond.type == 'double':
             pprint(bond.chiral_dict)
@@ -4201,6 +4201,7 @@ if __name__ == "__main__":
     for bond_nr, bond in structure.bonds.items():
         if bond.type == 'double':
             pprint(bond.chiral_dict)
+
 
 
 
