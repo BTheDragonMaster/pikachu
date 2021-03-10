@@ -5,6 +5,7 @@ from collections import OrderedDict, defaultdict
 import find_cycles
 from math_functions import *
 from math import sqrt
+from pikachu_errors import SmilesError
 
 
 from typing import *
@@ -14,8 +15,13 @@ sys.setrecursionlimit(100000)
 
 
 def read_smiles(smiles_string):
-    smiles = Smiles(smiles_string)
-    structure = smiles.smiles_to_structure()
+    try:
+        smiles = Smiles(smiles_string)
+        structure = smiles.smiles_to_structure()
+    except SmilesError as e:
+        print(f'Error parsing "{smiles_string}": {e.message}')
+        exit()
+
     return structure
 
 def compare_matches(match_1, match_2):
@@ -430,6 +436,148 @@ class Structure:
         dash_molecule2d_input = {'nodes': nodes, 'links': links}
         return dash_molecule2d_input
 
+    def set_double_bond_chirality(self):
+
+        for bond_nr, bond in self.bonds.items():
+
+            #iterate over all double bonds
+
+            if bond.type == 'double' or bond.type == 'triple':
+
+                #double bonds can only be chiral if they have exactly three bonds
+
+                if len(bond.atom_1.bonds) == 3 and len(bond.atom_2.bonds) == 3:
+                    print(bond.atom_1, bond.atom_2)
+
+                    #define atoms adjacent to the atoms involved in the double bond
+                    #also keep track of the chiral symbol that defines these bonds
+
+                    atom_1_1 = None
+                    atom_1_2 = None
+                    chiral_1_1 = None
+                    chiral_1_2 = None
+
+                    atom_2_1 = None
+                    atom_2_2 = None
+                    chiral_2_1 = None
+                    chiral_2_2 = None
+
+                    for bond_1 in bond.atom_1.bonds:
+
+
+                        if bond_1.type == 'single':
+                            if bond.atom_1 == bond_1.atom_1:
+                                if not atom_1_1:
+                                    atom_1_1 = bond_1.atom_2
+                                    chiral_1_1 = bond_1.chiral_symbol
+                                else:
+                                    atom_1_2 = bond_1.atom_2
+                                    chiral_1_2 = bond_1.chiral_symbol
+                            elif bond.atom_1 == bond_1.atom_2:
+                                if not atom_1_1:
+                                    atom_1_1 = bond_1.atom_1
+                                    chiral_1_1 = bond_1.chiral_symbol
+                                else:
+                                    atom_1_2 = bond_1.atom_1
+                                    chiral_1_2 = bond_1.chiral_symbol
+
+
+
+                            print(chiral_1_1)
+                            print(chiral_1_2)
+
+                    for bond_2 in bond.atom_2.bonds:
+
+                        if bond_2.type == 'single':
+                            if bond.atom_2 == bond_2.atom_1:
+                                if not atom_2_1:
+                                    atom_2_1 = bond_2.atom_2
+                                    chiral_2_1 = bond_2.chiral_symbol
+                                else:
+                                    atom_2_2 = bond_2.atom_2
+                                    chiral_2_2 = bond_2.chiral_symbol
+                            elif bond.atom_2 == bond_2.atom_2:
+                                if not atom_2_1:
+                                    atom_2_1 = bond_2.atom_1
+                                    chiral_2_1 = bond_2.chiral_symbol
+                                else:
+                                    atom_2_2 = bond_2.atom_1
+                                    chiral_2_2 = bond_2.chiral_symbol
+
+                            print(chiral_2_1)
+                            print(chiral_2_2)
+
+                    print('\n')
+
+                    chiral_1 = False
+                    chiral_2 = False
+
+                    if chiral_1_1 or chiral_1_2:
+                        chiral_1 = True
+
+                    if chiral_2_1 or chiral_2_2:
+                        chiral_2 = True
+
+                    if chiral_1 and chiral_2:
+                        if chiral_1_1 == chiral_1_2:
+                            raise SmilesError('chiral double bond')
+                        if chiral_2_2 == chiral_2_1:
+                            raise SmilesError('chiral double bond')
+
+                        first_atom = None
+                        second_atom = None
+
+                        if chiral_1_1:
+                            first_atom = atom_1_1
+                            first_other_atom = atom_1_2
+                            first_chiral_symbol = chiral_1_1
+
+                        else:
+                            first_atom = atom_1_2
+                            first_other_atom = atom_1_1
+                            first_chiral_symbol = chiral_1_2
+
+                        if chiral_2_1:
+                            second_atom = atom_2_1
+                            second_other_atom = atom_2_2
+                            second_chiral_symbol = chiral_2_1
+                        else:
+                            second_atom = atom_2_2
+                            second_other_atom = atom_2_1
+                            second_chiral_symbol = chiral_2_2
+
+                        bond.chiral_dict[first_atom] = {}
+                        bond.chiral_dict[first_other_atom] = {}
+                        bond.chiral_dict[second_atom] = {}
+                        bond.chiral_dict[second_other_atom] = {}
+
+                        if first_chiral_symbol == second_chiral_symbol:
+                            bond.chiral_dict[first_atom][second_atom] = 'trans'
+                            bond.chiral_dict[second_atom][first_atom] = 'trans'
+
+                            bond.chiral_dict[first_other_atom][second_other_atom] = 'trans'
+                            bond.chiral_dict[second_other_atom][first_other_atom] = 'trans'
+
+                            bond.chiral_dict[first_atom][second_other_atom] = 'cis'
+                            bond.chiral_dict[second_other_atom][first_atom] = 'cis'
+
+                            bond.chiral_dict[first_other_atom][second_atom] = 'cis'
+                            bond.chiral_dict[second_atom][first_other_atom] = 'cis'
+
+                        else:
+                            bond.chiral_dict[first_atom][second_atom] = 'cis'
+                            bond.chiral_dict[second_atom][first_atom] = 'cis'
+
+                            bond.chiral_dict[first_other_atom][second_other_atom] = 'cis'
+                            bond.chiral_dict[second_other_atom][first_other_atom] = 'cis'
+
+                            bond.chiral_dict[first_atom][second_other_atom] = 'trans'
+                            bond.chiral_dict[second_other_atom][first_atom] = 'trans'
+
+                            bond.chiral_dict[first_other_atom][second_atom] = 'trans'
+                            bond.chiral_dict[second_atom][first_other_atom] = 'trans'
+
+                        bond.chiral = True
 
 
     def get_atom_representations(self):
@@ -584,6 +732,8 @@ class Structure:
         for i, neighbour in enumerate(neighbours):
             next_bond_nr = self.find_next_bond_nr()
             self.make_bond(atom, neighbour, next_bond_nr)
+
+        return atom
 
     def find_cycles(self):
         """
@@ -1294,7 +1444,7 @@ class Structure:
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond
 
-    def add_bond(self, atom_1, atom_2, bond_type, bond_nr):
+    def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:
             self.graph[atom_1].append(atom_2)
         else:
@@ -1306,6 +1456,8 @@ class Structure:
             self.graph[atom_2] = [atom_1]
 
         bond = Bond(atom_1, atom_2, bond_type, bond_nr)
+
+        bond.chiral_symbol = chiral_symbol
         
         atom_1.add_bond(bond)
         atom_2.add_bond(bond)
@@ -1950,6 +2102,8 @@ class Bond:
         self.atom_2 = atoms[1]
         self.neighbours = atoms
 
+        self.chiral_symbol = None
+
         assert bond_type in self.bond_types
         
         self.type = bond_type
@@ -1960,6 +2114,7 @@ class Bond:
         self.electrons = []
 
         self.chiral = False
+        self.chiral_dict = {}
 
         if self.type == 'dummy':
             self.cbond = 0.3
@@ -1977,66 +2132,6 @@ class Bond:
 
     def __repr__(self):
         return f'{self.type}_{self.nr}:{self.atom_1}_{self.atom_2}'
-
-
-
-    def set_double_bond_chirality(self, atom_1, atom_2, orientation):
-
-        self.chiral_dict = {}
-        
-        self.orientation = orientation
-        side_1 = None
-        side_2 = None
-        for atom in self.neighbours:
-            if atom_1 in atom.neighbours:
-                side_1 = atom
-            elif atom_2 in atom.neighbours:
-                side_2 = atom
-
-        print("bond neighbours", self.neighbours)
-        print("atom 1", atom_1)
-        print("atom 2", atom_2)
-        print("atom neighbours", self.neighbours[0].neighbours)
-        print("atom neighbours", self.neighbours[1].neighbours)
-
-        atom_1_2 = None
-        atom_2_2 = None
-
-        for atom in side_1.neighbours:
-            if atom != side_2 and atom != atom_1:
-                atom_1_2 = atom
-
-        for atom in side_2.neighbours:
-            if atom != side_1 and atom != atom_2:
-                atom_2_2 = atom
-
-        self.chiral_dict[atom_1] = {}
-        self.chiral_dict[atom_2] = {}
-        self.chiral_dict[atom_1_2] = {}
-        self.chiral_dict[atom_2_2] = {}
-
-        opposite_orientation = None
-        
-        if orientation == 'cis':
-            opposite_orientation = 'trans'
-        elif orientation == 'trans':
-            opposite_orientation = 'cis'
-        else:
-            raise Exception("Double bond orientation must be cis or trans!")
-
-        self.chiral_dict[atom_1][atom_2] = orientation
-        self.chiral_dict[atom_1][atom_2_2] = opposite_orientation
-        
-        self.chiral_dict[atom_2][atom_1] = orientation
-        self.chiral_dict[atom_2][atom_1_2] = opposite_orientation
-        
-        self.chiral_dict[atom_1_2][atom_2] = opposite_orientation
-        self.chiral_dict[atom_1_2][atom_2_2] = orientation
-        
-        self.chiral_dict[atom_2_2][atom_1] = opposite_orientation
-        self.chiral_dict[atom_2_2][atom_1_2] = orientation
-
-        self.chiral = True
 
     def make_aromatic(self):
         self.type = 'aromatic'
@@ -3262,7 +3357,6 @@ def make_character_dict() -> Dict[str, str]:
     character_dict['/'] = 'chiral_double_bond'
     character_dict['#'] = 'triple_bond'
     character_dict['$'] = 'quadruple_bond'
-    character_dict[':'] = 'aromatic'
     character_dict['.'] = 'split'
     character_dict['-'] = 'single_bond'
     character_dict[':'] = 'aromatic_bond'
@@ -3334,6 +3428,13 @@ class Smiles():
 
     def smiles_to_structure(self):
 
+        bond_labels = {'single_bond',
+                       'double_bond',
+                       'triple_bond',
+                       'quadruple_bond',
+                       'chiral_double_bond',
+                       'aromatic_bond'}
+
         structure = Structure()
 
         #Keeps track of the layer of brackets the atom is in
@@ -3346,15 +3447,10 @@ class Smiles():
         #Keeps track of the last atom encountered per branch level
         last_atoms_dict = {0: None}
 
-        #Keeps track of the last double bond encountered, and the last bond chirality marker associated with it
-        last_double_chiral_dict = {0: None}
-        last_double_bond_dict = {0: None}
-        double_chiral_active_dict = {0: False}
-        chiral_atoms_1_double = {0: None}
-
 
         #Keeps track of the nature of the bond
         bond_type = 'single'
+        bond_chiral_symbol = None
 
         #Keeps track of chiral centres
         chiral_dict = {}
@@ -3374,6 +3470,19 @@ class Smiles():
                 explicit = True
             else:
                 label = self.character_dict[component]
+
+            if label in bond_labels:
+                try:
+                    next_component = self.components[i + 1]
+                    if next_component[0] == '[':
+                        next_label = 'atom'
+                    else:
+                        next_label = self.character_dict[next_component]
+
+                    if next_label != 'atom' and next_label != 'cyclic':
+                        raise SmilesError('bond')
+                except IndexError:
+                    raise SmilesError('bond')
 
             if label == 'split':
                 #Starts disconnected structure; set everything back to default
@@ -3415,21 +3524,6 @@ class Smiles():
                     atom_2.pyrrole = True
                     pyrrole = False
 
-                #Keep track of atoms surrounding chiral double bonds
-                if branch_level in double_chiral_active_dict:
-                    if double_chiral_active_dict[branch_level]:
-                        last_double_bond, last_double_bond_index = last_double_bond_dict[branch_level]
-
-
-                        atom_1_double_bond = chiral_double_bond_dict[last_double_bond]['atom 1']
-                        last_double_bond_object = structure.bonds[last_double_bond]
-                        #checks if the current and previous atoms are adjacent to the same double bond
-                        if len(set(structure.graph[atom_1_double_bond]).intersection(set(last_double_bond_object.neighbours))) > 0:
-
-                            chiral_double_bond_dict[last_double_bond]['atom 2'] = atom_2
-
-                        double_chiral_active_dict[branch_level] = False
-
                     
                 for i in range(hydrogens):
                     atom_nr += 1
@@ -3459,10 +3553,11 @@ class Smiles():
                             bond_type = 'aromatic'
                         else:
                             bond_type = 'single'
+
+                    if bond_type == 'single_chiral':
+                        bond_type = 'single'
                         
-                    structure.add_bond(atom_1, atom_2, bond_type, bond_nr)
-                    if bond_type == 'double' or bond_type == 'triple':
-                        last_double_bond_dict[branch_level] = (bond_nr, i)
+                    structure.add_bond(atom_1, atom_2, bond_type, bond_nr, bond_chiral_symbol)
                     
 
                     if atom_1.chiral:
@@ -3476,6 +3571,7 @@ class Smiles():
                             chiral_dict[atom_2].append(hydrogen)
 
                     bond_type = 'single'
+                    bond_chiral_symbol = None
 
                             
                             
@@ -3556,25 +3652,10 @@ class Smiles():
                         chiral_dict[atom_2].append(atom_1)
 
                     bond_type = 'single'
+
             elif label == 'chiral_double_bond':
-                if branch_level in last_double_chiral_dict and last_double_chiral_dict[branch_level]:
-                    last_chiral_sign, last_chiral_index = last_double_chiral_dict[branch_level]
-                    last_double_bond, last_double_bond_index = last_double_bond_dict[branch_level]
-                    if last_chiral_sign and (last_chiral_index < last_double_bond_index):
-                        if last_chiral_sign == component:
-                            orientation = 'trans'
-                        else:
-                            orientation = 'cis'
-                            
-                        chiral_double_bond_dict[last_double_bond] = {}
-                        chiral_double_bond_dict[last_double_bond]['orientation'] = orientation
-                        chiral_double_bond_dict[last_double_bond]['atom 1'] = chiral_atoms_1_double[branch_level]
-
-                        double_chiral_active_dict[branch_level] = True
-
-
-                last_double_chiral_dict[branch_level] = (component, i)
-                chiral_atoms_1_double[branch_level] = last_atoms_dict[branch_level]
+                bond_type = 'single_chiral'
+                bond_chiral_symbol = component
 
 
         for atom in chiral_dict:
@@ -3589,18 +3670,11 @@ class Smiles():
 
         structure.refine_structure()
 
-        for double_bond in chiral_double_bond_dict:
-            bond = structure.bonds[double_bond]
-            orientation = chiral_double_bond_dict[double_bond]['orientation']
-            atom_1 = chiral_double_bond_dict[double_bond]['atom 1']
-            if 'atom 2' in chiral_double_bond_dict[double_bond]:
-                atom_2 = chiral_double_bond_dict[double_bond]['atom 2']
-                bond.set_double_bond_chirality(atom_1, atom_2, orientation)
-
-        
+        structure.set_double_bond_chirality()
 
         return structure
-    
+
+
 
     def kekulize(self) -> str:
         """Return kekulized smiles from smiles.
@@ -4187,20 +4261,30 @@ if __name__ == "__main__":
     structure = Smiles(smiles).smiles_to_structure()
     #print(structure.to_dash_molecule2d_input())
     pprint(structure.bond_lookup)
-    exit()
+
     kekule_structure = structure.kekulise()
 
-    structure = read_smiles('F/C=C(C)\\N')
+    structure = read_smiles('F/C=C(C)/N')
     for bond_nr, bond in structure.bonds.items():
         if bond.type == 'double':
             pprint(bond.chiral_dict)
 
     print('\n')
 
-    structure = read_smiles('F/C=C(/C)N')
+    structure = read_smiles('F/C=C(/C)\\N')
     for bond_nr, bond in structure.bonds.items():
         if bond.type == 'double':
             pprint(bond.chiral_dict)
+
+    structure = read_smiles("C1C=CC=CC=1")
+    for bond_nr, bond in structure.bonds.items():
+        print(bond)
+
+    structure = read_smiles('F/C=C/(C)\\N')
+    for bond_nr, bond in structure.bonds.items():
+        if bond.type == 'double':
+            pprint(bond.chiral_dict)
+
 
 
 

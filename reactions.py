@@ -42,7 +42,7 @@ def do_hydrolysis(product, bond, heteroatom, other_atom):
     
     product.break_bond_by_nr(bond)
 
-    product.add_atom('O', [other_atom])
+    oxygen = product.add_atom('O', [other_atom])
     product.add_atom('H', [oxygen])
     product.add_atom('H', [heteroatom])
     
