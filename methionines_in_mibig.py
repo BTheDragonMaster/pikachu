@@ -24,10 +24,17 @@ def parse_compound_file(compound_dir):
 def find_methionines(bgc_to_compound_to_smiles):
     for bgc, compound_to_smiles in bgc_to_compound_to_smiles.items():
         for compound, smiles in compound_to_smiles.items():
-            print(smiles)
-            structure = pikachu.read_smiles(smiles)
-            matches = structure.find_substructures(MET_STRUCTURE, check_chiral_centres=False, check_chiral_double_bonds=False)
-            print(matches)
+            smiles = smiles.strip()
+            try:
+                structure = pikachu.read_smiles(smiles)
+            except Exception as e:
+                print(compound)
+                print(smiles)
+                print(e)
+            if structure:
+                matches = structure.find_substructures(MET_STRUCTURE, check_chiral_centres=False, check_chiral_double_bonds=False)
+                if matches:
+                    print(f"Match for methionine in {compound}, {bgc}.")
 
 if __name__ == "__main__":
     compound_dict = parse_compound_file(argv[1])
