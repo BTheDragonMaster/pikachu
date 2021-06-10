@@ -141,14 +141,10 @@ def check_same_chirality(atom_1, atom_2, match):
         else:
             equivalent_atom_list.append(match[atom])
 
-    print(equivalent_atom_list)
-    print(atom_2.neighbours)
-
     permutation = equivalent_atom_list[:]
 
     if len(equivalent_atom_list) != 4:
         lone_pairs = atom_2.lone_pairs
-        print(lone_pairs)
 
         try:
             assert len(equivalent_atom_list) + len(lone_pairs) == 4
@@ -159,7 +155,6 @@ def check_same_chirality(atom_1, atom_2, match):
 
     chiral_permutations = get_chiral_permutations(permutation)
 
-    print(chiral_permutations)
 
     if atom_1.chiral == atom_2.chiral:
         if tuple(permutation) in chiral_permutations:
@@ -262,7 +257,8 @@ class AtomProperties:
                            'H': [1],
                            'I': [1, 7],
                            'Na': [1],
-                           '*': 1}
+                           'Fe': [2, 3],
+                           '*': [1]}
 
     element_to_atomic_nr = {'H': 1,
                             'He': 2,
@@ -363,7 +359,9 @@ class AtomProperties:
                            'Cl': 3,
                            'Br': 4,
                            'I': 5,
-                           'Na': 3}
+                           'Na': 3,
+                           'Fe': 4,
+                           '*': 1}
 
     shell_to_electron_nr = {1: 2,
                             2: 8,
@@ -567,11 +565,9 @@ class Structure:
 
                     if chiral_1 and chiral_2:
                         if chiral_1_1 == chiral_1_2:
-                            print(bond)
 
                             raise SmilesError('chiral double bond')
                         if chiral_2_2 == chiral_2_1:
-                            print(bond)
 
                             raise SmilesError('chiral double bond')
 
@@ -1238,11 +1234,17 @@ class Structure:
         connectivities = sorted(list(atom_connectivities_child.keys()),
                                 key = lambda x: len(set(x)), reverse = True)
 
-        starting_connectivity = connectivities[0]
-        starting_atom = atom_connectivities_child[starting_connectivity][0]
-        
-        seeds = atom_connectivities_parent[starting_connectivity]
         matches = []
+
+        starting_connectivity = connectivities[0]
+
+        starting_atom = atom_connectivities_child[starting_connectivity][0]
+
+        seeds = []
+
+        for atom in atom_connectivities_parent[starting_connectivity]:
+            if atom.type == starting_atom.type:
+                seeds.append(atom)
 
         for seed in seeds:
 
@@ -1372,8 +1374,20 @@ class Structure:
                 atom.hybridise()
 
     def add_hydrogens(self):
-        max_atom_nr = max([atom.nr for atom in self.graph])
-        max_bond_nr = max(list(self.bonds.keys()))
+        atom_numbers = [atom.nr for atom in self.graph]
+
+        if len(atom_numbers) > 0:
+            max_atom_nr = max(atom_numbers)
+        else:
+            max_atom_nr = -1
+
+        bond_numbers = list(self.bonds.keys())
+
+        if len(bond_numbers) > 0:
+            max_bond_nr = max(bond_numbers)
+
+        else:
+            max_bond_nr = -1
         
         for atom in list(self.graph.keys()):
             hydrogens_to_add = atom.calc_hydrogens()
@@ -1393,8 +1407,7 @@ class Structure:
 
 
     def refine_s_bonds(self):
-        for bond_nr in self.bonds:
-            bond = self.bonds[bond_nr]
+        for bond_nr, bond in self.bonds.items():
             bond.combine_hybrid_orbitals()
         
     def get_atom_counts(self):
@@ -2259,7 +2272,7 @@ class Bond:
 
         s_bonding_orbital_1 = None
         s_bonding_orbital_2 = None
-        
+
         for orbital_name in self.atom_1.valence_shell.orbitals:
             orbital = self.atom_1.valence_shell.orbitals[orbital_name]
             if 's' in orbital.orbital_type and orbital.electron_nr == 1:
@@ -2417,6 +2430,7 @@ class Shell:
 
         
         self.define_orbitals()
+
         self.find_bonding_orbitals()
 
     def define_orbitals(self):
@@ -2852,12 +2866,6 @@ class Atom:
         for i in range(lone_pair_nr):
             self.lone_pairs.append(LonePair(self, i + 10000))
 
-        if self.type == 'S':
-            for orbital_name, orbital in self.valence_shell.orbitals.items():
-                print(orbital.orbital_type, orbital.electrons)
-
-
-            print(self.lone_pairs)
 
 
     def set_neighbours(self, structure):
@@ -2934,15 +2942,34 @@ class Atom:
         self.make_shells()
         self.fill_shells()
 
+        if self.type == 'Fe':
+
+            self.valence_shell.print_shell()
+            for orbital_nr, orbital in self.valence_shell.orbitals.items():
+                print(orbital.electrons)
+
+
+
+
         self.excitable = self.valence_shell.is_excitable()
 
         if self.type == 'C' and self.charge == 0:
             self.excite()
         else:
             bond_weights = [BOND_PROPERTIES.bond_type_to_weight[bond.type] for bond in self.bonds]
-            nr_of_nonH_bonds = sum(bond_weights)
+            aromatic_count = 0
+            for bond in self.bonds:
+                if bond.type == 'aromatic':
+                    aromatic_count += 1
+
+
+            nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
+
             if nr_of_nonH_bonds > ATOM_PROPERTIES.element_to_valences[self.type][0]:
-                self.excite()
+                if self.excitable:
+                    self.excite()
+                else:
+                    raise SmilesError('violated_bonding_laws')
 
     def make_shells(self):
         for i in range(self.shell_nr):
@@ -2956,6 +2983,9 @@ class Atom:
         electrons_assigned = 0
 
         electrons_remaining = ATOM_PROPERTIES.element_to_atomic_nr[self.type] - self.charge
+        if self.type == 'Fe':
+            print('charge', self.charge)
+            print(electrons_remaining)
         
 
         #Iterate over the orbitals in order of them being filled
@@ -2970,6 +3000,8 @@ class Atom:
                 electrons_remaining -= electrons_to_dump
             else:
                 break
+
+
 
     def excite(self):
         assert self.excitable
@@ -3461,7 +3493,7 @@ def make_character_dict() -> Dict[str, str]:
     
     return character_dict
 
-class Smiles():
+class Smiles:
     character_dict = make_character_dict()
     two_atom_dict = {'B': {'r'}, 'C': {'l'}}
     
@@ -3901,7 +3933,6 @@ class Smiles():
     def determine_chirality(self, order, chirality, atom):
         if len(order) != 4:
             lone_pairs = atom.lone_pairs
-            print(lone_pairs)
 
             try:
                 assert len(order) + len(lone_pairs) == 4
@@ -4368,13 +4399,8 @@ if __name__ == "__main__":
      #   if bond.chiral:
      #       pprint(bond.chiral_dict)
 
-    structure = read_smiles(r"CC[C@H](C)[C@@H](C(=O)N[C@H](CC(=O)NC)C(=O)N[C@@H](C(C)C)C(=O)N[C@H]([C@H](C(=O)NC)O)C(=O)N[C@@H](C)C(=O)N[C@H](CC(=O)NC)C(=O)N[C@@H](C(C)C)C(=O)N[C@H](CO)C(=O)N[C@@H](C(C)C)C(=O)N[C@H](CC(=O)N)C(=O)N[C@H](C(=O)N[C@H](CC(=O)N)C(=O)N[C@@H](CCC(=O)N)C(=O)N[C@H]([C@@H](C)O)C(=O)N[C@@H]([C@@H](C)O)C(=O)O)C(C)(C)C[S@](=O)C)NC(=O)[C@@H](CC(=O)NC)NC(=O)CNC(=O)[C@@H](C(C)(C)O)NC(=O)[C@H](C(C)(C)C)NC(=O)[C@@H]([C@H](C(=O)NC)O)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@@H](CC(=O)NC)NC(=O)CNC(=O)CNC(=O)[C@H](C)NC(=O)[C@@H](C(C)(C)O)NC(=O)[C@H]([C@@H](C)CC(=O)N)NC(=O)[C@@H](CC(=O)NC)NC(=O)[C@H](C(C)(C)C)NC(=O)CNC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](C(C)(C)O)NC(=O)[C@@H](CC(=O)NC)NC(=O)[C@H](C)NC(=O)[C@@H](C(C)(C)C)NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](C)NC(=O)[C@@H](C(C)(C)C)NC(=O)[C@H](C(C)(C)C)NC(=O)[C@@H](C)NC(=O)[C@H](C(C)(C)C)NC(=O)[C@@H](C(C)(C)C)NC(=O)[C@H](C(C)(C)C)NC(=O)CNC(=O)[C@H](C(C)(C)CC)NC(=O)CNC(=O)C(=O)CCC(C)(C)C")
-    for atom in structure.graph:
-        if atom.chiral:
-            print(atom, atom.chiral)
+    structure = read_smiles(r'C=C(/C=C/C1=CC=CC2=C1NC=C2CC(N3O[Fe](ON4C(CC5=CNC6=C5C=CC=C6/C=C/C(C)=C)=C(N=C(C4=O)C)OC)ON7C(CC8=CNC9=C8C=CC=C9/C=C/C(C)=C)=C(N=C(C7=O)C)OC)=C(N=C(C3=O)C)OC)C')
 
-    structure_2 = read_smiles('C[S@@](=O)C')
-    print(structure.find_substructures(structure_2))
 
 
 

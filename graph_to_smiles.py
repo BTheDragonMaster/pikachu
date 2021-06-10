@@ -44,6 +44,10 @@ def determine_chirality(order, chirality):
 
     return new_chirality
 
+def structure_to_smiles(structure):
+    collapsed_structure = GraphToSmiles(structure)
+    return collapsed_structure.smiles
+
 class GraphToSmiles:
     def __init__(self, structure):
         self.original_structure = structure
@@ -65,6 +69,7 @@ class GraphToSmiles:
         self.make_smiles_components()
         self.find_original_atom_indices()
         self.resolve_chiral_centres()
+        self.smiles = ''.join(self.components)
         print(''.join(self.components))
 
     def is_numerical_component(self, component):

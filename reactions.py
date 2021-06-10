@@ -213,6 +213,7 @@ if __name__ == "__main__":
     
 
     peptide_bonds = find_bonds(structure_1, PEPTIDEBOND)
+    print(peptide_bonds)
     coc_ester_bonds = find_bonds(structure_1, ESTERCOCBOND)
 
     print(peptide_bonds)
@@ -223,7 +224,7 @@ if __name__ == "__main__":
         hydrolyse(bond, product)
 
     structures = product.split_disconnected_structures()
-    print(len(structures))
-    for structure in structures:
-        pprint(structure.graph)
+  #  print(len(structures))
+   # for structure in structures:
+       # pprint(structure.graph)
 
