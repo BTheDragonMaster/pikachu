@@ -15,14 +15,15 @@ sys.setrecursionlimit(100000)
 
 
 def read_smiles(smiles_string):
-    try:
-        smiles = Smiles(smiles_string)
-        structure = smiles.smiles_to_structure()
-    except SmilesError as e:
-        print(f'Error parsing "{smiles_string}": {e.message}')
-        return
+    if smiles_string:
+        try:
+            smiles = Smiles(smiles_string)
+            structure = smiles.smiles_to_structure()
+            return structure
+        except SmilesError as e:
+            print(f'Error parsing "{smiles_string}": {e.message}')
+            return
 
-    return structure
 
 def compare_matches(match_1, match_2):
     matching = True
