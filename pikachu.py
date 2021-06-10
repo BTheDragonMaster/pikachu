@@ -449,8 +449,8 @@ class Structure:
             bond_dict = {}
 
             bond_dict['id'] = bond_nr
-            bond_dict['source'] = bond.atom_1
-            bond_dict['target'] = bond.atom_2
+            bond_dict['source'] = bond.atom_1.nr
+            bond_dict['target'] = bond.atom_2.nr
             bond_dict['bond'] = BOND_PROPERTIES.bond_type_to_weight[bond.type]
             links.append(bond_dict)
 
@@ -2965,6 +2965,9 @@ class Atom:
 
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
+            if self.pyrrole:
+                nr_of_nonH_bonds -= 1
+
             if nr_of_nonH_bonds > ATOM_PROPERTIES.element_to_valences[self.type][0]:
                 if self.excitable:
                     self.excite()
@@ -4398,6 +4401,10 @@ if __name__ == "__main__":
     #for bond_nr, bond in structure.bonds.items():
      #   if bond.chiral:
      #       pprint(bond.chiral_dict)
+
+    structure = read_smiles(r'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C')
+    structure = read_smiles(r'O=C(NCCS)CCNC(=O)[C@H](O)C(C)(C)COP(=O)(O)O')
+    print('structure read')
 
     structure = read_smiles(r'C=C(/C=C/C1=CC=CC2=C1NC=C2CC(N3O[Fe](ON4C(CC5=CNC6=C5C=CC=C6/C=C/C(C)=C)=C(N=C(C4=O)C)OC)ON7C(CC8=CNC9=C8C=CC=C9/C=C/C(C)=C)=C(N=C(C7=O)C)OC)=C(N=C(C3=O)C)OC)C')
 
