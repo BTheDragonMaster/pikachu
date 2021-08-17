@@ -17,10 +17,10 @@ class Vector:
         self.x -= vector.x
         self.y -= vector.y
 
-    def rotate(self, degrees):
-        angle = math.radians(degrees)
-        new_x = self.x * cos(angle) - self.y * sin(angle)
-        new_y = self.x * sin(angle) + self.y * cos(angle)
+    def rotate(self, angle):
+
+        new_x = self.x * math.cos(angle) - self.y * math.sin(angle)
+        new_y = self.x * math.sin(angle) + self.y * math.cos(angle)
 
         self.x = new_x
         self.y = new_y
@@ -41,7 +41,7 @@ class Vector:
         self.divide(self.length())
 
     def angle(self):
-        return math.degrees(math.atan2(self.y, self.x))
+        return math.atan2(self.y, self.x)
 
     def length(self):
         return math.sqrt((self.x**2) + (self.y**2))
@@ -50,8 +50,7 @@ class Vector:
         self.x = self.x * scalar
         self.y = self.y * scalar
 
-    def rotate_around_vector(self, degrees, vector):
-        angle = math.radians(degrees)
+    def rotate_around_vector(self, angle, vector):
 
         self.x -= vector.x
         self.y -= vector.y
@@ -115,7 +114,7 @@ class Polygon:
 
     @staticmethod
     def get_central_angle(edge_number):
-        return float(360) / edge_number
+        return math.radians(float(360) / edge_number)
 
     @staticmethod
     def get_apothem(radius, edge_number):

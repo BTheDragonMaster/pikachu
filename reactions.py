@@ -10,7 +10,6 @@ class BondDefiner():
         
     def __repr__(self):
         return self.name
-        
 
     def find_atoms(self, atom_nr_1, atom_nr_2):
 
@@ -111,6 +110,7 @@ def do_condensation(structure, hydrogen_donor, hydrogen, oxygen_donor, oxygen):
     bond_nr = structure.find_next_bond_nr()
     structure.make_bond(hydrogen_donor, oxygen_donor, bond_nr)
 
+
 def condensation(structure, atom_1, atom_2):
     atom_1_hydrogens = []
     atom_1_oxygens = []
@@ -210,11 +210,17 @@ if __name__ == "__main__":
     string = "CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C"
     smiles_1 = Smiles(string)
     structure_1 = smiles_1.smiles_to_structure()
+
+    smiles_1 = Smiles("C(C(=O)O)N")
+    smiles_2 = Smiles("C(C(=O)O)N")
+    structure_1 = smiles_1.smiles_to_structure()
+    structure_2 = smiles_2.smiles_to_structure()
     
 
     peptide_bonds = find_bonds(structure_1, PEPTIDEBOND)
     print(peptide_bonds)
     coc_ester_bonds = find_bonds(structure_1, ESTERCOCBOND)
+    coc_ester_bonds = find_bonds(structure_1, PEPTIDEBOND)
 
     print(peptide_bonds)
     bonds = coc_ester_bonds + peptide_bonds

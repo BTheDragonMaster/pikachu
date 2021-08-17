@@ -7,6 +7,53 @@ import pikachu
 from rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
 from math_functions import Vector, Polygon
 import math
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib import pyplot as plt
+
+
+class SpanningTree:
+    def __init__(self, structure):
+        self.spanning_tree = {}
+        atom = list(structure.graph.keys())[0]
+        self.visited = set()
+
+        self.make_spanning_tree(atom)
+
+    def make_spanning_tree(self, atom, parent=None):
+
+        if parent:
+            if parent not in self.spanning_tree:
+                self.spanning_tree[parent] = []
+
+            self.spanning_tree[parent].append(atom)
+
+        self.visited.add(atom)
+        for neighbour in atom.neighbours:
+            if neighbour not in self.visited:
+                self.make_spanning_tree(neighbour, atom)
+
+
+class Vertex:
+    def __init__(self, atom, parent):
+        self.atom = atom
+        self.parent = parent
+        self.children = []
+        if parent:
+            self.parent.children.append(self)
+
+    def __hash__(self):
+        return self.atom.__hash__()
+
+    def __repr__(self):
+        return self.atom.__repr__()
+
+    def __eq__(self, vertex):
+        if self.atom == vertex.atom:
+            return True
+        else:
+            return False
+
 
 class KKLayout:
 
@@ -24,6 +71,17 @@ class KKLayout:
         self.max_inner_iteration = max_inner_iteration
         self.max_energy = max_energy
 
+        self.x_positions = {}
+        self.y_positions = {}
+        self.positioned = {}
+
+        self.length_matrix = {}
+        self.spring_strengths = {}
+        self.energy_matrix = {}
+
+        self.energy_sums_x = {}
+        self.energy_sums_y = {}
+
         self.initialise_matrices()
         self.get_kk_layout()
 
@@ -37,27 +95,16 @@ class KKLayout:
 
         a = 0.0
 
-        self.x_positions = {}
-        self.y_positions = {}
-        self.positioned = {}
-
         for atom in self.atoms:
             if not atom.draw.positioned:
-                self.x_positions[atom] = center.x + math.cos(a) * radius
-                self.y_positions[atom] = center.y + math.sin(a) * radius
+                self.x_positions[atom] = self.center.x + math.cos(a) * radius
+                self.y_positions[atom] = self.center.y + math.sin(a) * radius
             else:
                 self.x_positions[atom] = atom.draw.position.x
                 self.y_positions[atom] = atom.draw.position.y
 
             self.positioned[atom] = atom.draw.positioned
             a += angle
-
-        self.length_matrix = {}
-        self.spring_strengths = {}
-        self.energy_matrix = {}
-
-        self.energy_sums_x = {}
-        self.energy_sums_y = {}
 
         for atom_1 in self.atoms:
             self.length_matrix[atom_1] = {}
@@ -80,6 +127,9 @@ class KKLayout:
 
             for atom_2 in self.atoms:
 
+                if atom_1 == atom_2:
+                    continue
+
                 vx = self.x_positions[atom_2]
                 vy = self.y_positions[atom_2]
 
@@ -96,11 +146,12 @@ class KKLayout:
             self.energy_sums_x[atom_1] = d_ex
             self.energy_sums_y[atom_1] = d_ey
 
-
     def get_kk_layout(self):
         iteration = 0
 
-        while self.max_energy > self.threshold and self.max_iteration > iteration:
+        max_energy = self.max_energy
+
+        while max_energy > self.threshold and self.max_iteration > iteration:
             iteration += 1
             max_energy_atom, max_energy, d_ex, d_ey = self.highest_energy()
             delta = max_energy
@@ -109,9 +160,9 @@ class KKLayout:
             while delta > self.inner_threshold and self.max_inner_iteration > inner_iteration:
                 inner_iteration += 1
                 self.update(max_energy_atom, d_ex, d_ey)
-                delta, d_ex, d_ey = energy(max_energy_atom)
+                delta, d_ex, d_ey = self.energy(max_energy_atom)
 
-        for atom in atoms:
+        for atom in self.atoms:
             atom.draw.position.x = self.x_positions[atom]
             atom.draw.position.y = self.y_positions[atom]
             atom.draw.positioned = True
@@ -162,7 +213,7 @@ class KKLayout:
             squared_xdiff = (ux - vx) ** 2
             squared_ydiff = (uy - vy) ** 2
 
-            denom = 1.0 / (squared_xdiff * squared_ydiff) ** 1.5
+            denom = 1.0 / (squared_xdiff + squared_ydiff) ** 1.5
 
             dxx += strength * (1 - length * squared_ydiff * denom)
             dyy += strength * (1 - length * squared_xdiff * denom)
@@ -208,23 +259,23 @@ class KKLayout:
             d_ex += dx
             d_ey += dy
 
-            self.energy_sums_x += dx - previous_ex
-            self.energy_sums_y += dy - previous_ey
+            self.energy_sums_x[atom_2] += dx - previous_ex
+            self.energy_sums_y[atom_2] += dy - previous_ey
 
-        self.energy_sums_x = d_ex
-        self.energy_sums_y = d_ey
-
+        self.energy_sums_x[atom] = d_ex
+        self.energy_sums_y[atom] = d_ey
 
     def get_subgraph_distance_matrix(self, atoms):
         adjacency_matrix = self.get_subgraph_adjacency_matrix(atoms)
         distance_matrix = {}
 
         for atom_1 in atoms:
+            if not atom_1 in distance_matrix:
+                distance_matrix[atom_1] = {}
             for atom_2 in atoms:
                 distance_matrix[atom_1][atom_2] = float('inf')
                 if adjacency_matrix[atom_1][atom_2] == 1:
                     distance_matrix[atom_1][atom_2] = 1
-
 
         for atom_1 in atoms:
             for atom_2 in atoms:
@@ -251,8 +302,6 @@ class KKLayout:
         return adjacency_matrix
 
 
-
-
 class Drawer:
     def __init__(self, structure, options=None):
         if options == None:
@@ -272,9 +321,45 @@ class Drawer:
     def draw(self):
         self.define_rings()
         self.hide_hydrogens()
+        self.process_structure()
+        self.draw_svg()
+
+    def draw_svg(self):
+        figure = plt.figure(figsize=(8, 8))
+        plt.gca().set_aspect('equal', adjustable='box')
+
+        min_x = 100000000
+        max_x = -100000000
+        min_y = 100000000
+        max_y = -100000000
+
+
+        for atom in self.structure.graph:
+            if atom.draw.positioned:
+                if atom.draw.position.x < min_x:
+                    min_x = atom.draw.position.x
+                if atom.draw.position.y < min_y:
+                    min_y = atom.draw.position.y
+                if atom.draw.position.x > max_x:
+                    max_x = atom.draw.position.x
+                if atom.draw.position.y > max_y:
+                    max_y = atom.draw.position.y
+            if atom.type != 'C' and atom.draw.positioned:
+                plt.text(atom.draw.position.x, atom.draw.position.y,
+                         atom.type,
+                         horizontalalignment='center',
+                         verticalalignment='center')
+
+        for bond_nr, bond in self.structure.bonds.items():
+            if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
+                plt.plot([bond.atom_1.draw.position.x, bond.atom_2.draw.position.x], [bond.atom_1.draw.position.y, bond.atom_2.draw.position.y], color='black')
+
+        plt.show()
 
     def process_structure(self):
-        pass
+        self.position()
+        self.restore_ring_information()
+
 
     def position(self):
         start_atom = None
@@ -298,8 +383,9 @@ class Drawer:
 
         self.create_next_bond(start_atom, None, 0.0)
 
-    def create_next_bond(self, atom, previous_atom = None, angle = 0.0,
-                         previous_branch_shortest = False, skip_positioning = False):
+    def create_next_bond(self, atom, previous_atom=None, angle=0.0,
+                         previous_branch_shortest=False, skip_positioning=False):
+
         if atom.draw.positioned and not skip_positioning:
             return
 
@@ -308,18 +394,18 @@ class Drawer:
         if not skip_positioning:
             if not previous_atom:
                 dummy = Vector(self.options.bond_length, 0)
-                dummy.rotate(-60)
+                dummy.rotate(math.radians(-60.0))
 
                 atom.draw.previous_position = dummy
                 atom.draw.previous_atom = None
                 atom.draw.set_position(Vector(self.options.bond_length, 0))
-                atom.draw.angle = -60
+                atom.draw.angle = math.radians(-60.0)
 
                 if atom.draw.bridged_ring == None:
                     atom.draw.positioned = True
 
             elif len(previous_atom.draw.rings) > 0:
-                neighbours = previous_atom.neighbours
+                neighbours = previous_atom.get_drawn_neighbours()
                 joined_vertex = None
                 position = Vector(0, 0)
 
@@ -331,18 +417,19 @@ class Drawer:
 
                 if not joined_vertex:
                     for neighbour in neighbours:
+
                         if neighbour.draw.positioned and self.atoms_are_in_same_ring(neighbour, previous_atom):
                             position.add(Vector.subtract_vectors(neighbour.draw.position, previous_atom.draw.position))
 
                     position.invert()
                     position.normalise()
                     position.multiply_by_scalar(self.options.bond_length)
-                    position.add(previous_atom.position)
+                    position.add(previous_atom.draw.position)
 
                 else:
 
-                    position = joined_vertex.copy()
-                    position.rotate_around_vector(180, previous_atom.draw.position)
+                    position = joined_vertex.draw.position.copy()
+                    position.rotate_around_vector(math.pi, previous_atom.draw.position)
 
                 atom.draw.set_previous_position(previous_atom)
                 atom.draw.set_position(position)
@@ -351,14 +438,15 @@ class Drawer:
             else:
                 position = Vector(self.options.bond_length, 0)
                 position.rotate(angle)
-                position.add(previous_atom.position)
+                position.add(previous_atom.draw.position)
 
                 atom.draw.set_position(position)
                 atom.draw.set_previous_position(previous_atom)
                 atom.draw.positioned = True
 
+        # If the atom is part of a bridged ring: position the entire bridged ring
         if atom.draw.bridged_ring != None:
-            next_ring = self.id_to_ring(atom.draw.bridged_ring)
+            next_ring = self.id_to_ring[atom.draw.bridged_ring]
 
             if not next_ring.positioned:
                 next_center = Vector.subtract_vectors(atom.draw.previous_position, atom.draw.position)
@@ -371,8 +459,9 @@ class Drawer:
 
                 self.create_ring(next_ring, next_center, atom)
 
+        # If the atom is part of a ring: position the entire ring
         elif len(atom.draw.rings) > 0:
-            next_ring = self.id_to_ring(atom.draw.rings[0])
+            next_ring = self.id_to_ring[atom.draw.rings[0]]
 
             if not next_ring.positioned:
                 next_center = Vector.subtract_vectors(atom.draw.previous_position, atom.draw.position)
@@ -382,10 +471,11 @@ class Drawer:
                 radius = Polygon.find_polygon_radius(self.options.bond_length, len(next_ring.members))
 
                 next_center.multiply_by_scalar(radius)
-                next_center.add(atom.position)
+                next_center.add(atom.draw.position)
 
-                self.create_ring(next_ring, next_center, vertex)
+                self.create_ring(next_ring, next_center, atom)
 
+        # If the atom is not part of a ring, position just the atom
         else:
             neighbours = atom.get_drawn_neighbours()
 
@@ -393,7 +483,7 @@ class Drawer:
                 if previous_atom in neighbours:
                     neighbours.remove(previous_atom)
 
-            previous_angle = atom.get_angle()
+            previous_angle = atom.draw.get_angle()
 
             if len(neighbours) == 1:
                 next_atom = neighbours[0]
@@ -404,11 +494,11 @@ class Drawer:
                 if previous_atom:
                     previous_bond = self.structure.bond_lookup[previous_atom][atom]
 
-
                 if current_bond.type == 'triple' or previous_bond.type == 'triple' or \
                         (current_bond.type == 'double' and previous_bond.type == 'double' and
-                         previous_atom and len(previous_atom.draw.rings) == 0):
-                    #shouldn't this be true?
+                         previous_atom and len(previous_atom.draw.rings) == 0 and
+                         len(atom.neighbours) == 2):
+
                     atom.draw.draw_explicit = False
 
                     if previous_atom:
@@ -424,14 +514,17 @@ class Drawer:
                     self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
 
                 elif previous_atom and len(previous_atom.draw.rings) > 0:
-                    proposed_angle_1 = 60
-                    proposed_angle_2 = -60
+                    proposed_angle_1 = math.radians(60.0)
+                    proposed_angle_2 = proposed_angle_1 * -1
 
                     proposed_vector_1 = Vector(self.options.bond_length, 0)
                     proposed_vector_2 = Vector(self.options.bond_length, 0)
 
-                    proposed_vector_1.rotate(proposed_angle_1).add(atom.draw.position)
-                    proposed_vector_2.rotate(proposed_angle_2).add(atom.draw.position)
+                    proposed_vector_1.rotate(proposed_angle_1)
+                    proposed_vector_2.rotate(proposed_angle_2)
+
+                    proposed_vector_1.add(atom.draw.position)
+                    proposed_vector_2.add(atom.draw.position)
 
                     centre_of_mass = self.get_current_centre_of_mass()
                     distance_1 = proposed_vector_1.get_squared_distance(centre_of_mass)
@@ -447,21 +540,20 @@ class Drawer:
                 else:
                     a = atom.draw.angle
 
-                    if previous_atom and len(previous_atom.neighbours) > 3:
+                    if previous_atom and len(previous_atom.get_drawn_neighbours()) > 3:
                         if a > 0:
-                            a = min([60, a])
+                            a = min([math.radians(60), a])
                         elif a < 0:
-                            a = max([-60, a])
+                            a = max([-math.radians(60), a])
                         else:
-                            a = 60
+                            a = math.radians(60)
 
-                    elif a == None:
+                    elif not a:
                         last_angled_atom = self.get_last_atom_with_angle(atom)
-                        a = last_angled_atom.angle
+                        a = last_angled_atom.draw.angle
 
-                        if a == None:
-                            #NOT DONE HERE
-                            a = 60
+                        if not a:
+                            a = math.radians(60)
 
                     if previous_atom:
                         bond = self.structure.bond_lookup[previous_atom][atom]
@@ -477,23 +569,21 @@ class Drawer:
                     else:
                         next_atom.draw.angle = -a
 
-                    self.create_next_bond(next_atom, atom, previous_angle + next_atom.angle)
+                    self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
 
             elif len(neighbours) == 2:
                 a = atom.draw.angle
-                if a == None:
-                    a = 60
+                if not a:
+                    a = math.radians(60)
 
                 neighbour_1, neighbour_2 = neighbours
 
-
-
-                subgraph_1_size = self.get_subgraph_size(neighbour_1, atom)
-                subgraph_2_size = self.get_subgraph_size(neighbour_2, atom)
+                subgraph_1_size = self.get_subgraph_size(neighbour_1, {atom})
+                subgraph_2_size = self.get_subgraph_size(neighbour_2, {atom})
 
                 if previous_atom:
 
-                    subgraph_3_size = self.get_subgraph_size(previous_atom, atom)
+                    subgraph_3_size = self.get_subgraph_size(previous_atom, {atom})
 
                 else:
                     subgraph_3_size = 0
@@ -517,9 +607,6 @@ class Drawer:
                 cis_atom = neighbours[cis_atom_index]
                 trans_atom = neighbours[trans_atom_index]
 
-                cis_edge = self.structure.bond_lookup[cis_atom][atom]
-                trans_edge = self.structure.bond_lookup[trans_atom][atom]
-
                 previous_branch_shortest = False
 
                 if subgraph_3_size < subgraph_2_size and subgraph_3_size < subgraph_1_size:
@@ -531,54 +618,143 @@ class Drawer:
                 cis_bond = self.structure.bond_lookup[atom][cis_atom]
                 trans_bond = self.structure.bond_lookup[atom][trans_atom]
 
-                if cis_bond.type == 'double':
-                    if cis_bond.chiral and previous_atom:
+                # if the cis bond and trans bond are single bonds it can be adjacent to a
+                # chiral double bond and may have to be placed in a specific orientation
+                if cis_bond.type == 'single' and trans_bond.type == 'single':
 
+                    if previous_atom:
+                        previous_bond = self.structure.bond_lookup[atom][previous_atom]
 
+                        # checks if the previous bond was a chiral double bond
+                        if previous_bond.type == 'double' and previous_bond.chiral:
+                            configuration_cis_atom = previous_bond.chiral_dict[previous_atom.draw.previous_atom][cis_atom]
+                            if configuration_cis_atom == 'cis':
+                                trans_atom.draw.angle = -a
+                                cis_atom.draw.angle = a
 
+                self.create_next_bond(trans_atom, atom, previous_angle + trans_atom.draw.angle, previous_branch_shortest)
+                self.create_next_bond(cis_atom, atom, previous_angle + cis_atom.draw.angle, previous_branch_shortest)
 
+            elif len(neighbours) == 3:
+                subgraph_1_size = self.get_subgraph_size(neighbours[0], {atom})
+                subgraph_2_size = self.get_subgraph_size(neighbours[1], {atom})
+                subgraph_3_size = self.get_subgraph_size(neighbours[2], {atom})
 
+                straight_atom = subgraph_1_size
+                left_atom = subgraph_2_size
+                right_atom = subgraph_3_size
 
+                if subgraph_2_size > subgraph_1_size and subgraph_2_size > subgraph_3_size:
+                    straight_atom = neighbours[1]
+                    left_atom = neighbours[0]
+                    right_atom = neighbours[2]
 
+                elif subgraph_3_size > subgraph_1_size and subgraph_3_size > subgraph_2_size:
+                    straight_atom = neighbours[2]
+                    left_atom = neighbours[0]
+                    right_atom = neighbours[1]
 
+                if previous_atom and len(previous_atom.draw.rings) < 1\
+                        and len(straight_atom.draw.rings) < 1\
+                        and len(left_atom.draw.rings) < 1\
+                        and len(right_atom.draw.rings) < 1\
+                        and self.get_subgraph_size(left_atom, {atom}) == 1\
+                        and self.get_subgraph_size(right_atom, {atom}) == 1\
+                        and self.get_subgraph_size(straight_atom, {atom}) > 1:
+                    straight_atom.draw.angle = atom.draw.angle * -1
+                    if atom.draw.angle >= 0:
+                        left_atom.draw.angle = math.radians(30)
+                        right_atom.draw.angle = math.radians(90)
+                    else:
+                        left_atom.draw.angle = math.radians(-30)
+                        right_atom.draw.angle = math.radians(-90)
 
+                else:
+                    straight_atom.draw.angle = 0.0
+                    left_atom.draw.angle = math.radians(90)
+                    right_atom.draw.angle = math.radians(-90)
 
+                self.create_next_bond(straight_atom, atom, previous_angle + straight_atom.draw.angle)
+                self.create_next_bond(left_atom, atom, previous_angle + left_atom.draw.angle)
+                self.create_next_bond(right_atom, atom, previous_angle + right_atom.draw.angle)
 
+            elif len(neighbours) == 4:
+                subgraph_1_size = self.get_subgraph_size(neighbours[0], {atom})
+                subgraph_2_size = self.get_subgraph_size(neighbours[1], {atom})
+                subgraph_3_size = self.get_subgraph_size(neighbours[2], {atom})
+                subgraph_4_size = self.get_subgraph_size(neighbours[3], {atom})
 
+                atom_1 = neighbours[0]
+                atom_2 = neighbours[1]
+                atom_3 = neighbours[2]
+                atom_4 = neighbours[3]
 
+                if subgraph_2_size > subgraph_1_size and subgraph_2_size > subgraph_3_size\
+                        and subgraph_2_size > subgraph_4_size:
+                    atom_1 = neighbours[1]
+                    atom_2 = neighbours[0]
 
+                elif subgraph_3_size > subgraph_1_size and subgraph_3_size > subgraph_2_size\
+                        and subgraph_3_size > subgraph_4_size:
+                    atom_1 = neighbours[2]
+                    atom_2 = neighbours[0]
+                    atom_3 = neighbours[1]
 
+                elif subgraph_4_size > subgraph_1_size and subgraph_4_size > subgraph_2_size\
+                        and subgraph_4_size > subgraph_3_size:
+                    atom_1 = neighbours[3]
+                    atom_2 = neighbours[0]
+                    atom_3 = neighbours[1]
+                    atom_4 = neighbours[2]
 
+                atom_1.draw.angle = math.radians(-36)
+                atom_2.draw.angle = math.radians(36)
+                atom_3.draw.angle = math.radians(-108)
+                atom_4.draw.angle = math.radians(108)
 
+                self.create_next_bond(atom_1, atom, previous_angle + atom_1.draw.angle)
+                self.create_next_bond(atom_2, atom, previous_angle + atom_2.draw.angle)
+                self.create_next_bond(atom_3, atom, previous_angle + atom_3.draw.angle)
+                self.create_next_bond(atom_4, atom, previous_angle + atom_4.draw.angle)
 
+    def restore_ring_information(self):
+        bridged_rings = self.get_bridged_rings()
 
+        self.rings = []
+        self.ring_overlaps = []
 
+        for ring in bridged_rings:
+            for subring in ring.subrings:
+                self.original_rings[subring.id].center = subring.center
 
+        for ring in self.original_rings:
+            self.rings.append(ring)
 
+        for ring_overlap in self.original_ring_overlaps:
+            self.ring_overlaps.append(ring_overlap)
 
-    def get_subgraph_size(self, atom, masked_atom):
-        seen_atoms = {masked_atom, atom}
+        for atom in self.structure.graph:
+            atom.draw.restore_rings()
+
+    def get_subgraph_size(self, atom, masked_atoms):
+        masked_atoms.add(atom)
 
         for neighbour in atom.get_drawn_neighbours():
-            if neighbour not in seen_atoms:
-                self.get_subgraph_size(neighbour, seen_atoms)
+            if neighbour not in masked_atoms:
+                self.get_subgraph_size(neighbour, masked_atoms)
 
-        return len(seen_atoms) - 1
-
+        return len(masked_atoms) - 1
 
     def get_last_atom_with_angle(self, atom):
-        angle = None
+        angle = 0
 
         parent_atom = atom.draw.previous_atom
 
-        while parent_atom and angle == None:
+        while parent_atom and not angle:
             parent_atom = atom.draw.previous_atom
             angle = parent_atom.draw.angle
 
         return parent_atom
-
-
-
 
     def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
         if ring.positioned:
@@ -591,7 +767,7 @@ class Drawer:
         starting_angle = 0
 
         if start_atom:
-            starting_angle = Vector.subtract_vectors(start_atom.position, center).angle()
+            starting_angle = Vector.subtract_vectors(start_atom.draw.position, center).angle()
 
         ring_size = len(ring.members)
 
@@ -602,14 +778,14 @@ class Drawer:
 
         if start_atom not in ring.members:
             if start_atom:
-                start_atom.positioned = False
+                start_atom.draw.positioned = False
             start_atom = ring.members[0]
 
         if ring.bridged:
             KKLayout(self.structure, ring.members, center, start_atom,
                      self.options.bond_length, self.options.kk_threshold, self.options.kk_inner_threshold,
-                     self.options.kk_max_inner_iteration, self.options.kk_max_inner_iteration,
-                     self.kk_max_energy)
+                     self.options.kk_max_iteration, self.options.kk_max_inner_iteration,
+                     self.options.kk_max_energy)
             ring.positioned = True
 
             self.set_ring_center(ring)
@@ -618,17 +794,17 @@ class Drawer:
             for subring in ring.subrings:
                 self.set_ring_center(subring)
         else:
-            ring.set_member_positions(self.structure, start_atom, previous_atom)
+            ring.set_member_positions(self.structure, start_atom, previous_atom, center, starting_angle, radius, angle)
 
         ring.positioned = True
         ring.center = center
 
         for neighbour_id in ordered_neighbour_ids:
-            neighbour = self.id_to_ring(neighbour_id)
+            neighbour = self.id_to_ring[neighbour_id]
             if neighbour.positioned:
                 continue
 
-            atoms = RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id)
+            atoms = list(RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id))
 
             if len(atoms) == 2:
                 #This ring is fused
@@ -647,8 +823,11 @@ class Drawer:
                 apothem = Polygon.get_apothem_from_side_length(self.options.bond_length,
                                                                len(neighbour.members))
 
-                normals[0].multiply_by_scalar(apothem).add(midpoint)
-                normals[1].multiply_by_scalar(apothem).add(midpoint)
+                normals[0].multiply_by_scalar(apothem)
+                normals[1].multiply_by_scalar(apothem)
+
+                normals[0].add(midpoint)
+                normals[1].add(midpoint)
 
                 next_center = normals[0]
 
@@ -688,13 +867,12 @@ class Drawer:
                     self.create_ring(neighbour, next_center, atom)
 
         for atom in ring.members:
-            for neighbour in atom.neighbours:
-                if neighbour.positioned:
+            for neighbour in atom.get_drawn_neighbours():
+                if neighbour.draw.positioned:
                     continue
 
                 atom.draw.connected_to_ring = True
                 self.create_next_bond(neighbour, atom, 0.0)
-
 
     def set_ring_center(self, ring):
         total = Vector(0, 0)
@@ -712,17 +890,9 @@ class Drawer:
                 total.add(atom.draw.position)
                 count += 1
 
-        return total.divide(count)
+        total.divide(count)
 
-
-
-
-
-
-
-
-
-
+        return total
 
     def atoms_are_in_same_ring(self, atom_1, atom_2):
         for ring_id_1 in atom_1.draw.rings:
@@ -782,7 +952,6 @@ class Drawer:
                 involved_ring = self.id_to_ring[involved_ring_id]
                 self.remove_ring(involved_ring)
 
-
     def hide_hydrogens(self):
         hidden = []
         exposed = []
@@ -799,6 +968,15 @@ class Drawer:
 
             else:
                 exposed.append(atom)
+
+    def get_bridged_rings(self):
+        bridged_rings = []
+        for ring in self.rings:
+            if ring.bridged:
+                bridged_rings.append(ring)
+
+        return bridged_rings
+
 
     def get_bridged_ring_subrings(self, ring_id, involved_ring_ids):
         involved_ring_ids.append(ring_id)
@@ -827,7 +1005,7 @@ class Drawer:
         leftovers = set()
 
         for atom in atoms:
-            intersect = involved_ring_ids & atom.draw.rings
+            intersect = involved_ring_ids & set(atom.draw.rings)
 
             if len(atom.draw.rings) == 1 or len(intersect) == 1:
                 ring_members.add(atom)
@@ -886,7 +1064,7 @@ class Drawer:
         self.original_ring_overlaps = copy.deepcopy(self.ring_overlaps)
 
         for atom in self.structure.graph:
-            atom.draw.original_rings = copy.copy(atom.draw.rings)
+            atom.draw.original_rings = copy.deepcopy(atom.draw.rings)
 
     def get_ring_index(self, ring_id):
         for i, ring in enumerate(self.rings):
@@ -941,13 +1119,13 @@ class Drawer:
         for ring_overlap in to_remove:
             self.ring_overlaps.remove(ring_overlap)
 
-
     def is_part_of_bridged_ring(self, ring_id):
         for ring_overlap in self.ring_overlaps:
             if ring_overlap.involves_ring(ring_id) and ring_overlap.is_bridge():
                 return True
 
         return False
+
 
 class Options:
     def __init__(self):
@@ -956,7 +1134,7 @@ class Options:
         self.bond_thickness = 0.6
         self.bond_length = 15
         self.short_bond_length = 0.85
-        self.bond_spacing = 0.18 * bond_length
+        self.bond_spacing = 0.18 * self.bond_length
         self.isomeric = True
         self.padding = 20
         self.font_size_large = 5
@@ -971,6 +1149,7 @@ class Options:
 if __name__ == "__main__":
     daptomycin_smiles = pikachu.Smiles('CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C')
     daptomycin_structure = daptomycin_smiles.smiles_to_structure()
+    daptomycin_spanning_tree = SpanningTree(daptomycin_structure)
     teicoplanin_smiles = pikachu.Smiles('CCCCCCCCCC(=O)N[C@@H]1[C@H]([C@@H]([C@H](O[C@H]1OC2=C3C=C4C=C2OC5=C(C=C(C=C5)[C@H]([C@H]6C(=O)N[C@@H](C7=C(C(=CC(=C7)O)OC8[C@H]([C@H]([C@@H]([C@H](O8)CO)O)O)O)C9=C(C=CC(=C9)[C@H](C(=O)N6)NC(=O)[C@@H]4NC(=O)[C@@H]1C2=CC(=CC(=C2)OC2=C(C=CC(=C2)[C@H](C(=O)N[C@H](CC2=CC(=C(O3)C=C2)Cl)C(=O)N1)N)O)O)O)C(=O)O)O[C@H]1[C@@H]([C@H]([C@@H]([C@H](O1)CO)O)O)NC(=O)C)Cl)CO)O)O')
     teicoplanin_structure = teicoplanin_smiles.smiles_to_structure()
     test_smiles = pikachu.Smiles('C1CCCC2CC1CCCC2')
@@ -978,5 +1157,6 @@ if __name__ == "__main__":
     graph = SSSR(teicoplanin_structure)
     rings = graph.get_rings()
 
-    drawer = Drawer(daptomycin_structure)
-    print(drawer.rings)
+    drawer = Drawer(teicoplanin_structure)
+    #for atom in drawer.structure.graph:
+      #  print(f'{atom}\t{atom.draw.position.x}\t{atom.draw.position.y}')

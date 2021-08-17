@@ -390,6 +390,7 @@ class AtomProperties:
     
 ATOM_PROPERTIES = AtomProperties()
 
+
 class Structure:
     """
     Class to store a molecular structure
@@ -1267,7 +1268,7 @@ class Structure:
                     
             atoms_to_place.remove(starting_atom)
             
-            placed_atoms_child = set([starting_atom])
+            placed_atoms_child = {starting_atom}
             placed_atoms_parent = [seed]
             parent_options = {}
             
@@ -1302,7 +1303,7 @@ class Structure:
 
                     if next_atom_parent_options:
                         
-                        next_atom_parent_options = sorted(next_atom_parent_options, key = lambda x: len(set(x.connectivity)), reverse = True)
+                        next_atom_parent_options = sorted(next_atom_parent_options, key=lambda x: len(set(x.connectivity)), reverse = True)
                         for option in next_atom_parent_options:
                             bond = self.bond_lookup[current_atom_parent][option]
                             parent_options[current_atom_parent].append(bond)
@@ -1814,7 +1815,7 @@ class Structure:
     def find_lowest_atom_nr(self):
         lowest_atom_nr = 4242424242424242
 
-        for atom in self.structure:
+        for atom in self.graph:
             if atom.nr < lowest_atom_nr:
                 lowest_atom_nr = atom.nr
 
@@ -2641,7 +2642,7 @@ class Shell:
             print(self.orbitals[orbital])
 
             
-class OrbitalSet():
+class OrbitalSet:
     def __init__(self, atom, shell_nr, orbital_type):
         self.atom = atom
         self.shell_nr = shell_nr
@@ -2861,6 +2862,7 @@ class Atom:
         
         return f'{self.type}{charge_string}_{self.nr}'
 
+
     def make_lone_pairs(self):
 
         lone_pair_nr = self.valence_shell.get_lone_pair_nr()
@@ -2868,15 +2870,17 @@ class Atom:
             self.lone_pairs.append(LonePair(self, i + 10000))
 
 
-
     def set_neighbours(self, structure):
         self.neighbours = structure.graph[self]
+
 
     def remove_neighbour(self, neighbour):
         self.neighbours.remove(neighbour)
 
+
     def set_connectivity(self):
         self.connectivity = self.get_connectivity()
+
 
     def get_connectivity(self):
         connectivity = []
@@ -3024,6 +3028,7 @@ class Atom:
         orbital_nr = len(list(self.valence_shell.orbitals.keys()))
         
         for orbital_name, orbital in self.valence_shell.orbitals.items():
+
             if orbital.electron_nr == 1:
                 electron_nr += 1
             elif orbital.electron_nr == 2:
@@ -3038,6 +3043,11 @@ class Atom:
 
         if unbonded_electrons % 2 != 0:
             print("Warning! Rogue electron.")
+            print(self)
+            print(bond_nr)
+            print(bonds_to_make)
+            print(bonds_accounted_for)
+            print(electron_nr)
 
         electron_pair_nr = int(unbonded_electrons / 2)
         
@@ -4379,7 +4389,7 @@ class AtomDrawProperties:
         self.position = vector
 
     def set_previous_position(self, previous_atom):
-        self.previous_position = previous_atom.previous_position
+        self.previous_position = previous_atom.draw.position
         self.previous_atom = previous_atom
 
     def get_angle(self, reference_vector=None):
@@ -4389,6 +4399,12 @@ class AtomDrawProperties:
             vector = Vector.subtract_vectors(self.position, reference_vector)
 
         return vector.angle()
+
+    def restore_rings(self):
+        self.rings = []
+        for ring in self.original_rings:
+            self.rings.append(ring)
+
 
 class BondDrawProperties:
     def __init__(self):
@@ -4405,10 +4421,16 @@ if __name__ == "__main__":
 
     structure = read_smiles(r'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C')
     structure = read_smiles(r'O=C(NCCS)CCNC(=O)[C@H](O)C(C)(C)COP(=O)(O)O')
+    for atom in structure.graph:
+        if atom.nr == 1:
+            atom.nr = 10000
+
+
+    print(structure.bond_lookup)
+
     print('structure read')
 
     structure = read_smiles(r'C=C(/C=C/C1=CC=CC2=C1NC=C2CC(N3O[Fe](ON4C(CC5=CNC6=C5C=CC=C6/C=C/C(C)=C)=C(N=C(C4=O)C)OC)ON7C(CC8=CNC9=C8C=CC=C9/C=C/C(C)=C)=C(N=C(C7=O)C)OC)=C(N=C(C3=O)C)OC)C')
-
 
 
 

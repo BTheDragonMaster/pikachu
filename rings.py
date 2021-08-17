@@ -45,19 +45,20 @@ class Ring:
         current_atom = start_atom
         iteration = 0
 
+
         while current_atom != None and iteration < 100:
             previous = current_atom
 
             if not previous.draw.positioned:
-                x = center.x + math.cos(math.radians(a)) * radius
-                y = center.y + math.sin(math.radians(a)) * radius
+                x = center.x + math.cos(a) * radius
+                y = center.y + math.sin(a) * radius
                 previous.draw.set_position(Vector(x, y))
 
             a += angle
 
-            if not self.is_bridged or len(self.subrings) < 3:
+            if not self.bridged or len(self.subrings) < 3:
                 previous.draw.angle = a
-                previous.positioned = True
+                previous.draw.positioned = True
 
             current_atom = structure.get_next_in_ring(self, current_atom, previous_atom)
             previous_atom = previous
