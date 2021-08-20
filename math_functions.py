@@ -1,6 +1,131 @@
 #!/usr/bin/env python
 import math
 
+class Line:
+    def __init__(self, point_1, point_2):
+
+        self.point_1 = point_1
+        self.point_2 = point_2
+
+        if point_1.x > point_2.x:
+            self.point_1 = point_2
+            self.point_2 = point_1
+
+        self.length = self.get_length()
+        self.get_angle()
+
+    def find_intersection(self, line):
+        a1 = self.point_2.y - self.point_1.y
+        b1 = self.point_1.x - self.point_2.x
+        c1 = a1 * self.point_1.x + b1 * self.point_1.y
+
+        a2 = line.point_2.y - line.point_1.y
+        b2 = line.point_1.x - line.point_2.x
+        c2 = a2 * line.point_1.x + b2 * line.point_1.y
+
+        determinant = a1 * b2 - a2 * b1
+
+        if determinant == 0:
+            return None
+        else:
+            new_x = (b2 * c1 - b1 * c2) / determinant
+            new_y = (a1 * c2 - a2 * c1) / determinant
+            return Vector(new_x, new_y)
+
+    def get_angle(self):
+
+        difference = Vector.subtract_vectors(self.point_1, self.point_2)
+
+        return difference.angle()
+
+    def get_translation_angle(self):
+        angle = self.get_angle()
+        print(angle / math.pi)
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            translation_angle = math.pi * 0.5 - angle
+           # translation_angle = angle + math.pi * 0.5
+
+        else:
+           # translation_angle = angle - math.pi * 0.5
+            translation_angle = math.pi * 0.5 + angle
+
+    #    if -0.5 * math.pi < angle < 0.0 or 1.5 * math.pi < angle < 2.0 * math.pi:
+    #        translation_angle = angle + 0.5 * math.pi
+     #   elif -math.pi < angle < -0.5 * math.pi or math.pi < angle < 1.5 * math.pi:
+    #        translation_angle = angle - 0.5 * math.pi
+      #  elif -1.5 * math.pi < angle < -math.pi or 0.5 * math.pi < angle < math.pi:
+      #      translation_angle = angle - 0.5 * math.pi
+      #  elif -2.0 * math.pi < angle < -1.5 * math.pi or 0.0 < angle < 0.5 * math.pi:
+      #      translation_angle = 0.5 * math.pi - angle
+
+        return translation_angle
+
+    def get_midpoint(self):
+        x = (self.point_1.x + self.point_2.x) / 2
+        y = (self.point_1.y + self.point_2.y) / 2
+
+        return Vector(x, y)
+
+    def get_length(self):
+        squared_length = self.point_1.get_squared_distance(self.point_2)
+        return math.sqrt(squared_length)
+
+    def double_line_towards_center(self, center, distance, line_ratio):
+
+        angle = self.get_translation_angle()
+
+        x_translation = math.cos(angle) * distance
+        y_translation = math.sin(angle) * distance
+
+        midpoint = self.get_midpoint()
+
+        if center.x > midpoint.x:
+            x_translation = -x_translation
+        if center.y > midpoint.y:
+            y_translation = -y_translation
+
+        new_x1 = self.point_1.x + x_translation
+        new_x2 = self.point_2.x + x_translation
+        new_y1 = self.point_1.y + y_translation
+        new_y2 = self.point_2.y + y_translation
+
+        new_point_1 = Vector(new_x1, new_y1)
+        new_point_2 = Vector(new_x2, new_y2)
+
+        line = Line(new_point_1, new_point_2)
+
+        return line.get_truncated_line(line_ratio)
+
+    def get_truncated_line(self, ratio):
+
+        old_x_length = abs(self.point_2.x - self.point_1.x)
+        old_y_length = abs(self.point_2.y - self.point_1.y)
+
+        new_x_length = ratio * old_x_length
+        new_y_length = ratio * old_y_length
+
+        truncation_x = (old_x_length - new_x_length) / 2
+        truncation_y = (old_y_length - new_y_length) / 2
+
+        if self.point_1.x > self.point_2.x:
+            new_point_1_x = self.point_1.x - truncation_x
+            new_point_2_x = self.point_2.x + truncation_x
+
+        else:
+            new_point_2_x = self.point_2.x - truncation_x
+            new_point_1_x = self.point_1.x + truncation_x
+
+        if self.point_1.y > self.point_2.y:
+            new_point_1_y = self.point_1.y - truncation_y
+            new_point_2_y = self.point_2.y + truncation_y
+
+        else:
+            new_point_2_y = self.point_2.y - truncation_y
+            new_point_1_y = self.point_1.y + truncation_y
+
+        truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y))
+        return truncated_line
+
 
 class Vector:
     def __init__(self, x, y):
@@ -67,6 +192,30 @@ class Vector:
     def get_squared_distance(self, vector):
         return (vector.x - self.x) ** 2 + (vector.y - self.y) ** 2
 
+    def get_rotation_away_from_vector(self, vector, center, angle):
+        tmp = self.copy()
+
+        tmp.rotate_around_vector(angle, center)
+        squared_distance_1 = tmp.get_squared_distance(vector)
+
+        tmp.rotate_around_vector(-2.0 * angle, center)
+        squared_distance_2 = tmp.get_squared_distance(vector)
+
+        if squared_distance_2 < squared_distance_1:
+            return angle
+        else:
+            return -angle
+
+    def rotate_away_from_vector(self, vector, center, angle):
+
+        self.rotate_around_vector(angle, center)
+        squared_distance_1 = self.get_squared_distance(vector)
+        self.rotate_around_vector(-2.0 * angle, center)
+        squared_distance_2 = self.get_squared_distance(vector)
+
+        if squared_distance_2 < squared_distance_1:
+            self.rotate_around_vector(2.0 * angle, center)
+
     def get_clockwise_orientation(self, vector):
         a = self.y * vector.x
         b = self.x * vector.y
@@ -96,6 +245,17 @@ class Vector:
         y = (vector_1.y + vector_2.y) / 2
 
         return Vector(x, y)
+
+    @staticmethod
+    def get_average(vectors):
+        average_x = 0.0
+        average_y = 0.0
+        for vector in vectors:
+            average_x += vector.x
+            average_y += vector.y
+
+        return Vector(average_x / len(vectors), average_y / len(vectors))
+
 
     @staticmethod
     def get_normals(vector_1, vector_2):

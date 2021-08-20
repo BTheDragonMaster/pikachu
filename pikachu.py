@@ -423,6 +423,28 @@ class Structure:
         else:
             self.bond_lookup = {}
 
+    def refresh_structure(self):
+        new_graph = {}
+
+        for atom_1, atoms in self.graph.items():
+            new_graph[atom_1] = []
+            for atom_2 in atoms:
+                for atom_3 in self.graph:
+                    if atom_2 == atom_3:
+                        new_graph[atom_1].append(atom_3)
+                        break
+
+        for bond_nr, bond in self.bonds.items():
+            for atom in self.graph:
+                if bond.atom_1 == atom:
+                    bond.atom_1 = atom
+                if bond.atom_2 == atom:
+                    bond.atom_2 = atom
+
+        self.graph = new_graph
+        self.make_bond_lookup()
+        self.set_atom_neighbours()
+
     def get_next_in_ring(self, ring, current_atom, previous_atom):
         neighbours = self.graph[current_atom]
 
@@ -458,6 +480,22 @@ class Structure:
 
         dash_molecule2d_input = {'nodes': nodes, 'links': links}
         return dash_molecule2d_input
+
+    def get_drawn_atoms(self):
+        atoms = []
+        for atom in self.graph:
+            if atom.draw.is_drawn:
+                atoms.append(atom)
+        return atoms
+
+    def get_drawn_bonds(self):
+        bonds = []
+
+        for bond_nr, bond in self.bonds.items():
+            if bond.atom_1.draw.is_drawn and bond.atom_2.draw.is_drawn:
+                bonds.append(bond)
+
+        return bonds
 
     def set_double_bond_chirality(self):
 
@@ -2869,14 +2907,17 @@ class Atom:
         for i in range(lone_pair_nr):
             self.lone_pairs.append(LonePair(self, i + 10000))
 
-
     def set_neighbours(self, structure):
         self.neighbours = structure.graph[self]
 
+    def set_drawn_neighbours(self):
+        self.drawn_neighbours = []
+        for neighbour in self.neighbours:
+            if neighbour.draw.is_drawn:
+                self.drawn_neighbours.append(neighbour)
 
     def remove_neighbour(self, neighbour):
         self.neighbours.remove(neighbour)
-
 
     def set_connectivity(self):
         self.connectivity = self.get_connectivity()
@@ -4370,7 +4411,7 @@ class AtomDrawProperties:
     def __init__(self, x=0, y=0):
         self.rings = []
         self.original_rings = []
-        self.ring_anchors = set()
+        self.anchored_rings = []
         self.is_bridge_atom = False
         self.is_bridge = False
         self.bridged_ring = None

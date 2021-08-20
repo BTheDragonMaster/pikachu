@@ -29,6 +29,9 @@ class Ring:
     def __repr__(self):
         return str(self.id) + ' ' + '-'.join([atom.__repr__() for atom in self.members])
 
+    def get_angle(self):
+        return math.pi - self.central_angle
+
     def get_ordered_neighbours(self, ring_overlaps):
         ordered_neighbours_and_atom_nrs = []
 

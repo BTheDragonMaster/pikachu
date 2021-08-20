@@ -5,7 +5,7 @@ import copy
 from sssr import SSSR
 import pikachu
 from rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
-from math_functions import Vector, Polygon
+from math_functions import Vector, Polygon, Line
 import math
 import matplotlib
 matplotlib.use('TkAgg')
@@ -307,11 +307,15 @@ class Drawer:
         if options == None:
             self.options = Options()
 
-        self.structure = structure
+        self.structure = structure.kekulise()
         self.rings = []
         self.ring_overlaps = []
         self.id_to_ring = {}
+        self.drawn_atoms = []
+        self.drawn_bonds = []
         self.bridged_ring = False
+        self.total_overlap_score = 0
+        self.atom_nr_to_atom = {}
 
         self.ring_id_tracker = 0
         self.ring_overlap_id_tracker = 0
@@ -319,20 +323,148 @@ class Drawer:
         self.draw()
 
     def draw(self):
-        self.define_rings()
         self.hide_hydrogens()
+        self.get_atom_nr_to_atom()
+        self.define_rings()
         self.process_structure()
         self.draw_svg()
 
+    def get_hydrogen_text_orientation(self, atom):
+        neighbour = atom.drawn_neighbours[0]
+        if neighbour.draw.position.x > atom.draw.position.x + 3:
+            orientation = 'H_before_atom'
+        else:
+            orientation = 'H_after_atom'
+
+        return orientation
+
+    @staticmethod
+    def in_same_ring(atom_1, atom_2):
+        if atom_1.draw.rings and atom_2.draw.rings:
+            joined_rings = list(set(atom_1.draw.rings).intersection(set(atom_2.draw.rings)))
+            if joined_rings:
+                return True
+
+        return False
+
+    @staticmethod
+    def get_common_rings(atom_1, atom_2):
+        if atom_1.draw.rings and atom_2.draw.rings:
+            joined_rings = list(set(atom_1.draw.rings).intersection(set(atom_2.draw.rings)))
+            return joined_rings
+
+        return None
+
+    def plot_line(self, line, ax, color='black'):
+        ax.plot([line.point_1.x, line.point_2.x],
+                 [line.point_1.y, line.point_2.y], color=color)
+
     def draw_svg(self):
-        figure = plt.figure(figsize=(8, 8))
-        plt.gca().set_aspect('equal', adjustable='box')
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.set_aspect('equal', adjustable='box')
+
+      #  figure, ax = plt.subplots(figsize=(8, 8))
+       # ax.patch.set_face_color(self.options.background_color)
+      #  ax.set_aspect()('equal', adjustable='box')
+      #  plt.gca().set_aspect('equal', adjustable='box')
+
+        params = {'mathtext.default': 'regular',
+                  'font.size': 10}
+        plt.rcParams.update(params)
 
         min_x = 100000000
         max_x = -100000000
         min_y = 100000000
         max_y = -100000000
 
+        for bond_nr, bond in self.structure.bonds.items():
+            if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
+                line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position)
+                if bond.type == 'single':
+                    self.plot_line(line, ax, color='black')
+                elif bond.type == 'double':
+                    if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
+                        self.plot_line(line, ax, color='black')
+
+                        common_rings = self.get_common_rings(bond.atom_1, bond.atom_2)
+                        if common_rings:
+                            common_ring = self.get_ring(common_rings[0])
+
+                            self.set_ring_center(common_ring)
+                            ring_centre = common_ring.center
+                            second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length)
+                            self.plot_line(second_line, ax)
+
+                        else:
+                            bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
+                            if bond_neighbours:
+                                vectors = [atom.draw.position for atom in bond_neighbours]
+                                gravitational_point = Vector.get_average(vectors)
+                                second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length)
+                                self.plot_line(second_line, ax)
+                            else:
+                                print("Shouldn't happen!")
+                    else:
+                        if self.is_terminal(bond.atom_1) and self.is_terminal(bond.atom_2):
+                            dummy_1 = Vector(bond.atom_1.draw.position.x + 1, bond.atom_1.draw.position.y + 1)
+                            dummy_2 = Vector(bond.atom_1.draw.position.x - 1, bond.atom_1.draw.position.y - 1)
+                            double_bond_line_1 = line.double_line_towards_center(dummy_1,
+                                                                                 self.options.bond_spacing / 2.0,
+                                                                                 self.options.double_bond_length)
+                            double_bond_line_2 = line.double_line_towards_center(dummy_2.draw.position,
+                                                                                 self.options.bond_spacing / 2.0,
+                                                                                 self.options.double_bond_length)
+
+                            self.plot_line(double_bond_line_1, ax)
+                            self.plot_line(double_bond_line_2, ax)
+
+                        else:
+
+                            if self.is_terminal(bond.atom_1):
+                                terminal_atom = bond.atom_1
+                                branched_atom = bond.atom_2
+                            else:
+                                terminal_atom = bond.atom_2
+                                branched_atom = bond.atom_1
+
+                            if len(branched_atom.drawn_neighbours) >= 3:
+                                closest_two = self.get_sorted_distances_from_list(terminal_atom, branched_atom.drawn_neighbours)
+                                closest_atom_1 = closest_two[0][1]
+                                closest_atom_2 = closest_two[1][1]
+
+                                line = Line(terminal_atom.draw.position, branched_atom.draw.position)
+
+                             #   self.plot_line(line, ax, color='black')
+
+
+                                bond_1_line = Line(branched_atom.draw.position, closest_atom_1.draw.position)
+                                bond_2_line = Line(branched_atom.draw.position, closest_atom_2.draw.position)
+
+
+
+                                double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
+                                double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
+
+
+                                intersection_1 = double_bond_line_1.find_intersection(bond_1_line)
+                                intersection_2 = double_bond_line_2.find_intersection(bond_2_line)
+
+                                if terminal_atom.draw.position.x > branched_atom.draw.position.x:
+                                    double_bond_line_1.point_1 = intersection_1
+                                    double_bond_line_2.point_1 = intersection_2
+                                else:
+                                    double_bond_line_1.point_2 = intersection_1
+                                    double_bond_line_2.point_2 = intersection_2
+
+                                self.plot_line(double_bond_line_1, ax)
+                                self.plot_line(double_bond_line_2, ax)
+                            else:
+                                pass
+
+      #  for atom in self.drawn_atoms:
+        #    circle = plt.Circle((atom.draw.position.x, atom.draw.position.y), 5.0, color='green')# color=self.options.background_color)
+        #    ax.add_patch(circle)
 
         for atom in self.structure.graph:
             if atom.draw.positioned:
@@ -345,20 +477,124 @@ class Drawer:
                 if atom.draw.position.y > max_y:
                     max_y = atom.draw.position.y
             if atom.type != 'C' and atom.draw.positioned:
-                plt.text(atom.draw.position.x, atom.draw.position.y,
-                         atom.type,
-                         horizontalalignment='center',
-                         verticalalignment='center')
+                text = atom.type
+                horizontal_alignment = 'center'
+                if len(atom.drawn_neighbours) == 1 and atom.draw.has_hydrogen:
+                    hydrogen_count = 0
+                    for neighbour in atom.neighbours:
+                        if neighbour.type == 'H' and not neighbour.draw.is_drawn:
+                            hydrogen_count += 1
 
-        for bond_nr, bond in self.structure.bonds.items():
-            if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
-                plt.plot([bond.atom_1.draw.position.x, bond.atom_2.draw.position.x], [bond.atom_1.draw.position.y, bond.atom_2.draw.position.y], color='black')
+                    if hydrogen_count:
+
+                        orientation = self.get_hydrogen_text_orientation(atom)
+                        if hydrogen_count > 1:
+                            if orientation == 'H_before_atom':
+                                text = r'$H_{hydrogens}${atom_type}'.format(hydrogens=hydrogen_count,
+                                                                            atom_type=atom.type)
+                                horizontal_alignment = 'right'
+                                atom.draw.position.x += 3
+                            else:
+                                text = r'${atom_type}H_{hydrogens}$'.format(hydrogens=hydrogen_count,
+                                                                            atom_type=atom.type)
+                                horizontal_alignment = 'left'
+                                atom.draw.position.x -= 3
+                        elif hydrogen_count == 1:
+                            if orientation == 'H_before_atom':
+                                text = f'H{atom.type}'
+                                horizontal_alignment = 'right'
+                                atom.draw.position.x += 3
+                            else:
+                                text = f'{atom.type}H'
+                                horizontal_alignment = 'left'
+                                atom.draw.position.x -= 3
+
+                plt.text(atom.draw.position.x, atom.draw.position.y,
+                         text,
+                         horizontalalignment=horizontal_alignment,
+                         verticalalignment='center')
 
         plt.show()
 
+    def is_terminal(self, atom):
+        if len(atom.drawn_neighbours) <= 1:
+            return True
+
+        return False
+
     def process_structure(self):
         self.position()
+        self.structure.refresh_structure()
         self.restore_ring_information()
+
+        self.resolve_primary_overlaps()
+
+        self.total_overlap_score, sorted_overlap_scores, atom_to_scores = self.get_overlap_score()
+
+        for i in range(self.options.overlap_resolution_iterations):
+            for bond in self.drawn_bonds:
+                if self.bond_is_rotatable(bond):
+
+                    tree_depth_1 = self.get_subgraph_size(bond.atom_1, {bond.atom_2})
+                    tree_depth_2 = self.get_subgraph_size(bond.atom_2, {bond.atom_1})
+
+                    atom_1 = bond.atom_2
+                    atom_2 = bond.atom_1
+
+                    if tree_depth_1 > tree_depth_2:
+                        atom_1 = bond.atom_1
+                        atom_2 = bond.atom_2
+
+                    subtree_overlap_score, _ = self.get_subtree_overlap_score(atom_2, atom_1, atom_to_scores)
+                    if subtree_overlap_score > self.options.overlap_sensitivity:
+                        neighbours_2 = atom_2.drawn_neighbours[:]
+                        neighbours_2.remove(atom_1)
+
+                        if len(neighbours_2) == 1:
+                            neighbour = neighbours_2[0]
+                            angle = neighbour.draw.position.get_rotation_away_from_vector(atom_1.draw.position, atom_2.draw.position, math.radians(120))
+
+                            self.rotate_subtree(neighbour, atom_2, angle, atom_2.draw.position)
+
+                            new_overlap_score, _, _ = self.get_overlap_score()
+                            if new_overlap_score > self.total_overlap_score:
+                                self.rotate_subtree(neighbour, atom_2, -angle, atom_2.draw.position)
+                            else:
+                                self.total_overlap_score = new_overlap_score
+
+                        elif len(neighbours_2) == 2:
+                            if atom_2.draw.rings and atom_1.draw.rings:
+                                continue
+
+                            neighbour_1 = neighbours_2[0]
+                            neighbour_2 = neighbours_2[1]
+
+                            if len(neighbour_1.draw.rings) == 1 and len(neighbour_2.draw.rings) == 1:
+                                # If the neighbours are in different rings, or in rings at all, do nothing
+                                if neighbour_1.draw.rings[0] != neighbour_2.draw.rings[0]:
+                                    continue
+                                elif neighbour_1.draw.rings or neighbour_2.draw.rings:
+                                    continue
+                                else:
+                                    angle_1 = neighbour_1.draw.position.get_rotation_away_from_vector(atom_1.position, atom_2.position, math.radians(120))
+                                    angle_2 = neighbour_2.draw.position.get_rotation_away_from_vector(atom_1.position, atom_2.position, math.radians(120))
+
+                                    self.rotate_subtree(neighbour_1, atom_2, angle_1, atom_2.position)
+                                    self.rotate_subtree(neighbour_2, atom_2, angle_2, atom_2.position)
+
+                                    new_overlap_score, _, _ = self.get_overlap_score()
+
+                                    if new_overlap_score > self.total_overlap_score:
+                                        self.rotate_subtree(neighbour_1, atom_2, -angle_1, atom_2.position)
+                                        self.rotate_subtree(neighbour_2, atom_2, -angle_2, atom_2.position)
+                                    else:
+                                        self.total_overlap_score = new_overlap_score
+
+                        self.total_overlap_score, sorted_overlap_scores, atom_to_scores = self.get_overlap_score()
+
+        self.resolve_secondary_overlaps(sorted_overlap_scores)
+
+        # add stereochemistry
 
 
     def position(self):
@@ -389,8 +625,6 @@ class Drawer:
         if atom.draw.positioned and not skip_positioning:
             return
 
-        double_bond_configuration_set = False
-
         if not skip_positioning:
             if not previous_atom:
                 dummy = Vector(self.options.bond_length, 0)
@@ -405,7 +639,7 @@ class Drawer:
                     atom.draw.positioned = True
 
             elif len(previous_atom.draw.rings) > 0:
-                neighbours = previous_atom.get_drawn_neighbours()
+                neighbours = previous_atom.drawn_neighbours
                 joined_vertex = None
                 position = Vector(0, 0)
 
@@ -477,7 +711,7 @@ class Drawer:
 
         # If the atom is not part of a ring, position just the atom
         else:
-            neighbours = atom.get_drawn_neighbours()
+            neighbours = atom.drawn_neighbours[:]
 
             if previous_atom:
                 if previous_atom in neighbours:
@@ -540,7 +774,7 @@ class Drawer:
                 else:
                     a = atom.draw.angle
 
-                    if previous_atom and len(previous_atom.get_drawn_neighbours()) > 3:
+                    if previous_atom and len(previous_atom.drawn_neighbours) > 3:
                         if a > 0:
                             a = min([math.radians(60), a])
                         elif a < 0:
@@ -582,12 +816,10 @@ class Drawer:
                 subgraph_2_size = self.get_subgraph_size(neighbour_2, {atom})
 
                 if previous_atom:
-
                     subgraph_3_size = self.get_subgraph_size(previous_atom, {atom})
 
                 else:
                     subgraph_3_size = 0
-
 
                 cis_atom_index = 0
                 trans_atom_index = 1
@@ -728,7 +960,13 @@ class Drawer:
                 self.original_rings[subring.id].center = subring.center
 
         for ring in self.original_rings:
+            for i, atom in enumerate(ring.members):
+                positioned_atom = self.atom_nr_to_atom[atom.nr]
+                ring.members[i] = positioned_atom
+            self.set_ring_center(ring)
             self.rings.append(ring)
+
+
 
         for ring_overlap in self.original_ring_overlaps:
             self.ring_overlaps.append(ring_overlap)
@@ -736,10 +974,199 @@ class Drawer:
         for atom in self.structure.graph:
             atom.draw.restore_rings()
 
+    def bond_is_rotatable(self, bond):
+        if bond.type != 'single':
+            return False
+
+        # If bond is terminal, don't bother rotating.
+
+        if len(bond.atom_1.drawn_neighbours) == 1 or len(bond.atom_2.drawn_neighbours) == 1:
+            return False
+
+        if bond.atom_1.draw.rings and \
+                bond.atom_2.draw.rings and \
+                len(set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))) > 0:
+            return False
+
+        return True
+
+    def resolve_primary_overlaps(self):
+        overlaps = []
+        resolved_atoms = {}
+        for atom in self.structure.graph:
+            if atom.draw.is_drawn:
+                resolved_atoms[atom] = False
+
+        for ring in self.rings:
+            for atom in ring.members:
+                if resolved_atoms[atom]:
+                    continue
+
+                resolved_atoms[atom] = True
+
+                non_ring_neighbours = self.get_non_ring_neighbours(atom)
+
+                if len(non_ring_neighbours) > 1 or\
+                    (len(non_ring_neighbours) == 1 and len(atom.draw.rings) == 2):
+                    overlaps.append({'common': atom,
+                                     'rings': atom.draw.rings,
+                                     'vertices': non_ring_neighbours})
+
+        for overlap in overlaps:
+            branches_to_adjust = overlap['vertices']
+            rings = overlap['rings']
+            root = overlap['common']
+
+            if len(branches_to_adjust) == 2:
+
+                atom_1, atom_2 = branches_to_adjust
+
+                if not atom_1.draw.is_drawn or not atom_2.draw.is_drawn:
+                    continue
+
+                angle = (2 * math.pi - self.id_to_ring[rings[0]].get_angle()) / 6.0
+
+                self.rotate_subtree(atom_1, root, angle, root.draw.position)
+                self.rotate_subtree(atom_2, root, -angle, root.draw.position)
+
+                total, sorted_scores, atom_to_score = self.get_overlap_score()
+                subtree_overlap_atom_1_1, _ = self.get_subtree_overlap_score(atom_1, root, atom_to_score)
+                subtree_overlap_atom_2_1, _ = self.get_subtree_overlap_score(atom_2, root, atom_to_score)
+                total_score = subtree_overlap_atom_1_1 + subtree_overlap_atom_2_1
+
+                self.rotate_subtree(atom_1, root, -2.0 * angle, root.draw.position)
+                self.rotate_subtree(atom_2, root, 2.0 * angle, root.draw.position)
+
+                total, sorted_scores, atom_to_score = self.get_overlap_score()
+                subtree_overlap_atom_1_2, _ = self.get_subtree_overlap_score(atom_1, root, atom_to_score)
+                subtree_overlap_atom_2_2, _ = self.get_subtree_overlap_score(atom_2, root, atom_to_score)
+                total_score_2 = subtree_overlap_atom_1_2 + subtree_overlap_atom_2_2
+
+                if total_score_2 > total_score:
+                    self.rotate_subtree(atom_1, root, 2.0 * angle, root.draw.position)
+                    self.rotate_subtree(atom_2, root, -2.0 * angle, root.draw.position)
+
+            elif len(branches_to_adjust) == 1:
+                if len(rings) == 2:
+                    pass
+
+    def resolve_secondary_overlaps(self, sorted_scores):
+        for score, atom in sorted_scores:
+            if score > self.options.overlap_sensitivity:
+                if len(atom.drawn_neighbours) <= 1:
+                    closest_atom = self.get_closest_atom(atom)
+
+                    if closest_atom:
+                        closest_position = None
+
+                    drawn_neighbours = closest_atom.drawn_neighbours
+
+                    if len(drawn_neighbours) <= 1:
+                        if not closest_atom.draw.previous_position:
+                            closest_position = drawn_neighbours[0].draw.position
+                        else:
+                            closest_position = closest_atom.draw.previous_position
+
+                    else:
+                        if not closest_atom.draw.previous_position:
+                            closest_position = drawn_neighbours[0].draw.position
+                        else:
+                            closest_position = closest_atom.draw.position
+
+                    if not atom.draw.previous_position:
+                        atom_previous_position = atom.drawn_neighbours[0].draw.position
+                    else:
+                        atom_previous_position = atom.draw.previous_position
+
+                    atom.draw.position.rotate_away_from_vector(closest_position, atom_previous_position, math.radians(20))
+
+
+    def get_atom_nr_to_atom(self):
+        self.atom_nr_to_atom = {}
+        for atom in self.structure.graph:
+            self.atom_nr_to_atom[atom.nr] = atom
+
+    def get_subtree_overlap_score(self, root, root_parent, atom_to_score):
+        score = 0.0
+        center = Vector(0, 0)
+
+        count = 0
+
+        for atom in self.traverse_substructure(root, {root_parent}):
+
+            subscore = atom_to_score[atom]
+            if subscore > self.options.overlap_sensitivity:
+                score += subscore
+                count += 1
+
+            position = atom.draw.position.copy()
+            position.multiply_by_scalar(subscore)
+            center.add(position)
+
+        if score:
+            center.divide(score)
+
+        if count == 0:
+            count = 1
+
+        return score / count, center
+
+    def get_overlap_score(self):
+        total = 0.0
+
+        overlap_scores = {}
+        for atom in self.drawn_atoms:
+            overlap_scores[atom] = 0.0
+
+        for i, atom_1 in enumerate(self.drawn_atoms):
+            for j in range(i + 1, len(self.drawn_atoms)):
+                atom_2 = self.drawn_atoms[j]
+                distance = Vector.subtract_vectors(atom_1.draw.position, atom_2.draw.position).get_squared_length()
+                if distance < self.options.bond_length_squared:
+                    weight = (self.options.bond_length - math.sqrt(distance)) / self.options.bond_length
+                    total += weight
+                    overlap_scores[atom_1] += weight
+                    overlap_scores[atom_2] += weight
+
+        sorted_overlaps = []
+
+        for atom in self.drawn_atoms:
+            sorted_overlaps.append((overlap_scores[atom], atom))
+
+        sorted_overlaps.sort(key=lambda x: x[0], reverse=True)
+
+        return total, sorted_overlaps, overlap_scores
+
+    def get_non_ring_neighbours(self, atom):
+        non_ring_neighbours = []
+
+        for neighbour in atom.drawn_neighbours:
+            nr_overlapping_rings = len(set(atom.draw.rings).intersection(set(neighbour.draw.rings)))
+            if nr_overlapping_rings == 0 and not neighbour.draw.is_bridge:
+                non_ring_neighbours.append(neighbour)
+
+        return non_ring_neighbours
+
+    def rotate_subtree(self, root, root_parent, angle, center):
+
+        for atom in self.traverse_substructure(root, {root_parent}):
+            atom.draw.position.rotate_around_vector(angle, center)
+            for anchored_ring in atom.draw.anchored_rings:
+                if anchored_ring.center:
+                    anchored_ring.center.rotate_around_vector(angle, center)
+
+    def traverse_substructure(self, atom, visited):
+        yield atom
+        visited.add(atom)
+        for neighbour in atom.drawn_neighbours:
+           # if neighbour in self.structure.get_drawn_atoms():
+            if neighbour not in visited:
+                yield from self.traverse_substructure(neighbour, visited)
+
     def get_subgraph_size(self, atom, masked_atoms):
         masked_atoms.add(atom)
 
-        for neighbour in atom.get_drawn_neighbours():
+        for neighbour in atom.drawn_neighbours:
             if neighbour not in masked_atoms:
                 self.get_subgraph_size(neighbour, masked_atoms)
 
@@ -867,7 +1294,7 @@ class Drawer:
                     self.create_ring(neighbour, next_center, atom)
 
         for atom in ring.members:
-            for neighbour in atom.get_drawn_neighbours():
+            for neighbour in atom.drawn_neighbours:
                 if neighbour.draw.positioned:
                     continue
 
@@ -879,7 +1306,9 @@ class Drawer:
         for atom in ring.members:
             total.add(atom.draw.position)
 
-        ring.center = total.divide(len(ring.members))
+        total.divide(len(ring.members))
+
+        ring.center = total
 
     def get_current_centre_of_mass(self):
         total = Vector(0, 0)
@@ -926,7 +1355,8 @@ class Drawer:
 
         for ring in self.rings:
             anchor = ring.members[0]
-            anchor.draw.ring_anchors.add(ring.id)
+            if ring not in anchor.draw.anchored_rings:
+                anchor.draw.anchored_rings.append(ring)
 
         self.backup_ring_info()
 
@@ -961,13 +1391,25 @@ class Drawer:
 
             neighbour = atom.neighbours[0]
             neighbour.draw.has_hydrogen = True
-            if not neighbour.chiral or (len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None) or \
-                    (neighbour.draw.bridged_ring != None and len(neighbour.draw.original_rings) < 2):
+
+            if not neighbour.chiral or len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None and \
+                    neighbour.draw.bridged_ring != None and len(neighbour.draw.original_rings) < 2:
                 atom.draw.is_drawn = False
                 hidden.append(atom)
-
             else:
                 exposed.append(atom)
+
+        for atom in self.structure.graph:
+            atom.set_drawn_neighbours()
+
+        self.drawn_bonds = []
+
+        for bond_nr, bond in self.structure.bonds.items():
+            if bond.atom_1.draw.is_drawn and bond.atom_2.draw.is_drawn:
+                self.drawn_bonds.append(bond)
+
+        self.drawn_atoms = self.structure.get_drawn_atoms()
+
 
     def get_bridged_rings(self):
         bridged_rings = []
@@ -976,7 +1418,6 @@ class Drawer:
                 bridged_rings.append(ring)
 
         return bridged_rings
-
 
     def get_bridged_ring_subrings(self, ring_id, involved_ring_ids):
         involved_ring_ids.append(ring_id)
@@ -1071,6 +1512,11 @@ class Drawer:
             if ring.id == ring_id:
                 return i
 
+    def get_ring(self, ring_id):
+        for ring in self.rings:
+            if ring.id == ring_id:
+                return ring
+
     def add_ring(self, ring):
         ring.id = self.ring_id_tracker
         self.rings.append(ring)
@@ -1126,6 +1572,38 @@ class Drawer:
 
         return False
 
+    def get_closest_atom(self, atom):
+        minimal_distance = 9999999
+        closest_atom = None
+
+        for atom_2 in self.drawn_atoms:
+            if atom == atom_2:
+                continue
+
+            squared_distance = atom.draw.position.get_squared_distance(atom_2.draw.position)
+
+            if squared_distance < minimal_distance:
+                minimal_distance = squared_distance
+                closest_atom = atom_2
+
+        return closest_atom
+
+    def get_sorted_distances_from_list(self, atom, atom_list):
+        atom_distances = []
+
+        for atom_2 in atom_list:
+            if atom == atom_2:
+                continue
+
+            squared_distance = atom.draw.position.get_squared_distance(atom_2.draw.position)
+            atom_distances.append((squared_distance, atom_2))
+
+        atom_distances.sort(key=lambda x: x[0])
+
+        return atom_distances
+
+
+
 
 class Options:
     def __init__(self):
@@ -1133,7 +1611,9 @@ class Options:
         self.height = 500
         self.bond_thickness = 0.6
         self.bond_length = 15
-        self.short_bond_length = 0.85
+        self.bond_length_squared = self.bond_length ** 2
+        self.short_bond_length = 0.50
+        self.double_bond_length = 0.80
         self.bond_spacing = 0.18 * self.bond_length
         self.isomeric = True
         self.padding = 20
@@ -1144,6 +1624,9 @@ class Options:
         self.kk_max_iteration = 2000
         self.kk_max_inner_iteration = 50
         self.kk_max_energy = 1e9
+        self.overlap_sensitivity = 0.42
+        self.overlap_resolution_iterations = 5
+        self.background_color = 'white'
 
 
 if __name__ == "__main__":
@@ -1157,6 +1640,7 @@ if __name__ == "__main__":
     graph = SSSR(teicoplanin_structure)
     rings = graph.get_rings()
 
-    drawer = Drawer(teicoplanin_structure)
+  #  drawer = Drawer(teicoplanin_structure)
+    drawer = Drawer(daptomycin_structure)
     #for atom in drawer.structure.graph:
       #  print(f'{atom}\t{atom.draw.position.x}\t{atom.draw.position.y}')
