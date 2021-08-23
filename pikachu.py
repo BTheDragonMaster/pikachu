@@ -411,10 +411,12 @@ class Structure:
     def __init__(self, graph = None, bonds = None, bond_lookup = None):
         if graph:
             self.graph = graph
+            self.set_atom_neighbours()
         else:
             self.graph = {}
         if bonds:
             self.bonds = bonds
+            self.make_bond_lookup()
         else:
             self.bonds = {}
 
@@ -724,6 +726,23 @@ class Structure:
             next_atom_nr = atom_nrs[-1] + 1
 
         return next_atom_nr
+
+    def find_highest_atom_nr(self):
+        highest_atom_nr = -1
+        for atom in self.graph:
+            if atom.nr > highest_atom_nr:
+                highest_atom_nr = atom.nr
+
+        return highest_atom_nr
+
+    def find_highest_bond_nr(self):
+        highest_bond_nr = -1
+        for bond_nr in self.bonds:
+            if bond_nr > highest_bond_nr:
+                highest_bond_nr = bond_nr
+
+        return highest_bond_nr
+
 
     def get_steric_atoms(self):
         """
@@ -1839,6 +1858,7 @@ class Structure:
 
         for new_structure in new_structures:
             new_structure.infer_bonds()
+            new_structure.set_atom_neighbours()
             new_structure.make_bond_lookup()
 
         return new_structures
@@ -3525,7 +3545,7 @@ def make_character_dict() -> Dict[str, str]:
     """Create dict of {character: label, ->} to label smiles characters
     """
     character_dict = {}
-    atoms = ["C", "O", "N", "S", "B", "P", "F", "I", "c", "n", "o", '*',
+    atoms = ["C", "O", "N", "S", "B", "P", "F", "I", "c", "n", "o", r'*',
              'Cl', 'Br', 'p', 'b', 'p', 's']
     cyclic = list(range(1,100))
     

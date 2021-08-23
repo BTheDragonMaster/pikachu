@@ -310,6 +310,8 @@ class Drawer:
         self.structure = structure.kekulise()
         self.rings = []
         self.ring_overlaps = []
+        self.original_rings = []
+        self.original_ring_overlaps = []
         self.id_to_ring = {}
         self.drawn_atoms = []
         self.drawn_bonds = []
@@ -357,12 +359,43 @@ class Drawer:
 
     def plot_line(self, line, ax, color='black'):
         ax.plot([line.point_1.x, line.point_2.x],
-                 [line.point_1.y, line.point_2.y], color=color)
+                 [line.point_1.y, line.point_2.y], color=color, linewidth = self.line_width)
 
     def draw_svg(self):
 
-        fig, ax = plt.subplots(figsize=(8, 8))
+        min_x = 100000000
+        max_x = -100000000
+        min_y = 100000000
+        max_y = -100000000
+
+        for atom in self.structure.graph:
+            if atom.draw.positioned:
+                if atom.draw.position.x < min_x:
+                    min_x = atom.draw.position.x
+                if atom.draw.position.y < min_y:
+                    min_y = atom.draw.position.y
+                if atom.draw.position.x > max_x:
+                    max_x = atom.draw.position.x
+                if atom.draw.position.y > max_y:
+                    max_y = atom.draw.position.y
+
+        height = max_y - min_y
+        width = max_x - min_x
+
+        print(height, width)
+        font_size = 3500 / height
+        self.line_width = 600 / height
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+      #  fig, ax = plt.subplots()
         ax.set_aspect('equal', adjustable='box')
+        ax.axis('off')
+
+        ax.set_xlim([min_x - self.options.padding, max_x + self.options.padding])
+        ax.set_ylim([min_y - self.options.padding, max_y + self.options.padding])
+        plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+
+
 
       #  figure, ax = plt.subplots(figsize=(8, 8))
        # ax.patch.set_face_color(self.options.background_color)
@@ -370,30 +403,39 @@ class Drawer:
       #  plt.gca().set_aspect('equal', adjustable='box')
 
         params = {'mathtext.default': 'regular',
-                  'font.size': 10}
+                  'font.size': font_size}
         plt.rcParams.update(params)
 
-        min_x = 100000000
-        max_x = -100000000
-        min_y = 100000000
-        max_y = -100000000
+
+        ring_centers_x = []
+        ring_centers_y = []
+
+        for ring in self.rings:
+            self.set_ring_center(ring)
+
+            ring_centers_x.append(ring.center.x)
+            ring_centers_y.append(ring.center.y)
+
+     #   ax.scatter(ring_centers_x, ring_centers_y, color='blue')
 
         for bond_nr, bond in self.structure.bonds.items():
             if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
-                line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position)
+                line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position, bond.atom_1, bond.atom_2)
+                truncated_line = line.get_truncated_line(self.options.short_bond_length)
                 if bond.type == 'single':
-                    self.plot_line(line, ax, color='black')
+                    self.plot_line(truncated_line, ax, color='black')
                 elif bond.type == 'double':
                     if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
-                        self.plot_line(line, ax, color='black')
+                        self.plot_line(truncated_line, ax, color='black')
 
                         common_rings = self.get_common_rings(bond.atom_1, bond.atom_2)
                         if common_rings:
-                            common_ring = self.get_ring(common_rings[0])
+                            print("\n")
+                            print(bond)
 
-                            self.set_ring_center(common_ring)
+                            common_ring = self.get_ring(common_rings[0])
                             ring_centre = common_ring.center
-                            second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length)
+                            second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length, ax)
                             self.plot_line(second_line, ax)
 
                         else:
@@ -401,7 +443,7 @@ class Drawer:
                             if bond_neighbours:
                                 vectors = [atom.draw.position for atom in bond_neighbours]
                                 gravitational_point = Vector.get_average(vectors)
-                                second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length)
+                                second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length, ax)
                                 self.plot_line(second_line, ax)
                             else:
                                 print("Shouldn't happen!")
@@ -412,7 +454,7 @@ class Drawer:
                             double_bond_line_1 = line.double_line_towards_center(dummy_1,
                                                                                  self.options.bond_spacing / 2.0,
                                                                                  self.options.double_bond_length)
-                            double_bond_line_2 = line.double_line_towards_center(dummy_2.draw.position,
+                            double_bond_line_2 = line.double_line_towards_center(dummy_2,
                                                                                  self.options.bond_spacing / 2.0,
                                                                                  self.options.double_bond_length)
 
@@ -433,19 +475,16 @@ class Drawer:
                                 closest_atom_1 = closest_two[0][1]
                                 closest_atom_2 = closest_two[1][1]
 
-                                line = Line(terminal_atom.draw.position, branched_atom.draw.position)
+                                line = Line(terminal_atom.draw.position, branched_atom.draw.position, terminal_atom, branched_atom)
 
                              #   self.plot_line(line, ax, color='black')
 
 
-                                bond_1_line = Line(branched_atom.draw.position, closest_atom_1.draw.position)
-                                bond_2_line = Line(branched_atom.draw.position, closest_atom_2.draw.position)
+                                bond_1_line = Line(branched_atom.draw.position, closest_atom_1.draw.position, branched_atom, closest_atom_1)
+                                bond_2_line = Line(branched_atom.draw.position, closest_atom_2.draw.position, branched_atom, closest_atom_1)
 
-
-
-                                double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
-                                double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
-
+                                double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length, ax)
+                                double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length, ax)
 
                                 intersection_1 = double_bond_line_1.find_intersection(bond_1_line)
                                 intersection_2 = double_bond_line_2.find_intersection(bond_2_line)
@@ -457,8 +496,8 @@ class Drawer:
                                     double_bond_line_1.point_2 = intersection_1
                                     double_bond_line_2.point_2 = intersection_2
 
-                                self.plot_line(double_bond_line_1, ax)
-                                self.plot_line(double_bond_line_2, ax)
+                                self.plot_line(double_bond_line_1.get_truncated_line(self.options.short_bond_length), ax)
+                                self.plot_line(double_bond_line_2.get_truncated_line(self.options.short_bond_length), ax)
                             else:
                                 pass
 
@@ -466,20 +505,14 @@ class Drawer:
         #    circle = plt.Circle((atom.draw.position.x, atom.draw.position.y), 5.0, color='green')# color=self.options.background_color)
         #    ax.add_patch(circle)
 
+
+
         for atom in self.structure.graph:
-            if atom.draw.positioned:
-                if atom.draw.position.x < min_x:
-                    min_x = atom.draw.position.x
-                if atom.draw.position.y < min_y:
-                    min_y = atom.draw.position.y
-                if atom.draw.position.x > max_x:
-                    max_x = atom.draw.position.x
-                if atom.draw.position.y > max_y:
-                    max_y = atom.draw.position.y
             if atom.type != 'C' and atom.draw.positioned:
                 text = atom.type
                 horizontal_alignment = 'center'
-                if len(atom.drawn_neighbours) == 1 and atom.draw.has_hydrogen:
+                if atom.draw.has_hydrogen:
+               # if len(atom.drawn_neighbours) == 1 and atom.draw.has_hydrogen:
                     hydrogen_count = 0
                     for neighbour in atom.neighbours:
                         if neighbour.type == 'H' and not neighbour.draw.is_drawn:
@@ -514,7 +547,9 @@ class Drawer:
                          horizontalalignment=horizontal_alignment,
                          verticalalignment='center')
 
+        plt.savefig("test.svg")
         plt.show()
+        plt.clf()
 
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
@@ -615,7 +650,7 @@ class Drawer:
             start_atom = self.rings[0].members[0]
 
         if start_atom == None:
-            start_atom = list(self.structure.graph.keys())[0]
+            start_atom = list(self.drawn_atoms)[0]
 
         self.create_next_bond(start_atom, None, 0.0)
 
@@ -624,6 +659,8 @@ class Drawer:
 
         if atom.draw.positioned and not skip_positioning:
             return
+
+        print(atom)
 
         if not skip_positioning:
             if not previous_atom:
@@ -728,8 +765,8 @@ class Drawer:
                 if previous_atom:
                     previous_bond = self.structure.bond_lookup[previous_atom][atom]
 
-                if current_bond.type == 'triple' or previous_bond.type == 'triple' or \
-                        (current_bond.type == 'double' and previous_bond.type == 'double' and
+                if current_bond.type == 'triple' or (previous_bond and previous_bond.type == 'triple') or \
+                        (current_bond.type == 'double' and previous_bond and previous_bond.type == 'double' and
                          previous_atom and len(previous_atom.draw.rings) == 0 and
                          len(atom.neighbours) == 2):
 
@@ -790,12 +827,16 @@ class Drawer:
                             a = math.radians(60)
 
                     if previous_atom:
+
                         bond = self.structure.bond_lookup[previous_atom][atom]
                         if bond.type == 'double' and bond.chiral:
+
                             previous_previous_atom = previous_atom.draw.previous_atom
                             if previous_previous_atom:
+
                                 configuration = bond.chiral_dict[previous_previous_atom][next_atom]
                                 if configuration == 'cis':
+
                                     a = -a
 
                     if previous_branch_shortest:
@@ -1184,6 +1225,9 @@ class Drawer:
         return parent_atom
 
     def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
+
+        print(ring)
+
         if ring.positioned:
             return
 
@@ -1234,6 +1278,8 @@ class Drawer:
             atoms = list(RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id))
 
             if len(atoms) == 2:
+                print(atoms)
+
                 #This ring is fused
                 ring.fused = True
                 neighbour.fused = True
@@ -1294,7 +1340,9 @@ class Drawer:
                     self.create_ring(neighbour, next_center, atom)
 
         for atom in ring.members:
+            print("ring member", atom)
             for neighbour in atom.drawn_neighbours:
+                print("Neighbour", neighbour)
                 if neighbour.draw.positioned:
                     continue
 
@@ -1385,22 +1433,33 @@ class Drawer:
     def hide_hydrogens(self):
         hidden = []
         exposed = []
+        self.structure.refresh_structure()
         for atom in self.structure.graph:
             if atom.type != 'H':
                 continue
 
             neighbour = atom.neighbours[0]
             neighbour.draw.has_hydrogen = True
+            atom.draw.is_drawn = False
+            hidden.append(atom)
 
-            if not neighbour.chiral or len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None and \
+            if len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None and \
                     neighbour.draw.bridged_ring != None and len(neighbour.draw.original_rings) < 2:
+
                 atom.draw.is_drawn = False
+                neighbour.draw.has_hydrogen = True
                 hidden.append(atom)
             else:
                 exposed.append(atom)
 
+
+
         for atom in self.structure.graph:
             atom.set_drawn_neighbours()
+            if atom.type == 'O':
+                print(atom.draw.has_hydrogen)
+                print("yo")
+                print(atom.drawn_neighbours)
 
         self.drawn_bonds = []
 
@@ -1409,6 +1468,7 @@ class Drawer:
                 self.drawn_bonds.append(bond)
 
         self.drawn_atoms = self.structure.get_drawn_atoms()
+        print("Hidden", hidden)
 
 
     def get_bridged_rings(self):
@@ -1624,7 +1684,7 @@ class Options:
         self.kk_max_iteration = 2000
         self.kk_max_inner_iteration = 50
         self.kk_max_energy = 1e9
-        self.overlap_sensitivity = 0.42
+        self.overlap_sensitivity = 0.10
         self.overlap_resolution_iterations = 5
         self.background_color = 'white'
 
@@ -1640,7 +1700,15 @@ if __name__ == "__main__":
     graph = SSSR(teicoplanin_structure)
     rings = graph.get_rings()
 
-  #  drawer = Drawer(teicoplanin_structure)
+    trans_smiles = r'N/C=C/N'
+    trans_structure = pikachu.read_smiles(trans_smiles)
+
+    cis_smiles = r'N/C=C\N'
+    cis_structure = pikachu.read_smiles(cis_smiles)
+
+   # drawer = Drawer(teicoplanin_structure)
     drawer = Drawer(daptomycin_structure)
+   # drawer = Drawer(trans_structure)
+   # drawer = Drawer(cis_structure)
     #for atom in drawer.structure.graph:
       #  print(f'{atom}\t{atom.draw.position.x}\t{atom.draw.position.y}')

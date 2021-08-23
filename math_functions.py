@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 import math
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib import pyplot as plt
 
 class Line:
-    def __init__(self, point_1, point_2):
+    def __init__(self, point_1, point_2, atom_1, atom_2):
+
+        self.atom_1 = atom_1
+        self.atom_2 = atom_2
 
         self.point_1 = point_1
         self.point_2 = point_2
@@ -10,9 +16,21 @@ class Line:
         if point_1.x > point_2.x:
             self.point_1 = point_2
             self.point_2 = point_1
+            self.atom_1 = atom_2
+            self.atom_2 = atom_1
 
         self.length = self.get_length()
         self.get_angle()
+
+    def get_bond_triangle(self, width):
+        angle = self.get_angle()
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            angle = -angle
+
+        dx = abs(math.sin(angle) * width)
+        dy = abs(math.cos(angle) * width)
+
+
 
     def find_intersection(self, line):
         a1 = self.point_2.y - self.point_1.y
@@ -34,29 +52,17 @@ class Line:
 
     def get_angle(self):
 
-        difference = Vector.subtract_vectors(self.point_1, self.point_2)
+        difference = Vector.subtract_vectors(self.point_2, self.point_1)
 
         return difference.angle()
 
-    def get_translation_angle(self):
+    def get_right_angle(self):
         angle = self.get_angle()
-        print(angle / math.pi)
         if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
-            translation_angle = math.pi * 0.5 - angle
-           # translation_angle = angle + math.pi * 0.5
+            translation_angle = angle + math.pi * 0.5
 
         else:
-           # translation_angle = angle - math.pi * 0.5
-            translation_angle = math.pi * 0.5 + angle
-
-    #    if -0.5 * math.pi < angle < 0.0 or 1.5 * math.pi < angle < 2.0 * math.pi:
-    #        translation_angle = angle + 0.5 * math.pi
-     #   elif -math.pi < angle < -0.5 * math.pi or math.pi < angle < 1.5 * math.pi:
-    #        translation_angle = angle - 0.5 * math.pi
-      #  elif -1.5 * math.pi < angle < -math.pi or 0.5 * math.pi < angle < math.pi:
-      #      translation_angle = angle - 0.5 * math.pi
-      #  elif -2.0 * math.pi < angle < -1.5 * math.pi or 0.0 < angle < 0.5 * math.pi:
-      #      translation_angle = 0.5 * math.pi - angle
+            translation_angle = angle - math.pi * 0.5
 
         return translation_angle
 
@@ -70,19 +76,38 @@ class Line:
         squared_length = self.point_1.get_squared_distance(self.point_2)
         return math.sqrt(squared_length)
 
-    def double_line_towards_center(self, center, distance, line_ratio):
+    def double_line_towards_center(self, center, distance, line_ratio, ax=None):
 
-        angle = self.get_translation_angle()
+        angle = self.get_angle()
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            direction_combinations = ((1, 1), (-1, -1))
 
-        x_translation = math.cos(angle) * distance
-        y_translation = math.sin(angle) * distance
+        else:
+            direction_combinations = ((1, -1), (-1, 1))
+
+        right_angle = self.get_right_angle()
+
+        x_translation = abs(math.cos(right_angle) * distance)
+        y_translation = abs(math.sin(right_angle) * distance)
 
         midpoint = self.get_midpoint()
+        translated_midpoint_1 = Vector(direction_combinations[0][0] * x_translation + midpoint.x,
+                                       direction_combinations[0][1] * y_translation + midpoint.y)
 
-        if center.x > midpoint.x:
-            x_translation = -x_translation
-        if center.y > midpoint.y:
-            y_translation = -y_translation
+        translated_midpoint_2 = Vector(direction_combinations[1][0] * x_translation + midpoint.x,
+                                       direction_combinations[1][1] * y_translation + midpoint.y)
+
+       # if ax:
+        #    ax.scatter([translated_midpoint_1.x, translated_midpoint_2.x], [translated_midpoint_1.y, translated_midpoint_2.y], color='green')
+
+        directions = direction_combinations[0]
+
+        if center.get_squared_distance(translated_midpoint_1) > center.get_squared_distance(translated_midpoint_2):
+            directions = direction_combinations[1]
+
+        x_translation = directions[0] * x_translation
+        y_translation = directions[1] * y_translation
+
 
         new_x1 = self.point_1.x + x_translation
         new_x2 = self.point_2.x + x_translation
@@ -92,9 +117,43 @@ class Line:
         new_point_1 = Vector(new_x1, new_y1)
         new_point_2 = Vector(new_x2, new_y2)
 
-        line = Line(new_point_1, new_point_2)
+        line = Line(new_point_1, new_point_2, self.atom_1, self.atom_2)
 
-        return line.get_truncated_line(line_ratio)
+        return line.get_truncated_line_ring(line_ratio)
+
+    def get_truncated_line_ring(self, ratio):
+
+        old_x_length = abs(self.point_2.x - self.point_1.x)
+        old_y_length = abs(self.point_2.y - self.point_1.y)
+
+        new_x_length = ratio * old_x_length
+        new_y_length = ratio * old_y_length
+
+        truncation_x = (old_x_length - new_x_length) / 2
+        truncation_y = (old_y_length - new_y_length) / 2
+
+        if self.point_1.x > self.point_2.x:
+
+            new_point_1_x = self.point_1.x - truncation_x
+            new_point_2_x = self.point_2.x + truncation_x
+
+        else:
+
+            new_point_2_x = self.point_2.x - truncation_x
+            new_point_1_x = self.point_1.x + truncation_x
+
+        if self.point_1.y > self.point_2.y:
+
+            new_point_1_y = self.point_1.y - truncation_y
+            new_point_2_y = self.point_2.y + truncation_y
+
+        else:
+
+            new_point_2_y = self.point_2.y - truncation_y
+            new_point_1_y = self.point_1.y + truncation_y
+
+        truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y), self.atom_1, self.atom_2)
+        return truncated_line
 
     def get_truncated_line(self, ratio):
 
@@ -107,23 +166,36 @@ class Line:
         truncation_x = (old_x_length - new_x_length) / 2
         truncation_y = (old_y_length - new_y_length) / 2
 
+        new_point_1_x = self.point_1.x
+        new_point_2_x = self.point_2.x
+        new_point_1_y = self.point_1.y
+        new_point_2_y = self.point_2.y
+
         if self.point_1.x > self.point_2.x:
-            new_point_1_x = self.point_1.x - truncation_x
-            new_point_2_x = self.point_2.x + truncation_x
+            if self.atom_1.type != 'C':
+                new_point_1_x = self.point_1.x - truncation_x
+            if self.atom_2.type != 'C':
+                new_point_2_x = self.point_2.x + truncation_x
 
         else:
-            new_point_2_x = self.point_2.x - truncation_x
-            new_point_1_x = self.point_1.x + truncation_x
+            if self.atom_2.type != 'C':
+                new_point_2_x = self.point_2.x - truncation_x
+            if self.atom_1.type != 'C':
+                new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            new_point_1_y = self.point_1.y - truncation_y
-            new_point_2_y = self.point_2.y + truncation_y
+            if self.atom_1.type != 'C':
+                new_point_1_y = self.point_1.y - truncation_y
+            if self.atom_2.type != 'C':
+                new_point_2_y = self.point_2.y + truncation_y
 
         else:
-            new_point_2_y = self.point_2.y - truncation_y
-            new_point_1_y = self.point_1.y + truncation_y
+            if self.atom_2.type != 'C':
+                new_point_2_y = self.point_2.y - truncation_y
+            if self.atom_1.type != 'C':
+                new_point_1_y = self.point_1.y + truncation_y
 
-        truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y))
+        truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y), self.atom_1, self.atom_2)
         return truncated_line
 
 

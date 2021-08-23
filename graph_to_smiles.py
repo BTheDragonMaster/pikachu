@@ -529,7 +529,7 @@ if __name__ == "__main__":
 #    pprint(collapsed_structure.node_to_edge_dict)
 
     smiles = 'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
-    smiles = 'c1ccc2c(c1)c(c[nH]2)C[C@@H](C(=O)O)N'
+  #  smiles = 'c1ccc2c(c1)c(c[nH]2)C[C@@H](C(=O)O)N'
     structure = pikachu.Smiles(smiles).smiles_to_structure()
     kekule_structure = structure.kekulise()
     GraphToSmiles(kekule_structure)
