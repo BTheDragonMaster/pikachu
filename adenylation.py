@@ -130,6 +130,7 @@ if __name__ == "__main__":
     #prepare_oxygen(Serine)
 
     products = do_adenylation(ATP, Serine, AMP).split_disconnected_structures()
+    Drawer(products[1].kekulise())
     for product in products:
         product.print_graph()
         GraphToSmiles(product)

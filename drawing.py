@@ -913,9 +913,9 @@ class Drawer:
                 subgraph_2_size = self.get_subgraph_size(neighbours[1], {atom})
                 subgraph_3_size = self.get_subgraph_size(neighbours[2], {atom})
 
-                straight_atom = subgraph_1_size
-                left_atom = subgraph_2_size
-                right_atom = subgraph_3_size
+                straight_atom = neighbours[0]
+                left_atom = neighbours[1]
+                right_atom = neighbours[2]
 
                 if subgraph_2_size > subgraph_1_size and subgraph_2_size > subgraph_3_size:
                     straight_atom = neighbours[1]
