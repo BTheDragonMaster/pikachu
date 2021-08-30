@@ -382,7 +382,7 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-        print(height, width)
+       # print(height, width)
         font_size = 3500 / height
         self.line_width = 600 / height
 
@@ -430,8 +430,8 @@ class Drawer:
 
                         common_rings = self.get_common_rings(bond.atom_1, bond.atom_2)
                         if common_rings:
-                            print("\n")
-                            print(bond)
+                          #  print("\n")
+                          #  print(bond)
 
                             common_ring = self.get_ring(common_rings[0])
                             ring_centre = common_ring.center
@@ -660,7 +660,7 @@ class Drawer:
         if atom.draw.positioned and not skip_positioning:
             return
 
-        print(atom)
+       # print(atom)
 
         if not skip_positioning:
             if not previous_atom:
@@ -1226,7 +1226,7 @@ class Drawer:
 
     def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
 
-        print(ring)
+      #  print(ring)
 
         if ring.positioned:
             return
@@ -1278,7 +1278,7 @@ class Drawer:
             atoms = list(RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id))
 
             if len(atoms) == 2:
-                print(atoms)
+              #  print(atoms)
 
                 #This ring is fused
                 ring.fused = True
@@ -1340,9 +1340,9 @@ class Drawer:
                     self.create_ring(neighbour, next_center, atom)
 
         for atom in ring.members:
-            print("ring member", atom)
+          #  print("ring member", atom)
             for neighbour in atom.drawn_neighbours:
-                print("Neighbour", neighbour)
+              #  print("Neighbour", neighbour)
                 if neighbour.draw.positioned:
                     continue
 
@@ -1457,9 +1457,10 @@ class Drawer:
         for atom in self.structure.graph:
             atom.set_drawn_neighbours()
             if atom.type == 'O':
-                print(atom.draw.has_hydrogen)
-                print("yo")
-                print(atom.drawn_neighbours)
+                pass
+             #   print(atom.draw.has_hydrogen)
+             #   print("yo")
+              #  print(atom.drawn_neighbours)
 
         self.drawn_bonds = []
 
@@ -1468,7 +1469,7 @@ class Drawer:
                 self.drawn_bonds.append(bond)
 
         self.drawn_atoms = self.structure.get_drawn_atoms()
-        print("Hidden", hidden)
+       # print("Hidden", hidden)
 
 
     def get_bridged_rings(self):

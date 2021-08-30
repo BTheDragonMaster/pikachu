@@ -34,6 +34,12 @@ PPi_O = GroupDefiner('PPi_O', 'OP(=O)(O)OP(=O)(O)O', 0)
 HYDROXYL = GroupDefiner('HYDROXYL', 'O', 0)
 ESTER = GroupDefiner('ESTER', 'C(=O)O', 0)
 
+PEPTIDE_OXYGEN = GroupDefiner('PEPTIDE_OXYGEN', 'NCC(O)=O', 3)
+PEPTIDE_ESTER_C = GroupDefiner('peptide ester central C', 'NCC(=O)O', 2)
+PEPTIDE_AMP_BOUND_OXYGEN = GroupDefiner('peptide oxygen bound to AMP', 'NCC(=O)OP', 3)
+PEPTIDE_ALPHA_C = GroupDefiner('peptide alpha carbon', 'NCC(=O)O', 1)
+
+
 def find_group(structure, group_type):
     locations = structure.find_substructures(group_type.structure)
     groups = []

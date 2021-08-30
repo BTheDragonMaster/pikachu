@@ -440,8 +440,14 @@ class Structure:
             for atom in self.graph:
                 if bond.atom_1 == atom:
                     bond.atom_1 = atom
+                    if not bond in atom.bonds:
+                        atom.bonds.append(bond)
                 if bond.atom_2 == atom:
                     bond.atom_2 = atom
+                    if not bond in atom.bonds:
+                        atom.bonds.append(bond)
+
+
 
         self.graph = new_graph
         self.make_bond_lookup()
@@ -1800,6 +1806,7 @@ class Structure:
             the list
         """
         working_graph = copy.deepcopy(self)
+        working_graph.refresh_structure()
         new_graphs = []
         working_graph.make_bond_nr_dict()
         
@@ -1812,6 +1819,7 @@ class Structure:
         paths = []
 
         while start_node:
+
             path = working_graph.find_a_path(start_node)
             paths.append(path)
 
@@ -1824,19 +1832,22 @@ class Structure:
                 paths_collection.append(paths)
                 paths = []
                 potential_start_nodes = working_graph.find_new_start_node()
-                
-                
+
                 try:
                     start_node = potential_start_nodes[0]
                     
                 except IndexError:
                     paths_collection.append(paths)
                     start_node = None
-                
+
+        counter = 0
         for paths in paths_collection:
             if paths:
+                print(paths)
+                counter += 1
                 new_graph = working_graph.put_paths_in_graph(paths)
                 new_graphs.append(new_graph)
+        print("Counter", counter)
 
         #add back connectors
 
@@ -2078,6 +2089,8 @@ class Structure:
         for atom in self.graph:
             self.bond_nr_dict[atom] = len(atom.bonds)
 
+        pprint(self.bond_nr_dict)
+
 
     def find_a_path(self, start_atom):
         """Return a list of linked atoms from a structure
@@ -2134,6 +2147,8 @@ class Structure:
                 
             except KeyError:
                 break
+
+        print("Path", path)
             
         return path
 
@@ -2175,6 +2190,7 @@ class Structure:
         for node in self.graph:
             for next_node in self.graph[node]:
                 if next_node not in self.graph:
+                    print("Removing a connector..")
                     self.graph[node].remove(next_node)
 
     def find_new_start_node(self):
