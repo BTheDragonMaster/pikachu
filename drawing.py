@@ -423,6 +423,9 @@ class Drawer:
                 line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position, bond.atom_1, bond.atom_2)
                 truncated_line = line.get_truncated_line(self.options.short_bond_length)
                 if bond.type == 'single':
+                    if bond.atom_1.chiral or bond.atom_2.chiral:
+                        pass
+                        #triangle = truncated_line.get_bond_triangle(self.options.chiral_bond_width)
                     self.plot_line(truncated_line, ax, color='black')
                 elif bond.type == 'double':
                     if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
@@ -1672,6 +1675,7 @@ class Options:
         self.height = 500
         self.bond_thickness = 0.6
         self.bond_length = 15
+        self.chiral_bond_width = self.bond_length * 0.1
         self.bond_length_squared = self.bond_length ** 2
         self.short_bond_length = 0.50
         self.double_bond_length = 0.80
@@ -1708,7 +1712,7 @@ if __name__ == "__main__":
     cis_structure = pikachu.read_smiles(cis_smiles)
 
    # drawer = Drawer(teicoplanin_structure)
-    drawer = Drawer(daptomycin_structure)
+    drawer = Drawer(teicoplanin_structure)
    # drawer = Drawer(trans_structure)
    # drawer = Drawer(cis_structure)
     #for atom in drawer.structure.graph:

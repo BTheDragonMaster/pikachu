@@ -1871,6 +1871,7 @@ class Structure:
             new_structure.infer_bonds()
             new_structure.set_atom_neighbours()
             new_structure.make_bond_lookup()
+            new_structure.refresh_structure()
 
         return new_structures
 
@@ -2339,6 +2340,7 @@ class Bond:
         
         self.atom_1.remove_neighbour(self.atom_2)
         self.atom_2.remove_neighbour(self.atom_1)
+
         
         self.atom_1.remove_bond(self)
         self.atom_2.remove_bond(self)
@@ -2943,6 +2945,9 @@ class Atom:
         for i in range(lone_pair_nr):
             self.lone_pairs.append(LonePair(self, i + 10000))
 
+    def get_bonds(self):
+        return self.bonds[:]
+
     def set_neighbours(self, structure):
         self.neighbours = structure.graph[self]
 
@@ -3094,6 +3099,7 @@ class Atom:
         self.valence_shell.excite()
 
     def remove_bond(self, bond):
+        print(self.bonds)
         self.bonds.remove(bond)
 
     def calc_electron_pair_nr(self):

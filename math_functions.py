@@ -22,15 +22,34 @@ class Line:
         self.length = self.get_length()
         self.get_angle()
 
-    def get_bond_triangle(self, width):
+    def get_perpendicular_points(self, distance, point):
         angle = self.get_angle()
         if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
             angle = -angle
+            direction_combinations = ((1, 1), (-1, -1))
 
-        dx = abs(math.sin(angle) * width)
-        dy = abs(math.cos(angle) * width)
+        else:
+            direction_combinations = ((1, -1), (-1, 1))
+
+        dx = abs(math.sin(angle) * distance)
+        dy = abs(math.cos(angle) * distance)
+
+        point_1 = Vector(dx * direction_combinations[0][0] + point.x,
+                         dy * direction_combinations[0][1] + point.y)
+
+        point_2 = Vector(dx * direction_combinations[1][0] + point.x,
+                         dy * direction_combinations[1][1] + point.y)
+
+        return point_1, point_2
 
 
+    def get_bond_triangle(self, width):
+        if self.atom_1.chiral:
+            point_1, point_2 = self.get_perpendicular_points(width, self.point_2)
+            return self.point_1, point_1, point_2
+        elif self.atom_2.chiral:
+            point_1, point_2 = self.get_perpendicular_points(width, self.point_1)
+            return self.point_2, point_1, point_2
 
     def find_intersection(self, line):
         a1 = self.point_2.y - self.point_1.y
@@ -96,9 +115,6 @@ class Line:
 
         translated_midpoint_2 = Vector(direction_combinations[1][0] * x_translation + midpoint.x,
                                        direction_combinations[1][1] * y_translation + midpoint.y)
-
-       # if ax:
-        #    ax.scatter([translated_midpoint_1.x, translated_midpoint_2.x], [translated_midpoint_1.y, translated_midpoint_2.y], color='green')
 
         directions = direction_combinations[0]
 

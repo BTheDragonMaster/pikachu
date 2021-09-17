@@ -1,0 +1,4 @@
+smiles	name	index
+NCC(=O)O	peptide_oh	4
+NCC(=O)O	peptide_n	0
+NCC(=O)O	peptide_alpha	1
