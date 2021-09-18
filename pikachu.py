@@ -40,7 +40,7 @@ def compare_matches(match_1, match_2):
 
 
 def compare_all_matches(matches):
-    matching_pairs = set([])
+    matching_pairs = set()
     
     for i, match_1 in enumerate(matches):
         for j, match_2 in enumerate(matches):
@@ -48,12 +48,12 @@ def compare_all_matches(matches):
                 if compare_matches(match_1, match_2):
                     matching_pairs.add(tuple(sorted([i, j])))
 
-    matches_to_remove = set([])
+    matches_to_remove = set()
 
     for matching_pair in matching_pairs:
         matches_to_remove.add(matching_pair[1])
 
-    matches_to_remove = sorted(list(matches_to_remove), reverse = True)
+    matches_to_remove = sorted(list(matches_to_remove), reverse=True)
     
     for match_to_remove in matches_to_remove:
         del matches[match_to_remove]
