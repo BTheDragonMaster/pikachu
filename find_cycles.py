@@ -215,14 +215,13 @@ class Cycles():
 
         return minimal_cycles
 
-
-
-
     def find_unique_cycles(self, structure):
         all_cycles = simple_cycles(structure.graph)
+        self.all_cycles = []
 
         unique_cycles = set()
         for cycle in all_cycles:
+            self.all_cycles.append(cycle)
             if len(cycle) > 2:
                 cycle_components = sorted(cycle, key = lambda x: x.nr)
                 cycle_components = tuple(cycle_components)

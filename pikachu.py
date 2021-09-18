@@ -38,6 +38,7 @@ def compare_matches(match_1, match_2):
 
     return matching
 
+
 def compare_all_matches(matches):
     matching_pairs = set([])
     
@@ -56,6 +57,7 @@ def compare_all_matches(matches):
     
     for match_to_remove in matches_to_remove:
         del matches[match_to_remove]
+
 
 def check_aromatic(atom_set):
     aromatic = True
@@ -80,6 +82,7 @@ def check_aromatic(atom_set):
             aromatic = False
 
     return aromatic
+
 
 def check_five_ring(atom_set):
     assert len(atom_set) == 5
@@ -112,6 +115,7 @@ def check_five_ring(atom_set):
                 heteroatom = sp3_hybridised_lone_pair[0]
 
     return aromatic, heteroatom
+
 
 def get_chiral_permutations(order):
     permutations = [tuple(order)]
@@ -156,7 +160,6 @@ def check_same_chirality(atom_1, atom_2, match):
 
     chiral_permutations = get_chiral_permutations(permutation)
 
-
     if atom_1.chiral == atom_2.chiral:
         if tuple(permutation) in chiral_permutations:
             return True
@@ -167,7 +170,8 @@ def check_same_chirality(atom_1, atom_2, match):
             return False
         else:
             return True
-        
+
+
 class BondProperties:
     """
     A class storing various properties of bonds
@@ -208,7 +212,9 @@ class BondProperties:
                                'quadruple': 3,
                                'aromatic': 1}
 
+
 BOND_PROPERTIES = BondProperties()        
+
 
 class AtomProperties:
     """
@@ -261,6 +267,120 @@ class AtomProperties:
                            'Fe': [2, 3],
                            '*': [1]}
 
+    element_to_amu = {'H': 1.00797,
+                      'He': 4.00260,
+                      'Li': 6.941,
+                      'Be': 9.01218,
+                      'B': 10.81,
+                      'C': 12.011,
+                      'N': 14.0067,
+                      'O': 15.9994,
+                      'F': 18.998403,
+                      'Ne': 20.179,
+                      'Na': 22.98977,
+                      'Mg': 24.305,
+                      'Al': 26.98154,
+                      'Si': 28.0855,
+                      'P': 30.97376,
+                      'S': 32.06,
+                      'Cl': 35.453,
+                      'Ar': 39.948,
+                      'K': 39.0983,
+                      'Ca': 40.08,
+                      'Sc': 44.9559,
+                      'Ti': 47.90,
+                      'V': 50.9415,
+                      'Cr': 51.996,
+                      'Mn': 54.9380,
+                      'Fe': 55.847,
+                      'Co': 58.9332,
+                      'Ni': 58.70,
+                      'Cu': 63.546,
+                      'Zn': 65.38,
+                      'Ga': 69.72,
+                      'Ge': 72.59,
+                      'As': 74.9216,
+                      'Se': 78.96,
+                      'Br': 79.904,
+                      'Kr': 83.80,
+                      'Rb': 85.4678,
+                      'Sr': 87.62,
+                      'Y': 88.9059,
+                      'Zr': 91.22,
+                      'Nb': 92.9064,
+                      'Mo': 95.94,
+                      'Tc': 98,
+                      'Ru': 101.07,
+                      'Rh': 102.9055,
+                      'Pd': 106.4,
+                      'Ag': 107.868,
+                      'Cd': 112.41,
+                      'In': 114.82,
+                      'Sn': 118.69,
+                      'Sb': 121.75,
+                      'I': 126.9045,
+                      'Te': 127.60,
+                      'Xe': 131.30,
+                      'Cs': 132.9054,
+                      'Ba': 137.33,
+                      'La': 138.9055,
+                      'Ce': 140.12,
+                      'Pr': 140.9077,
+                      'Nd': 144.24,
+                      'Pm': 145,
+                      'Sm': 150.4,
+                      'Eu': 151.96,
+                      'Gd': 157.25,
+                      'Tb': 158.9254,
+                      'Dy': 162.50,
+                      'Ho': 164.9304,
+                      'Er': 167.26,
+                      'Tm': 168.9342,
+                      'Yb': 173.04,
+                      'Lu': 174.967,
+                      'Hf': 178.49,
+                      'Ta': 180.9479,
+                      'W': 183.85,
+                      'Re': 186.207,
+                      'Os': 190.2,
+                      'Ir': 192.22,
+                      'Pt': 195.09,
+                      'Au': 196.9665,
+                      'Hg': 200.59,
+                      'Tl': 204.37,
+                      'Pb': 207.2,
+                      'Bi': 208.9804,
+                      'Po': 209,
+                      'At': 210,
+                      'Rn': 222,
+                      'Fr': 223,
+                      'Ra': 226.0254,
+                      'Ac': 227.0278,
+                      'Pa': 231.0359,
+                      'Th': 232.0381,
+                      'Np': 237.0482,
+                      'U': 238.029,
+                      'Pu': 242,
+                      'Am': 243,
+                      'Bk': 247,
+                      'Cm': 247,
+                      'No': 250,
+                      'Cf': 251,
+                      'Es': 252,
+                      'Hs': 255,
+                      'Mt': 256,
+                      'Fm': 257,
+                      'Md': 258,
+                      'Lr': 260,
+                      'Rf': 261,
+                      'Bh': 262,
+                      'Db': 262,
+                      'Sg': 263,
+                      'Uun': 269,
+                      'Uuu': 272,
+                      'Uub': 277,
+                      'Uuq': None}
+
     element_to_atomic_nr = {'H': 1,
                             'He': 2,
                             'Li': 3,
@@ -297,45 +417,121 @@ class AtomProperties:
                             'Se': 34,
                             'Br': 35,
                             'Kr': 36,
-                            'I': 53}
+                            'Rb': 37,
+                            'Sr': 38,
+                            'Y': 39,
+                            'Zr': 40,
+                            'Nb': 41,
+                            'Mo': 42,
+                            'Tc': 43,
+                            'Ru': 44,
+                            'Rh': 45,
+                            'Pd': 46,
+                            'Ag': 47,
+                            'Cd': 48,
+                            'In': 49,
+                            'Sn': 50,
+                            'Sb': 51,
+                            'Te': 52,
+                            'I': 53,
+                            'Xe': 54,
+                            'Cs': 55,
+                            'Ba': 56,
+                            'La': 57,
+                            'Ce': 58,
+                            'Pr': 59,
+                            'Nd': 60,
+                            'Pm': 61,
+                            'Sm': 62,
+                            'Eu': 63,
+                            'Gd': 64,
+                            'Tb': 65,
+                            'Dy': 66,
+                            'Ho': 67,
+                            'Er': 68,
+                            'Tm': 69,
+                            'Yb': 70,
+                            'Lu': 71,
+                            'Hf': 72,
+                            'Ta': 73,
+                            'W': 74,
+                            'Re': 75,
+                            'Os': 76,
+                            'Ir': 77,
+                            'Pt': 78,
+                            'Au': 79,
+                            'Hg': 80,
+                            'Tl': 81,
+                            'Pb': 82,
+                            'Bi': 83,
+                            'Po': 84,
+                            'At': 85,
+                            'Rn': 86,
+                            'Fr': 87,
+                            'Ra': 88,
+                            'Ac': 89,
+                            'Th': 90,
+                            'Pa': 91,
+                            'U': 92,
+                            'Np': 93,
+                            'Pu': 94,
+                            'Am': 95,
+                            'Cm': 96,
+                            'Bk': 97,
+                            'Cf': 98,
+                            'Es': 99,
+                            'Fm': 100,
+                            'Md': 101,
+                            'No': 102,
+                            'Lr': 103,
+                            'Rf': 104,
+                            'Db': 105,
+                            'Sg': 106,
+                            'Bh': 107,
+                            'Hs': 108,
+                            'Mt': 109,
+                            'Uun': 110,
+                            'Uuu': 111,
+                            'Uub': 112,
+                            'Uuq': 114}
 
     element_to_radius = {'H': 0.37,
-                        'He': 0.32,
-                        'Li': 1.34,
-                        'Be': 0.90,
-                        'B': 0.82,
-                        'C': 0.77,
-                        'N': 0.75,
-                        'O': 0.73,
-                        'F': 0.71,
-                        'Ne': 0.69,
-                        'Na': 1.54,
-                        'Mg': 1.30,
-                        'Al': 1.18,
-                        'Si': 1.11,
-                        'P': 1.06,
-                        'S': 1.02,
-                        'Cl': 0.99,
-                        'Ar': 0.97,
-                        'K': 1.96,
-                        'Ca': 1.74,
-                        'Sc': 1.44,
-                        'Ti': 1.36,
-                        'V': 1.25,
-                        'Cr': 1.27,
-                        'Mn': 1.39,
-                        'Fe': 1.25,
-                        'Co': 1.26,
-                        'Ni': 1.21,
-                        'Cu': 1.38,
-                        'Zn': 1.31,
-                        'Ga': 1.26,
-                        'Ge': 1.22,
-                        'As': 1.19,
-                        'Se': 1.16,
-                        'Br': 1.14,
-                        'Kr': 1.10,
-                        'I': 1.33}
+                         'He': 0.32,
+                         'Li': 1.34,
+                         'Be': 0.90,
+                         'B': 0.82,
+                         'C': 0.77,
+                         'N': 0.75,
+                         'O': 0.73,
+                         'F': 0.71,
+                         'Ne': 0.69,
+                         'Na': 1.54,
+                         'Mg': 1.30,
+                         'Al': 1.18,
+                         'Si': 1.11,
+                         'P': 1.06,
+                         'S': 1.02,
+                         'Cl': 0.99,
+                         'Ar': 0.97,
+                         'K': 1.96,
+                         'Ca': 1.74,
+                         'Sc': 1.44,
+                         'Ti': 1.36,
+                         'V': 1.25,
+                         'Cr': 1.27,
+                         'Mn': 1.39,
+                         'Fe': 1.25,
+                         'Co': 1.26,
+                         'Ni': 1.21,
+                         'Cu': 1.38,
+                         'Zn': 1.31,
+                         'Ga': 1.26,
+                         'Ge': 1.22,
+                         'As': 1.19,
+                         'Se': 1.16,
+                         'Br': 1.14,
+                         'Kr': 1.10,
+                         'I': 1.33}
 
 
     element_to_valence_electrons = {'H': 1,
@@ -387,7 +583,8 @@ class AtomProperties:
                                       'd': 5,
                                       'f': 7,
                                       'g': 9}
-    
+
+
 ATOM_PROPERTIES = AtomProperties()
 
 
@@ -447,8 +644,6 @@ class Structure:
                     if not bond in atom.bonds:
                         atom.bonds.append(bond)
 
-
-
         self.graph = new_graph
         self.make_bond_lookup()
         self.set_atom_neighbours()
@@ -471,19 +666,16 @@ class Structure:
         kekulised_structure = self.kekulise()
 
         for atom in kekulised_structure.graph:
-            atom_dict = {}
-            atom_dict['id'] = atom.nr
-            atom_dict['atom'] = atom.type
+            atom_dict = {'id': atom.nr,
+                         'atom': atom.type}
             nodes.append(atom_dict)
 
         for bond_nr, bond in kekulised_structure.bonds.items():
             assert bond.type != 'aromatic'
-            bond_dict = {}
-
-            bond_dict['id'] = bond_nr
-            bond_dict['source'] = bond.atom_1.nr
-            bond_dict['target'] = bond.atom_2.nr
-            bond_dict['bond'] = BOND_PROPERTIES.bond_type_to_weight[bond.type]
+            bond_dict = {'id': bond_nr,
+                         'source': bond.atom_1.nr,
+                         'target': bond.atom_2.nr,
+                         'bond': BOND_PROPERTIES.bond_type_to_weight[bond.type]}
             links.append(bond_dict)
 
         dash_molecule2d_input = {'nodes': nodes, 'links': links}
@@ -509,17 +701,16 @@ class Structure:
 
         for bond_nr, bond in self.bonds.items():
 
-            #iterate over all double bonds
+            # iterate over all double bonds
 
             if bond.type == 'double' or bond.type == 'triple':
 
-                #double bonds can only be chiral if they have exactly three bonds
+                # double bonds can only be chiral if they have exactly three bonds
 
                 if len(bond.atom_1.bonds) == 3 and len(bond.atom_2.bonds) == 3:
 
-
-                    #define atoms adjacent to the atoms involved in the double bond
-                    #also keep track of the chiral symbol that defines these bonds
+                    # define atoms adjacent to the atoms involved in the double bond
+                    # also keep track of the chiral symbol that defines these bonds
 
                     atom_1_1 = None
                     atom_1_2 = None
@@ -532,7 +723,6 @@ class Structure:
                     chiral_2_2 = None
 
                     for bond_1 in bond.atom_1.bonds:
-
 
                         if bond_1.type == 'single':
                             if bond.atom_1 == bond_1.atom_1:
@@ -565,7 +755,6 @@ class Structure:
                                 else:
                                     atom_1_2 = bond_1.atom_1
                                     chiral_1_2 = direction
-
 
                     for bond_2 in bond.atom_2.bonds:
 
@@ -600,8 +789,6 @@ class Structure:
                                     atom_2_2 = bond_2.atom_1
                                     chiral_2_2 = direction
 
-
-
                     chiral_1 = False
                     chiral_2 = False
 
@@ -618,9 +805,6 @@ class Structure:
                         if chiral_2_2 == chiral_2_1:
 
                             raise SmilesError('chiral double bond')
-
-                        first_atom = None
-                        second_atom = None
 
                         if chiral_1_1:
                             first_atom = atom_1_1
@@ -674,38 +858,6 @@ class Structure:
 
                         bond.chiral = True
 
-
-    def get_atom_representations(self):
-        atoms = sorted(self.graph.keys())
-        atom_to_repr = {}
-        for atom in atoms:
-            atom_repr = atom.type
-            neighbours = self.graph[atom]
-            if atom.chiral:
-                if atom.get_hydrogen_nr == 1:
-                    neighbours = sorted(neighbours, key = lambda x: x.nr)
-                    if neighbours[1].type == 'H':
-                        if atom.chiral == 'counterclockwise':
-                            atom_repr = f'[{atom.type}@H]'
-                        elif atom.chiral == 'clockwise':
-                            atom_repr = f'[{atom.type}@@H]'
-                        else:
-                            raise Exception("Can't have a chirality that is not clockwise or counterclockwise.")
-                    else:
-                        raise Exception("Hydrogen in incorrect position.")
-                elif atom.get_hydrogen_nr == 0:
-                    if atom.chiral == 'counterclockwise':
-                        atom_repr = f'[{atom.type}@]'
-                    elif atom.chiral == 'clockwise':
-                        atom_repr = f'[{atom.type}@@]'
-                    else:
-                        raise Exception("Can't have a chirality that is not clockwise or counterclockwise.")
-
-        return atom_to_repr
-
-    def structure_to_smiles(self):
-        pass
-
     def find_next_atom_nr(self):
         """
         Return the next available integer to label an atom
@@ -748,7 +900,6 @@ class Structure:
                 highest_bond_nr = bond_nr
 
         return highest_bond_nr
-
 
     def get_steric_atoms(self):
         """
@@ -803,7 +954,6 @@ class Structure:
                 self.bond_lookup[atom_2] = {}
             self.bond_lookup[atom_1][atom_2] = self.bonds[bond]
             self.bond_lookup[atom_2][atom_1] = self.bonds[bond]
-            
 
     def make_atom_index(self):
         """
@@ -835,11 +985,9 @@ class Structure:
         charge: int, charge of the new atom
         """
 
-        
         next_atom_nr = self.find_next_atom_nr()
         atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
         atom.add_shell_layout()
-
         
         for i, neighbour in enumerate(neighbours):
             next_bond_nr = self.find_next_bond_nr()
@@ -910,7 +1058,6 @@ class Structure:
                         if bond.type != 'aromatic':
                             bond.make_aromatic()
 
-
     def refine_structure(self):
         """
         """
@@ -948,12 +1095,10 @@ class Structure:
         del self.bond_lookup[atom_2][atom_1]
         del self.bonds[bond.nr]
 
-
         if atom_2 in self.graph[atom_1]:
             self.graph[atom_1].remove(atom_2)
         if atom_1 in self.graph[atom_2]:
             self.graph[atom_2].remove(atom_1)
-
 
     def break_bond(self, bond):
         """
@@ -977,7 +1122,6 @@ class Structure:
             self.graph[atom_1].remove(atom_2)
         if atom_1 in self.graph[atom_2]:
             self.graph[atom_2].remove(atom_1)
-        
 
     def break_bond_by_nr(self, bond):
         """
@@ -992,8 +1136,6 @@ class Structure:
             bond = self.bonds[bond]
 
         self.break_bond(bond)
-
-
 
     def break_bond_between_atoms(self, atom_1, atom_2):
         """
@@ -1051,10 +1193,8 @@ class Structure:
                 connectivity = atom.connectivity
                 if not connectivity in connectivities:
                     connectivities[connectivity] = []
-                
                     connectivities[connectivity].append(atom)
 
-        
         return connectivities
 
     def get_chiral_double_bonds(self):
@@ -1065,7 +1205,6 @@ class Structure:
                 chiral_bonds.append(bond)
 
         return chiral_bonds
-                
 
     def check_chiral_double_bonds(self, child, match):
         chirality_matches = True
@@ -1096,8 +1235,6 @@ class Structure:
         for chiral_centre in chiral_centres:
             parent_atom = match[chiral_centre]
             if parent_atom.chiral:
-                child_neighbours = chiral_centre.neighbours
-                parent_neighbours = parent_atom.neighbours
                 
                 chirality_matches = check_same_chirality(chiral_centre, parent_atom, match)
                 if not chirality_matches:
@@ -1108,7 +1245,7 @@ class Structure:
             
         return chirality_matches
 
-    def find_substructures(self, substructure, check_chiral_centres = True, check_chiral_double_bonds = True):
+    def find_substructures(self, substructure, check_chiral_centres=True, check_chiral_double_bonds=True):
         matches = []
         if self.is_substructure_atom_composition(substructure):
             if self.is_substructure_atom_connectivity(substructure):
@@ -1130,7 +1267,6 @@ class Structure:
             matches = final_matches
 
         return matches
-                                                      
 
     def is_substructure_atom_composition(self, child):
         
@@ -1173,7 +1309,7 @@ class Structure:
                 substructure_connectivity_counts[atom_type][connectivity] = 0
                 for atom in self.graph:
                     if atom.type == atom_type and atom.potential_same_connectivity(connectivity):
-                            substructure_connectivity_counts[atom_type][connectivity] += 1
+                        substructure_connectivity_counts[atom_type][connectivity] += 1
 
         return substructure_connectivity_counts
 
@@ -1183,9 +1319,8 @@ class Structure:
             substructure_connectivities[substructure_connectivity] = []
             for atom in self.graph:
                 if atom.type != 'H' and atom.potential_same_connectivity(substructure_connectivity):
-                        substructure_connectivities[substructure_connectivity].append(atom)
+                    substructure_connectivities[substructure_connectivity].append(atom)
 
-        
         return substructure_connectivities
 
     def is_substructure_atom_connectivity(self, child):
@@ -1214,7 +1349,6 @@ class Structure:
                 for neighbour in atom.neighbours:
                     if neighbour.type != 'H':
                         bond_dict[atom] += 1
-                
 
         return bond_dict
 
@@ -1253,7 +1387,6 @@ class Structure:
         new_child_candidate = None
         previous_child_candidate = None
 
-
         for i in range(len(placed_atoms_parent) - 1, -1, -1):
             current_atom = placed_atoms_parent[i]
 
@@ -1284,8 +1417,7 @@ class Structure:
                         if atom != child_current:
                             if atom in match_dict:
                                 child_bond_dict[atom] += 1
-                    
-                    
+
                 del reverse_match_dict[current_atom]
 
         return new_child_candidate, new_parent_candidate
@@ -1294,7 +1426,7 @@ class Structure:
        
         atom_connectivities_child = child.get_connectivities()
         atom_connectivities_parent = self.get_substructure_connectivities(atom_connectivities_child)
-        #Sort based on the complexity of the connectivity
+        # Sort based on the complexity of the connectivity
         
         connectivities = sorted(list(atom_connectivities_child.keys()),
                                 key = lambda x: len(set(x)), reverse = True)
@@ -1316,8 +1448,7 @@ class Structure:
             self.reset_visited()
 
             child_bond_dict = child.make_bond_dict()
-            
-            
+
             match_active = True
             match = child.make_match_dict()
             reverse_match = {}
@@ -1355,8 +1486,7 @@ class Structure:
                     parent_neighbours = current_atom_parent.neighbours
                     for neighbour in parent_neighbours:
                         parent_bond = self.bond_lookup[current_atom_parent][neighbour]
-                        
-                        
+
                         if neighbour.type == next_atom_child.type and child_bond.type == parent_bond.type:
                             if not self.bond_lookup[current_atom_parent][neighbour].visited:
                                 if neighbour.potential_same_connectivity(next_atom_child.connectivity):
@@ -1386,7 +1516,6 @@ class Structure:
                         current_atom_parent = next_atom_parent
                         atoms_to_place.remove(current_atom_child)
 
-
                     else:
                         new_child_candidate, new_parent_candidate = self.traceback(placed_atoms_parent, match, reverse_match, parent_options, atoms_to_place, child_bond_dict)
                         if not new_child_candidate:
@@ -1394,9 +1523,6 @@ class Structure:
                         else:
                             current_atom_child = new_child_candidate
                             current_atom_parent = new_parent_candidate
-
-
-                    
 
                 else:
                     if atoms_to_place:
@@ -1461,7 +1587,6 @@ class Structure:
                 max_bond_nr += 1
                 hydrogen = Atom('H', max_atom_nr, None, 0, False)
                 self.add_bond(atom, hydrogen, 'single', max_bond_nr)
-                
 
     def refine_p_bonds(self):
         for bond_nr in self.bonds:
@@ -1469,7 +1594,6 @@ class Structure:
             if bond.type != 'single':
 
                 bond.combine_p_orbitals()
-
 
     def refine_s_bonds(self):
         for bond_nr, bond in self.bonds.items():
@@ -1708,8 +1832,8 @@ class Structure:
 
     def kekulise(self):
 
-        pruned = self.find_pi_subgraph(prune = True)
-        unpruned = self.find_pi_subgraph(prune = False)
+        pruned = self.find_pi_subgraph(prune=True)
+        unpruned = self.find_pi_subgraph(prune=False)
 
         aromatic_unmatched = set(unpruned.keys()) - set(pruned.keys())
 
@@ -1939,39 +2063,6 @@ class Structure:
                 break
 
         return true_neighbour
-
-    def structure_to_smiles(self):
-        valence_dict = self.make_valence_dict()
-        strings = []
-        for atom in self.structure:
-            atom_string = []
-            H_string = self.make_H_string(atom, valence_dict)
-            atom_string += [H_string]
-            
-            bonds = self.bond_record[atom]
-            for bond in bonds:
-                nr_string = self.make_nr_string(bond)
-                atom_string += [nr_string]
-
-            atom_string += ['.']
-            
-
-            strings += [''.join(atom_string)]
-
-        string = ''.join(strings)[:-1]
-        mol = Chem.MolFromSmiles(string)
-        for i in range(mol.GetNumAtoms()):
-            mol.GetAtomWithIdx(i).SetAtomMapNum(i)
-            
-
-        return Smiles(Chem.MolToSmiles(mol))
-                    
-                
-        
-            
-        
-        
-                
 
     #========================================================================
     #Auxillary functions
@@ -2460,43 +2551,6 @@ class Bond:
                     p_bonding_orbitals_2[i].set_bond(self, 'pi')
 
 
-
-    def calc_bond_spring_force(self):
-        #calculate the distance between a bond's two neighbours
-        r = self.calc_bond_length_model()
-        bond_spring_force = self.cbond * (self.blength - r)
-        return bond_spring_force
-
-    def calc_angle_force(self, structure):
-        r = self.calc_bond_length_model()
-        
-        true_neighbour = structure.get_true_neighbour(self.atom_1, self.atom_2)
-        bond_angle = true_neighbour.get_bond_angle(structure)
-        double_repulsion = False
-
-        if bond_angle == 120:
-            angle_force = 0.3 * (sqrt(3) * self.blength - r)
-        elif bond_angle == 180:
-            angle_force = 0.3 * (0.65 * blength - r)
-        elif bond_angle == 90:
-            angle_force = 0
-            double_repulsion = True
-        else:
-            angle_force = 0
-
-        return angle_force, double_repulsion
-            
-        
-    def calc_bond_length_model(self):
-        r = self.atom_1.calc_distance(self.atom_2)
-        return r
-
-    def calc_bond_length(self):
-        atom_1_radius = ATOM_PROPERTIES.element_to_radius[atom_1.type]
-        atom_2_radius = ATOM_PROPERTIES.element_to_radius[atom_2.type]
-        bond_length = atom_1_radius + atom_2_radius
-        return bond_length
-
 class Shell:
     
     def __init__(self, atom, shell_nr):
@@ -2727,11 +2781,9 @@ class OrbitalSet:
         self.orbitals = []
         self.define_orbitals()
         self.capacity = len(self.orbitals) * 2
-        
 
     def __repr__(self):
-        return f'{self.shell_nr}{orbital_type}'
-
+        return f'{self.shell_nr}{self.orbital_type}'
 
     def define_orbitals(self):
         if self.orbital_type == 's':
@@ -2902,11 +2954,10 @@ class Atom:
         self.type = atom_type
         self.nr = atom_nr
         self.aromatic = aromatic
- #       self.atomic_nr = ATOM_PROPERTIES.element_to_atomic_nr[self.type]
+        # self.atomic_nr = ATOM_PROPERTIES.element_to_atomic_nr[self.type]
         self.bonds = []
 
         self.chiral = chiral
-        # remove?
         self.charge = charge
         self.pyrrole = False
         self.shells = {}
@@ -2930,14 +2981,13 @@ class Atom:
                 charge_string = '+'
             else:
                 charge_string = str(self.charge) + '+'
-        elif self.charge < 0:
+        else:
             if self.charge == -1:
                 charge_string = '-'
             else:
                 charge_string = str(abs(self.charge)) + '-'
         
         return f'{self.type}{charge_string}_{self.nr}'
-
 
     def make_lone_pairs(self):
 
@@ -2963,7 +3013,6 @@ class Atom:
     def set_connectivity(self):
         self.connectivity = self.get_connectivity()
 
-
     def get_connectivity(self):
         connectivity = []
 
@@ -2979,16 +3028,13 @@ class Atom:
     def same_connectivity(self, atom):
         if self.type == atom.type:
             if len(self.connectivity) == len(atom.connectivity):
-                if self.chiral == atom.chiral == None:
-                    if set(self.connectivity) == set(atom.connectivity):
-                        return True
-                    else:
-                        return False
+                if set(self.connectivity) == set(atom.connectivity):
+                    return True
                 else:
-                    pass
+                    return False
+
             else:
                 return False
-                
 
         else:
             return False
@@ -3021,9 +3067,6 @@ class Atom:
 
         return drawn_neighbours
 
-            
-            
-
     def add_shell_layout(self):
         self.shell_nr = ATOM_PROPERTIES.element_to_shell_nr[self.type]
         self.make_shells()
@@ -3035,9 +3078,6 @@ class Atom:
             for orbital_nr, orbital in self.valence_shell.orbitals.items():
                 print(orbital.electrons)
 
-
-
-
         self.excitable = self.valence_shell.is_excitable()
 
         if self.type == 'C' and self.charge == 0:
@@ -3048,7 +3088,6 @@ class Atom:
             for bond in self.bonds:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
-
 
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
@@ -3067,7 +3106,6 @@ class Atom:
             self.shells[current_shell] = Shell(self, current_shell)
 
         self.valence_shell = self.shells[self.shell_nr]
-            
 
     def fill_shells(self):
         electrons_assigned = 0
@@ -3076,10 +3114,8 @@ class Atom:
         if self.type == 'Fe':
             print('charge', self.charge)
             print(electrons_remaining)
-        
 
         #Iterate over the orbitals in order of them being filled
-
         
         for orbital in ATOM_PROPERTIES.orbital_order:
             if electrons_remaining > 0:
@@ -3090,8 +3126,6 @@ class Atom:
                 electrons_remaining -= electrons_to_dump
             else:
                 break
-
-
 
     def excite(self):
         assert self.excitable
@@ -3139,7 +3173,6 @@ class Atom:
     def drop_electrons(self):
         if self.valence_shell.get_lone_electrons() > 1:
             self.valence_shell.drop_electrons()
-        
 
     def calc_bond_nr(self):
 
@@ -3181,7 +3214,7 @@ class Atom:
         assert self.hybridisation == 'sp3'
 
         self.valence_shell.dehybridise()
-        #self.valence_shell.hybridise('sp2')
+        # self.valence_shell.hybridise('sp2')
 
         p_orbitals = []
         sp2_orbitals = []
@@ -3212,7 +3245,6 @@ class Atom:
                     electron.set_orbital(orbital)
                     if orbital.orbital_type == 'p':
                         electron.set_aromatic()
-            
 
     def promote_pi_bond_to_d_orbital(self):
         assert self.is_promotable()
@@ -3237,7 +3269,6 @@ class Atom:
             if electron.atom != self:
                 moved_electron = electron
 
-
         donor_orbital.remove_electron(moved_electron)
         receiver_orbital.add_electron(moved_electron)
 
@@ -3247,7 +3278,6 @@ class Atom:
         self.valence_shell.dehybridise()
 
         self.hybridise()
-
 
     def calc_hydrogens(self):
         hydrogens = 0
@@ -3264,31 +3294,6 @@ class Atom:
 
     def add_bond(self, bond):
         self.bonds.append(bond)
-
-    def calc_repulsion_force(self, atom, crep, repulsion_threshold):
-        self_coords = self.get_coords()
-        atom_coords = atom.get_coords()
-        
-        distance = squared_distance(self_coords, atom_coords)
-
-        if repulsion_threshold > distance > 0.1:
-            vector = []
-            
-            for i, coord in enumerate(self_coords):
-                atom_coord = atom_coords[i]
-                diff = atom_coord - coord
-                vector.append(crep * diff / distance)
-
-        elif distance <= 0.1:
-            vector = force_to_vector(1.0, atom, self)
- #           print('stom_1', self, self.get_coords())
-#            print('atom_2', atom, atom.get_coords())
-#            print(vector)
-
-        else:
-            vector = [0.0, 0.0, 0.0]
-
-        return vector
 
     def hybridise(self):
         hybridisation = self.get_hybridisation()
@@ -3321,7 +3326,8 @@ class Atom:
             hybridisation = 'sp3d2'
         elif steric_number == 0:
             hybridisation = None
-        
+        else:
+            hybridisation = None
 
         return hybridisation
 
@@ -3340,44 +3346,6 @@ class Atom:
     def get_coords(self):
         return [self.x, self.y, self.z]
 
-    def get_bond_angle(self, structure):
-        non_dummy = []
-        for atom in structure.graph[self]:
-            if structure.bond_lookup[self][atom].type != 'dummy':
-                non_dummy.append(atom)
-
-        if len(non_dummy) == 3:
-            angle = 120
-        elif len(non_dummy) == 4:
-            angle = 90
-        elif len(non_dummy) == 2:
-            angle = 180
-        elif len(non_dummy) == 1:
-            angle = 0
-        else:
-            angle = None
-
-        return angle
-
-    def move_atom(self, vector):
-        current_position = self.get_coords()
-        new_position = [self.x + vector[0],
-                        self.y + vector[1],
-                        self.z + vector[2]]
-        distance = euclidean(current_position, new_position)
-        if distance > 1.5:
-            x_displacement = vector[0] * 1.5 / distance
-            y_displacement = vector[1] * 1.5 / distance
-            z_displacement = vector[2] * 1.5 / distance
-        else:
-            x_displacement = vector[0]
-            y_displacement = vector[1]
-            z_displacement = vector[2]
-
-        self.x += x_displacement
-        self.y += y_displacement
-        self.z += z_displacement
-
     def get_hydrogen_nr(self, structure):
         hydrogen_count = 0
         for atom in structure.graph[self]:
@@ -3385,17 +3353,13 @@ class Atom:
                 hydrogen_count += 1
 
         return hydrogen_count
-            
-                
 
-    def calc_distance(self, atom):
-        distance = squared_distance(self.get_coords(), atom.get_coords())
-        return distance
 
 class LonePair:
     def __init__(self, atom, nr):
         self.nr = nr
         self.parent = atom
+
 
 class Electron:
     def __init__(self, shell_nr, orbital_type, orbital_nr, spin, atom):
@@ -3465,6 +3429,7 @@ def calc_charge(sign, value):
     else:
         raise Exception("Wrong character to indicate charge!")
 
+
 def parse_explicit(component):
     skip = False
     informative = component[1:-1]
@@ -3474,11 +3439,6 @@ def parse_explicit(component):
     numbers = []
     element = []
     chirals = []
-
-    hydrogens = 0
-    chiral = None
-    charge = 0
-
 
     for i, character in enumerate(informative):
         if skip:
@@ -3509,7 +3469,7 @@ def parse_explicit(component):
 
     element = ''.join([informative[x] for x in element])
 
-    #Parsing the charge
+    # Parsing the charge
 
     if len(charges) == 1:
         index = charges[0]
@@ -3531,7 +3491,7 @@ def parse_explicit(component):
         charge_value = len(charges)
         charge = calc_charge(charge_type, charge_value)
 
-    #Parsing an explicit hydrogen
+    # Parsing an explicit hydrogen
 
     if hydrogen != None:
         try:
@@ -3544,8 +3504,7 @@ def parse_explicit(component):
     else:
         hydrogens = 0
 
-
-    #Parsing chirality
+    # Parsing chirality
 
     if len(chirals) == 1:
         chiral = 'counterclockwise'
@@ -3554,7 +3513,7 @@ def parse_explicit(component):
     else:
         chiral = None
 
-    #dealing with lone explicit hydrogens
+    # dealing with lone explicit hydrogens
 
     if not element and hydrogen == 0:
         element = 'H'
@@ -3589,6 +3548,7 @@ def make_character_dict() -> Dict[str, str]:
     character_dict[':'] = 'aromatic_bond'
     
     return character_dict
+
 
 class Smiles:
     character_dict = make_character_dict()
@@ -3664,24 +3624,22 @@ class Smiles:
 
         structure = Structure()
 
-        #Keeps track of the layer of brackets the atom is in
+        # Keeps track of the layer of brackets the atom is in
 
         branch_level = 0
 
-        #Keeps track of which cyclic atoms have been encountered
+        # Keeps track of which cyclic atoms have been encountered
         cyclic_dict = {}
 
-        #Keeps track of the last atom encountered per branch level
+        # Keeps track of the last atom encountered per branch level
         last_atoms_dict = {0: None}
 
-
-        #Keeps track of the nature of the bond
+        # Keeps track of the nature of the bond
         bond_type = 'single'
         bond_chiral_symbol = None
 
-        #Keeps track of chiral centres
+        # Keeps track of chiral centres
         chiral_dict = {}
-        
 
         explicit = False
         pyrrole = False
@@ -3710,7 +3668,7 @@ class Smiles:
                     raise SmilesError('bond')
 
             if label == 'split':
-                #Starts disconnected structure; set everything back to default
+                # Starts disconnected structure; set everything back to default
                 branch_level = 0
                 cyclic_dict = {}
                 last_atoms_dict = {0: None}
@@ -3719,8 +3677,6 @@ class Smiles:
                 chiral_dict = {}
 
             elif label == "atom":
-
-                
 
                 if not explicit:
                     element = component
@@ -3739,32 +3695,28 @@ class Smiles:
                 else:
                     aromatic = False
 
-                #Determine atom
+                # Determine atom
                 
                 atom_nr += 1
 
-                #Turn atom into an atom object
+                # Turn atom into an atom object
                 atom_2 = Atom(element, atom_nr, chiral, charge, aromatic)
                 if pyrrole:
                     atom_2.pyrrole = True
                     pyrrole = False
 
-                    
                 for i in range(hydrogens):
                     atom_nr += 1
                     bond_nr += 1
                     hydrogen = Atom('H', atom_nr, None, 0, False)
                     structure.add_bond(atom_2, hydrogen, 'single', bond_nr)
 
-                
-                        
-                    
                 atom_1 = self.get_last_atom(branch_level, last_atoms_dict)
 
                 previous_atom_branch_level = branch_level
 
-                #Go back through the branches to identify the atom that the
-                #current atom is attached to; call this atom_1
+                # Go back through the branches to identify the atom that the
+                # current atom is attached to; call this atom_1
                 
                 while previous_atom_branch_level > 0 and not atom_1:
                     previous_atom_branch_level -= 1
@@ -3783,10 +3735,9 @@ class Smiles:
                         bond_type = 'single'
                         
                     structure.add_bond(atom_1, atom_2, bond_type, bond_nr, bond_chiral_symbol)
-                    
 
                     if atom_1.chiral:
-                        #Add current atom to list of residues
+                        # Add current atom to list of residues
                         chiral_dict[atom_1].append(atom_2)                          
                             
                     if atom_2.chiral:
@@ -3798,24 +3749,20 @@ class Smiles:
                     bond_type = 'single'
                     bond_chiral_symbol = None
 
-                            
-                            
-
                 else:
                     
-                    #This happens only if atom_2 is completely disconnected
-                    #of any atoms already in the graph
+                    # This happens only if atom_2 is completely disconnected
+                    # from any atoms already in the graph
                     structure.add_disconnected_atom(atom_2)
                     if atom_2.chiral:
                         chiral_dict[atom_2] = []
                         if hydrogens == 1:
                             chiral_dict[atom_2].append(hydrogen)
 
-                #Set atom_2 as the last atom in the current branch level
+                # Set atom_2 as the last atom in the current branch level
                 self.track_last_atoms_per_branch(atom_2, branch_level,
                                                  last_atoms_dict)
 
-                
             elif label == "single_bond":
                 bond_type = 'explicit_single'
 
@@ -3831,7 +3778,8 @@ class Smiles:
             elif label == "quadruple_bond":
                 bond_type = 'quadruple'
 
-            #If there are brackets: go up or down a branch level
+            # If there are brackets: go up or down a branch level
+
             elif label == "branch_start":
                 branch_level += 1
                 last_atoms_dict[branch_level] = None
@@ -3844,9 +3792,8 @@ class Smiles:
 
                 cycle_nr = int(component)
                 atom = self.get_last_atom(branch_level, last_atoms_dict)
-                
 
-                #If we encounter a number that hasn't been encountered before
+                # If we encounter a number that hasn't been encountered before, start a new cycle
                 
                 if self.is_new_cycle(cyclic_dict, cycle_nr):
                     self.start_cycle(cycle_nr, atom, cyclic_dict)
@@ -3854,13 +3801,12 @@ class Smiles:
                     if atom in chiral_dict:
                         self.add_cycle_placeholder(chiral_dict, atom, cycle_nr)
 
-                #Otherwise look up the atom that the cycle closes on
+                # Otherwise look up the atom that the cycle closes on
+
                 else:
                     bond_nr += 1
-                    
                         
-                    atom_1, atom_2 = self.end_cycle(cycle_nr, atom,
-                                                    cyclic_dict)
+                    atom_1, atom_2 = self.end_cycle(cycle_nr, atom, cyclic_dict)
                     
                     if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
@@ -3881,8 +3827,7 @@ class Smiles:
                     else:
                         
                         structure.add_bond(atom_1, atom_2, bond_type, bond_nr)
-                    
-                    
+
                     if atom_1 in chiral_dict:
                         self.replace_cycle_placeholder(chiral_dict, atom_1, atom_2, cycle_nr)
                     if atom_2 in chiral_dict:
@@ -3894,95 +3839,23 @@ class Smiles:
                 bond_type = 'single_chiral'
                 bond_chiral_symbol = component
 
-
-
-
         structure.refine_structure()
         structure.set_double_bond_chirality()
 
         for atom in chiral_dict:
             order = chiral_dict[atom]
 
-            #Save chirality in the atom object
+            # Save chirality in the atom object
             current_chirality = atom.chiral
             new_chirality = self.determine_chirality(order, current_chirality, atom)
-
 
             atom.chiral = new_chirality
 
         return structure
 
-
-
-    def kekulize(self) -> str:
-        """Return kekulized smiles from smiles.
-
-        Input:
-        smiles: str, smiles string
-
-        Output:
-        K_smiles: str, smiles string, kekulized version of smiles
-        """
-        
-        return K_smiles
-
- 
-
-    def draw_smiles(self, img_dir: str, highlight_map: Dict[int, List[float]], bond_list: List[int], bond_colour: List[float], ID: str) -> None:
-        """Create image from smiles string
-
-        Input:
-        img_dir: str, directory of output image
-        highlight_map: dict of {atom_nr: [float_1, float_2, float_3], ->}, with
-            atom_nr int and the combination of floats representing an RGB colour
-        bond_list: list of int, with each int a bond index of the molecule
-        bond_colour: list of [float_1, float_2, float_3], representing an
-            RGB colour
-        ID: str, name of the molecule
-        """
-
-        mol = Chem.MolFromSmiles(self.smiles)
-        mol = Chem.Mol(mol.ToBinary())
-
-        if not mol.GetNumConformers():
-            rdDepictor.Compute2DCoords(mol)
-
-        colormap = dict(zip(bond_list, [bond_colour] * len(bond_list)))
-        
-        print(colormap)        
-        
-        size = (500, 500)
- #       drawer = rdMolDraw2D.MolDraw2DSVG(size[0], size[1])
-#        drawer.DrawMolecule(mol, highlightAtoms = list(highlight_map.keys()),
-#                            highlightAtomColors = highlight_map,
-#                            highlightBonds = bond_list,
-#                            highlightBondColors=colormap)
-#        drawer.FinishDrawing()
-        
- #       img = Chem.Draw.MolToImage(mol, size=size, kekulize=True,
-#                                   wedge_bonds = True, fitImage = True,
-#                                   highlightMap = highlight_map,
-#                                   highlightBonds = bond_list,
-#                                   highlightColor = bond_colour)
-
-        img = Chem.Draw.MolToFile(mol, "%s/%s.svg" % (img_dir, ID),
-                                   size=size, kekulize=True,
-                                   wedge_bonds = True, fitImage = True,
-                                   highlightMap = highlight_map,
-                                   highlightColor = bond_colour,
-                                   highlightBonds = bond_list)
-
-        
- #       img.save("%s/%s.png" % (img_dir, ID))
-#        svg = drawer.GetDrawingText()
- #       with open("%s/%s.svg" % (img_dir, ID), 'w') as f:
-#            f.write(svg)
-        
-
-    #=========================================================================
-    #Auxillary functions to smiles_to_structure
-    #=========================================================================
-        
+    # =========================================================================
+    # Auxillary functions to smiles_to_structure
+    # =========================================================================
 
     def add_chiral_atom(self, chiral_dict: Dict['Atom', Dict[str, Any]], last_atom: 'Atom', current_atom: 'Atom') -> None:
         """Place current_atom in one of the four bond slots of last_atom
@@ -4057,8 +3930,6 @@ class Smiles:
 
         return new_chirality
 
-
-
     def is_new_cycle(self, cyclic_dict: Dict[int, 'Atom'], cycle_nr: int) -> bool:
         """Return bool, True if a new cycle is recorded, False if not
 
@@ -4105,8 +3976,6 @@ class Smiles:
         atom_pair = (atom_old, atom)
         
         del cyclic_dict[cycle_nr]
-
-        #Implement atom pair here?
         
         return atom_pair
 
@@ -4139,24 +4008,6 @@ class Smiles:
         """
         last_atom = last_atoms_dict[current_level]
         return last_atom
-        
-    def check_character(self, character: str) -> str:
-        """Return the label for a character to determine its type
-
-        Input:
-        character: str, substring of smiles string of length 1
-
-        Output:
-        label: str, descriptor of character
-        """
-
-        try:
-            #Consider making character_dict a class attribute defined before
-            #__init__
-            label = character_dict[character]
-        except KeyError:
-            label = "Unknown"
-        return label
 
     def update_structure(self, atom_1: 'Atom', atom_2: 'Atom', structure_graph: Dict['Atom', List['Atom']], bond_type: str) -> None:
         """Add an atom to the structure graph
@@ -4177,11 +4028,10 @@ class Smiles:
         else:
             structure_graph[atom_2] = [atom_1]
 
-
-#=============================================================================
-#Code adapted from https://github.com/yorkyer/edmonds-blossom to find perfect
+# =============================================================================
+# Code adapted from https://github.com/yorkyer/edmonds-blossom to find perfect
 # matchings for kekulisation
-#=============================================================================
+# =============================================================================
 
 
 class Node:
@@ -4264,6 +4114,63 @@ class Path:
         return str(self.nodes)
 
 
+class Daylight:
+    def __init__(self, atom, structure):
+        self.atom = atom
+        self.structure = structure
+        self.d1 = 0
+        self.d2 = 0
+        self.d3 = 0
+        self.d4 = 0
+        self.d5 = 0
+        self.d6 = 0
+        self.d7 = 0
+        self.daylight = tuple()
+        self.set_daylight_properties()
+
+    def set_daylight_properties(self):
+        self.d1 = self.get_heavy_neighbours()
+        self.d2 = self.get_valence_minus_h()
+        self.d3 = ATOM_PROPERTIES.element_to_atomic_nr[self.atom.type]
+        self.d4 = ATOM_PROPERTIES.element_to_amu[self.atom.type]
+        self.d5 = self.atom.charge
+        self.d6 = self.get_hydrogen_number()
+        self.d7 = self.atom_in_cycle()
+        self.daylight = (self.d1, self.d2, self.d3, self.d4, self.d5, self.d6, self.d7)
+
+    def get_hash(self):
+        # return int.from_bytes(hashlib.sha256(b"H").digest()[:4], 'little')
+        return hash(tuple(self.daylight))
+
+    def atom_in_cycle(self):
+        cycles = self.structure.cycles.all_cycles
+
+        for cycle in cycles:
+            if atom in cycle:
+                return 1
+
+        return 0
+
+    def get_heavy_neighbours(self):
+        heavy_neighbours = 0
+        for atom in self.atom.neighbours:
+            if atom.type != 'H':
+                heavy_neighbours += 1
+        return heavy_neighbours
+
+    def get_hydrogen_number(self):
+        hydrogen_nr = 0
+        for atom in self.atom.neighbours:
+            if atom.type == 'H':
+                hydrogen_nr += 1
+        return hydrogen_nr
+
+    def get_valence_minus_h(self):
+        valence = self.atom.calc_bond_nr()
+
+        return valence - self.get_hydrogen_number()
+
+
 class Match:
 
     def __init__(self, nodes):
@@ -4273,6 +4180,7 @@ class Match:
             self.freenodes.append(node)
         self.supernodes = []
 
+    @staticmethod
     def from_structure(structure):
         pi_subgraph = structure.find_pi_subgraph()
         node_nr = len(pi_subgraph.keys())
@@ -4291,9 +4199,9 @@ class Match:
                 index_2 = atom_to_node[neighbour]
                 nodes[index_1].neighbors.append(nodes[index_2])
 
-
         return Match(nodes)
 
+    @staticmethod
     def from_edges(N, edges):
         nodes = [Node() for i in range(N)]
         for i, j in edges:
@@ -4371,7 +4279,6 @@ class Match:
 
                 break
 
-
     def invert_path(self, path):
         assert len(path.nodes) % 2 == 0
         for i in range(0, len(path.nodes), 2):
@@ -4446,8 +4353,7 @@ class Match:
             node2.neighbors.remove(snode)
             snode.neighbors.remove(node2)
 
-
-#=============================================================================
+# =============================================================================
 
 class AtomDrawProperties:
     def __init__(self, x=0, y=0):
@@ -4494,40 +4400,18 @@ class BondDrawProperties:
         self.center = False
 
 
-
 if __name__ == "__main__":
 
-    #structure = read_smiles("[C-]#[N+]/C=C\\C1=CNC2=CC=CC=C21")
-    #for bond_nr, bond in structure.bonds.items():
-     #   if bond.chiral:
-     #       pprint(bond.chiral_dict)
-
     structure = read_smiles(r'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C')
-    structure = read_smiles(r'O=C(NCCS)CCNC(=O)[C@H](O)C(C)(C)COP(=O)(O)O')
+    # structure = read_smiles(r'O=C(NCCS)CCNC(=O)[C@H](O)C(C)(C)COP(=O)(O)O')
     for atom in structure.graph:
         if atom.nr == 1:
             atom.nr = 10000
-
 
     print(structure.bond_lookup)
 
     print('structure read')
 
     structure = read_smiles(r'C=C(/C=C/C1=CC=CC2=C1NC=C2CC(N3O[Fe](ON4C(CC5=CNC6=C5C=CC=C6/C=C/C(C)=C)=C(N=C(C4=O)C)OC)ON7C(CC8=CNC9=C8C=CC=C9/C=C/C(C)=C)=C(N=C(C7=O)C)OC)=C(N=C(C3=O)C)OC)C')
-
-
-
-
-
-
- #   graph = build_graph()
-#    print(graph.nodes)
-#    print(graph.edges)
-#    print(graph)
-
-#    nx.draw(graph)
-#    plt.show()
-
-
     
         
