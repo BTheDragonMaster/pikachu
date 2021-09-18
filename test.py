@@ -1,18 +1,18 @@
-#!/usr/bin/env python
+from __future__ import absolute_import
 
-import pikachu
-import drawing
-import math_functions
+import pikachu.pikachu as pikachu
+from pikachu.fingerprinting.ecfp_4 import ECFP
 
-def get_subgraph_size(atom, graph, seen_atoms):
-    seen_atoms.add(atom)
-    for neighbour in graph[atom]:
-        if neighbour not in seen_atoms:
-            get_subgraph_size(neighbour, graph, seen_atoms)
+smiles = r'CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C'
+smiles = r'CCCC(=O)N'
+smiles_2 = r'C([C@@H](C(=O)O)N)O'
+structure = pikachu.read_smiles(smiles)
 
-    return len(seen_atoms) - 1
+#structure_2 = pikachu.read_smiles(smiles_2)
+# print(pikachu.to_smiles(structure))
 
-if __name__ == "__main__":
-    test_structure = pikachu.read_smiles("C([C@@H](C(=O)O)N)O")
-    drawing.drawer(test_structure)
+# pikachu.draw_smiles(smiles)
+# pikachu.draw_structure(structure)
 
+ecfp = ECFP(structure)
+print(ecfp.fingerprint)
