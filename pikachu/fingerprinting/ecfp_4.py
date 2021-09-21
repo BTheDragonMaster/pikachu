@@ -1,6 +1,3 @@
-from pprint import pprint
-import copy
-
 from pikachu.fingerprinting.daylight import Daylight
 from pikachu.fingerprinting.hashing import hash_32_bit_integer
 from pikachu.chem.bond_properties import BOND_PROPERTIES
@@ -17,6 +14,7 @@ class ECFP:
         self.fingerprint = set()
         self.seen_atoms = {}
         self.features = {}
+        self.hash_to_feature = {}
         self.set_initial_identifiers()
 
         self.ecfp()
@@ -38,12 +36,11 @@ class ECFP:
 
                 feature = tuple(sorted(list(bonds) + [atom], key=lambda x: (x.nr, x.type)))
                 self.features[feature] = (initial_identifier, 0, atom)
+                self.hash_to_feature[initial_identifier] = feature
 
     def ecfp(self):
 
         for i in range(self.iterations):
-            print("Iteration: ", i + 1)
-            pprint(self.features)
             new_features = []
             for atom in self.identifiers:
                 identifier = self.identifiers[atom][i]
@@ -51,19 +48,24 @@ class ECFP:
 
                 array_to_add = []
 
-                neighbouring_bonds = set()
+                neighbouring_bonds = []
 
-                self.seen_atoms[atom][i + 1] = copy.deepcopy(self.seen_atoms[atom][i])
+                seen_atoms = list(self.seen_atoms[atom][i])
 
                 for neighbour in atom.get_non_hydrogen_neighbours():
                     bond = self.structure.bond_lookup[atom][neighbour]
                     bond_order = BOND_PROPERTIES.bond_type_to_order[bond.type]
                     neighbour_identifier = self.identifiers[neighbour][i]
-                    neighbouring_bonds = neighbouring_bonds.union(self.bonds[neighbour_identifier])
+                    for neighbouring_bond in self.bonds[neighbour_identifier]:
+                        neighbouring_bonds.append(neighbouring_bond)
                     array_to_add.append((bond_order, neighbour_identifier, neighbour))
 
                     for seen_atom in self.seen_atoms[neighbour][i]:
-                        self.seen_atoms[atom][i + 1].add(seen_atom)
+                        seen_atoms.append(seen_atom)
+
+                self.seen_atoms[atom][i + 1] = set(seen_atoms)
+
+                neighbouring_bonds = set(neighbouring_bonds)
 
                 array_to_add.sort(key=lambda x: (x[0], x[1]))
 
@@ -97,19 +99,47 @@ class ECFP:
                     new_features.append((feature, new_identifier, atom))
 
             new_features.sort(key=lambda x: tuple([y.nr for y in x[0]] + [x[1]]))
+            #new_features.sort()
             previous_feature = None
             previous_atom = None
 
             for new_feature, identifier, atom in new_features:
                 if new_feature == previous_feature:
-                    print('discarded: ', atom, 'in favour of', previous_atom)
-                    print(new_feature, identifier)
-
                     continue
                 else:
                     self.features[new_feature] = (identifier, i + 1, atom)
+                    self.hash_to_feature[identifier] = new_feature
                     self.fingerprint.add(identifier)
                     previous_feature = new_feature
                     previous_atom = atom
 
-        pprint(self.identifiers)
+
+def build_ecfp_bitvector(structures, depth=2, bits=1024):
+    fingerprints = []
+    identifier_to_feature = {}
+
+    for structure in structures:
+        ecfp = ECFP(structure, iterations=depth)
+        fingerprints.append(ecfp.fingerprint)
+        identifier_to_feature.update(ecfp.hash_to_feature)
+
+    substructure_to_count = {}
+
+    for fingerprint in fingerprints:
+        for identifier in fingerprint:
+            if identifier not in substructure_to_count:
+                substructure_to_count[identifier] = 0
+            substructure_to_count[identifier] += 1
+
+    substructures = sorted(list(substructure_to_count.items()), key=lambda x: x[1], reverse=True)
+    print(substructures)
+    bitvector_substructures = [x[0] for x in substructures[:bits]]
+    bitvector_mapping = {}
+    for substructure in bitvector_substructures:
+        bitvector_mapping[substructure] = identifier_to_feature[substructure]
+
+    return bitvector_substructures, bitvector_mapping
+
+
+
+
