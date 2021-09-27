@@ -107,6 +107,13 @@ class Bond:
         self.atom_1.remove_bond(self)
         self.atom_2.remove_bond(self)
 
+        print("Breaking bond..")
+
+        print(self.atom_1)
+        self.atom_1.valence_shell.print_shell()
+        print(self.atom_2)
+        self.atom_2.valence_shell.print_shell()
+
     def combine_hybrid_orbitals(self):
 
         s_bonding_orbital_1 = None

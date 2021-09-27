@@ -210,3 +210,4 @@ class Shell:
     def print_shell(self):
         for orbital in self.orbitals:
             print(self.orbitals[orbital])
+            print(self.orbitals[orbital].electrons)

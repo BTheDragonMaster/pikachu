@@ -1125,6 +1125,15 @@ class Structure:
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond
 
+        bond.electrons.append(electron_1)
+        bond.electrons.append(electron_2)
+
+        print("Making bond..")
+        print(atom_1)
+        atom_1.valence_shell.print_shell()
+        print(atom_2)
+        atom_2.valence_shell.print_shell()
+
     def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:
             self.graph[atom_1].append(atom_2)

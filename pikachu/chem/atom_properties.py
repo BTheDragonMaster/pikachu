@@ -50,6 +50,7 @@ class AtomProperties:
                            '*': [1]}
 
     element_to_amu = {'H': 1.00797,
+                      '*': -1.0,
                       'He': 4.00260,
                       'Li': 6.941,
                       'Be': 9.01218,
@@ -164,6 +165,7 @@ class AtomProperties:
                       'Uuq': None}
 
     element_to_atomic_nr = {'H': 1,
+                            '*': 1,
                             'He': 2,
                             'Li': 3,
                             'Be': 4,
@@ -278,6 +280,7 @@ class AtomProperties:
                             'Uuq': 114}
 
     element_to_radius = {'H': 0.37,
+                         '*': 0.37,
                          'He': 0.32,
                          'Li': 1.34,
                          'Be': 0.90,
@@ -316,6 +319,7 @@ class AtomProperties:
                          'I': 1.33}
 
     element_to_valence_electrons = {'H': 1,
+                                    '*': 1,
                                     'C': 4,
                                     'O': 6,
                                     'N': 5,
@@ -364,6 +368,5 @@ class AtomProperties:
                                       'd': 5,
                                       'f': 7,
                                       'g': 9}
-
 
 ATOM_PROPERTIES = AtomProperties()
