@@ -4,6 +4,84 @@ import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
+
+class Permutations:
+
+    permutation_mapping = {0: {0: 0,
+                               1: 1,
+                               2: 2,
+                               3: 3},
+                           1: {0: 0,
+                               1: 1,
+                               2: 3,
+                               3: 2},
+                           2: {0: 0,
+                               1: 2,
+                               2: 1,
+                               3: 3},
+                           3: {0: 0,
+                               1: 2,
+                               2: 3,
+                               3: 1},
+                           4: {0: 0,
+                               1: 3,
+                               2: 1,
+                               3: 2},
+                           5: {0: 0,
+                               1: 3,
+                               2: 2,
+                               3: 1}}
+
+    permutation_mapping = {0: [0, 1, 2, 3],
+                           1: [0, 1, 3, 2],
+                           2: [0, 2, 1, 3],
+                           3: [0, 2, 3, 1],
+                           4: [0, 3, 1, 2],
+                           5: [0, 3, 2, 1]}
+
+    triplet_mapping = {0: {0: 0,
+                           1: 1,
+                           2: 2},
+                       1: {0: 1,
+                           1: 2,
+                           2: 3},
+                       2: {0: 2,
+                           2: 3,
+                           3: 0},
+                       3: {0: 3,
+                           1: 0,
+                           2: 1}}
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def get_circular_permutations_4(order):
+        return [(order[0], order[1], order[2], order[3]),
+                (order[0], order[1], order[3], order[2]),
+                (order[0], order[2], order[1], order[3]),
+                (order[0], order[2], order[3], order[1]),
+                (order[0], order[3], order[1], order[2]),
+                (order[0], order[3], order[2], order[1])]
+
+    @staticmethod
+    def get_node_triplet_arcs(quadruplet):
+        return [(quadruplet[0], quadruplet[1], quadruplet[2]),
+                (quadruplet[1], quadruplet[2], quadruplet[3]),
+                (quadruplet[2], quadruplet[3], quadruplet[0]),
+                (quadruplet[3], quadruplet[0], quadruplet[1])]
+
+
+class SimpleLine:
+    def __init__(self, point_1, point_2):
+
+        self.point_1 = point_1
+        self.point_2 = point_2
+
+        if point_1.x > point_2.x:
+            self.point_1 = point_2
+            self.point_2 = point_1
+
+
 class Line:
     def __init__(self, point_1, point_2, atom_1, atom_2):
 
@@ -42,14 +120,42 @@ class Line:
 
         return point_1, point_2
 
-
-    def get_bond_triangle(self, width):
-        if self.atom_1.chiral:
+    def get_bond_triangle_front(self, width, chiral_centre):
+        if self.atom_1 == chiral_centre:
             point_1, point_2 = self.get_perpendicular_points(width, self.point_2)
             return self.point_1, point_1, point_2
-        elif self.atom_2.chiral:
+        elif self.atom_2 == chiral_centre:
             point_1, point_2 = self.get_perpendicular_points(width, self.point_1)
             return self.point_2, point_1, point_2
+
+    def get_bond_triangle_back(self, width, chiral_center):
+        assert self.atom_1.chiral or self.atom_2.chiral
+        segment_size_x = (self.point_2.x - self.point_1.x) / 5.0
+        segment_size_y = (self.point_2.y - self.point_1.y) / 5.0
+        segment_width_increase = width / 5.0
+
+        points_along_line = []
+        widths = []
+
+        for i in range(6):
+            points_along_line.append(Vector(self.point_1.x + i * segment_size_x,
+                                            self.point_1.y + i * segment_size_y))
+
+            widths.append(i * segment_width_increase)
+
+        lines = []
+
+        if self.atom_2 == chiral_center:
+            widths.reverse()
+
+        for i in range(6):
+            segment_width = widths[i]
+            point = points_along_line[i]
+            point_1, point_2 = self.get_perpendicular_points(segment_width, point)
+            line = SimpleLine(point_1, point_2)
+            lines.append(line)
+
+        return lines
 
     def find_intersection(self, line):
         a1 = self.point_2.y - self.point_1.y
@@ -312,6 +418,19 @@ class Vector:
             return 'clockwise'
         elif a == b:
             return 'neutral'
+        else:
+            return 'counterclockwise'
+
+    @staticmethod
+    def get_directionality_triangle(vector_a, vector_b, vector_c):
+
+        determinant = (vector_b.x - vector_a.x) * (vector_c.y - vector_a.y) - \
+                      (vector_c.x - vector_a.x) * (vector_b.y - vector_a.y)
+
+        if determinant < 0:
+            return 'clockwise'
+        elif determinant == 0:
+            return None
         else:
             return 'counterclockwise'
 

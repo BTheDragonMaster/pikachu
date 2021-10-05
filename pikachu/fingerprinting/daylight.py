@@ -42,6 +42,7 @@ class Daylight:
 
     def atom_in_cycle(self):
         cycles = self.structure.cycles.all_cycles
+        print(cycles)
 
         for cycle in cycles:
             if self.atom in cycle:

@@ -8,7 +8,9 @@ from matplotlib import pyplot as plt
 
 from pikachu.drawing.sssr import SSSR
 from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
-from pikachu.math_functions import Vector, Polygon, Line
+from pikachu.math_functions import Vector, Polygon, Line, Permutations
+from pikachu.chem.chirality import find_chirality_from_nonh, get_chiral_permutations
+from pikachu.chem.atom_properties import ATOM_PROPERTIES
 
 
 class SpanningTree:
@@ -317,17 +319,139 @@ class Drawer:
         self.bridged_ring = False
         self.total_overlap_score = 0
         self.atom_nr_to_atom = {}
+        self.chiral_bonds = []
+        self.chiral_bond_to_orientation = {}
 
         self.ring_id_tracker = 0
         self.ring_overlap_id_tracker = 0
 
         self.draw()
 
+    def prioritise_chiral_bonds(self, chiral_center):
+
+        subtree_1_size = self.get_subgraph_size(chiral_center.neighbours[0], {chiral_center})
+        subtree_2_size = self.get_subgraph_size(chiral_center.neighbours[1], {chiral_center})
+        subtree_3_size = self.get_subgraph_size(chiral_center.neighbours[2], {chiral_center})
+        subtree_4_size = self.get_subgraph_size(chiral_center.neighbours[3], {chiral_center})
+
+        sizes_and_atoms = [(subtree_1_size, chiral_center.neighbours[0]),
+                           (subtree_2_size, chiral_center.neighbours[1]),
+                           (subtree_3_size, chiral_center.neighbours[2]),
+                           (subtree_4_size, chiral_center.neighbours[3])]
+
+        sizes_and_atoms.sort(key=lambda x: (x[0], ATOM_PROPERTIES.element_to_atomic_nr[x[1].type]))
+
+        options_h = []
+        options = []
+        backup_options_rings = []
+        backup_options_chiral = []
+
+        for neighbour in [size_and_atom[1] for size_and_atom in sizes_and_atoms]:
+            if neighbour.type == 'H':
+                options_h.append(neighbour)
+            else:
+                other_chiral_centre = False
+
+                for atom in neighbour.neighbours:
+                    print(chiral_center, atom, atom.chiral)
+                    if atom != chiral_center and atom.chiral:
+                        print("hey there")
+                        other_chiral_centre = True
+                        break
+
+                in_ring = neighbour.in_ring(self.structure)
+
+                if not other_chiral_centre and not in_ring and not neighbour.chiral:
+                    options.append(neighbour)
+                elif in_ring and not other_chiral_centre and not neighbour.chiral:
+                    backup_options_rings.append(neighbour)
+                else:
+                    backup_options_chiral.append(neighbour)
+
+        print(chiral_center, options, backup_options_rings, backup_options_chiral)
+
+        priority = options_h + options + backup_options_rings + backup_options_chiral
+        assert len(priority) == 4
+
+        return priority
+
+    def determine_chirality(self, chiral_center):
+
+        priority = self.prioritise_chiral_bonds(chiral_center)
+
+        print(chiral_center, priority)
+
+        priority_matches_chirality = False
+
+        if tuple(priority) in get_chiral_permutations(chiral_center.neighbours):
+            priority_matches_chirality = True
+
+        # First item in priority will always be a wedge in the opposite direction to the
+        # second wedge, or won't be drawn.
+
+        position_1 = priority[1].draw.position
+        position_2 = priority[2].draw.position
+        position_3 = priority[3].draw.position
+
+        direction = Vector.get_directionality_triangle(position_1,
+                                                       position_2,
+                                                       position_3)
+
+        chirality = chiral_center.chiral
+
+        if chirality == 'clockwise':
+            if direction == 'clockwise' and not priority_matches_chirality:
+                wedge_1 = 'front'
+            elif direction == 'clockwise' and priority_matches_chirality:
+                wedge_1 = 'back'
+            elif direction == 'counterclockwise' and not priority_matches_chirality:
+                wedge_1 = 'back'
+            else:
+                wedge_1 = 'front'
+
+        else:
+            if direction == 'clockwise' and not priority_matches_chirality:
+                wedge_1 = 'back'
+            elif direction == 'clockwise' and priority_matches_chirality:
+                wedge_1 = 'front'
+            elif direction == 'counterclockwise' and not priority_matches_chirality:
+                wedge_1 = 'front'
+            else:
+                wedge_1 = 'back'
+
+        bonds_and_wedges = []
+
+        bond_1 = self.structure.bond_lookup[chiral_center][priority[1]]
+        bonds_and_wedges.append((bond_1, wedge_1))
+
+        if priority[0].draw.is_drawn:
+
+            bond_2 = self.structure.bond_lookup[chiral_center][priority[0]]
+
+            if wedge_1 == 'front':
+                wedge_2 = 'back'
+            else:
+                wedge_2 = 'front'
+
+            bonds_and_wedges.append((bond_2, wedge_2))
+
+        return bonds_and_wedges
+
+    def set_chiral_bonds(self):
+        for atom in self.structure.graph:
+            if atom.chiral:
+                bonds_and_wedges = self.determine_chirality(atom)
+                for bond, wedge in bonds_and_wedges:
+                    self.chiral_bonds.append(bond)
+                    self.chiral_bond_to_orientation[bond] = (wedge, atom)
+
     def draw(self):
-        self.hide_hydrogens()
+        if not self.options.draw_hydrogens:
+            self.hide_hydrogens()
         self.get_atom_nr_to_atom()
         self.define_rings()
         self.process_structure()
+        self.set_chiral_bonds()
         self.draw_svg()
 
     def get_hydrogen_text_orientation(self, atom):
@@ -356,9 +480,31 @@ class Drawer:
 
         return None
 
+    def plot_chiral_bond_front(self, triangle, ax, color='black'):
+        x = []
+        y = []
+        for point in triangle:
+            x.append(point.x)
+            y.append(point.y)
+
+        ax.fill(x, y, color=color)
+
+
+    def plot_chiral_bond_back(self, lines, ax, color='black'):
+        for line in lines:
+            self.plot_line(line, ax, color=color)
+
+    def plot_chiral_bond(self, orientation, chiral_center, truncated_line, ax, color='black'):
+        if orientation == 'front':
+            bond_triangle = truncated_line.get_bond_triangle_front(self.options.chiral_bond_width, chiral_center)
+            self.plot_chiral_bond_front(bond_triangle, ax, color=color)
+        else:
+            bond_lines = truncated_line.get_bond_triangle_back(self.options.chiral_bond_width, chiral_center)
+            self.plot_chiral_bond_back(bond_lines, ax, color=color)
+
     def plot_line(self, line, ax, color='black'):
         ax.plot([line.point_1.x, line.point_2.x],
-                 [line.point_1.y, line.point_2.y], color=color, linewidth = self.line_width)
+                 [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
     def draw_svg(self):
 
@@ -381,7 +527,6 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-       # print(height, width)
         font_size = 3500 / height
         self.line_width = 600 / height
 
@@ -405,7 +550,6 @@ class Drawer:
                   'font.size': font_size}
         plt.rcParams.update(params)
 
-
         ring_centers_x = []
         ring_centers_y = []
 
@@ -422,18 +566,17 @@ class Drawer:
                 line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position, bond.atom_1, bond.atom_2)
                 truncated_line = line.get_truncated_line(self.options.short_bond_length)
                 if bond.type == 'single':
-                    if bond.atom_1.chiral or bond.atom_2.chiral:
-                        pass
-                        #triangle = truncated_line.get_bond_triangle(self.options.chiral_bond_width)
-                    self.plot_line(truncated_line, ax, color='black')
+                    if bond in self.chiral_bonds:
+                        orientation, chiral_center = self.chiral_bond_to_orientation[bond]
+                        self.plot_chiral_bond(orientation, chiral_center, truncated_line, ax, color='black')
+                    else:
+                        self.plot_line(truncated_line, ax, color='black')
                 elif bond.type == 'double':
                     if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
                         self.plot_line(truncated_line, ax, color='black')
 
                         common_rings = self.get_common_rings(bond.atom_1, bond.atom_2)
                         if common_rings:
-                          #  print("\n")
-                          #  print(bond)
 
                             common_ring = self.get_ring(common_rings[0])
                             ring_centre = common_ring.center
@@ -661,8 +804,6 @@ class Drawer:
 
         if atom.draw.positioned and not skip_positioning:
             return
-
-       # print(atom)
 
         if not skip_positioning:
             if not previous_atom:
@@ -1228,8 +1369,6 @@ class Drawer:
 
     def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
 
-      #  print(ring)
-
         if ring.positioned:
             return
 
@@ -1280,9 +1419,8 @@ class Drawer:
             atoms = list(RingOverlap.get_vertices(self.ring_overlaps, ring.id, neighbour.id))
 
             if len(atoms) == 2:
-              #  print(atoms)
 
-                #This ring is fused
+                # This ring is fused
                 ring.fused = True
                 neighbour.fused = True
 
@@ -1342,9 +1480,7 @@ class Drawer:
                     self.create_ring(neighbour, next_center, atom)
 
         for atom in ring.members:
-          #  print("ring member", atom)
             for neighbour in atom.drawn_neighbours:
-              #  print("Neighbour", neighbour)
                 if neighbour.draw.positioned:
                     continue
 
@@ -1460,9 +1596,6 @@ class Drawer:
             atom.set_drawn_neighbours()
             if atom.type == 'O':
                 pass
-             #   print(atom.draw.has_hydrogen)
-             #   print("yo")
-              #  print(atom.drawn_neighbours)
 
         self.drawn_bonds = []
 
@@ -1471,8 +1604,6 @@ class Drawer:
                 self.drawn_bonds.append(bond)
 
         self.drawn_atoms = self.structure.get_drawn_atoms()
-       # print("Hidden", hidden)
-
 
     def get_bridged_rings(self):
         bridged_rings = []
@@ -1691,3 +1822,4 @@ class Options:
         self.overlap_sensitivity = 0.10
         self.overlap_resolution_iterations = 5
         self.background_color = 'white'
+        self.draw_hydrogens = False

@@ -185,6 +185,15 @@ class Atom:
 
         self.valence_shell = self.shells[self.shell_nr]
 
+    def in_ring(self, structure):
+        cycles = structure.cycles.all_cycles
+
+        for cycle in cycles:
+            if self in cycle:
+                return True
+
+        return False
+
     def fill_shells(self):
         electrons_assigned = 0
 
