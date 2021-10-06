@@ -447,6 +447,8 @@ class Drawer:
         self.process_structure()
         self.set_chiral_bonds()
         self.draw_svg()
+        self.draw_png()
+
 
     def get_hydrogen_text_orientation(self, atom):
         neighbour = atom.drawn_neighbours[0]
@@ -513,7 +515,20 @@ class Drawer:
         ax.plot([line.point_1.x, line.point_2.x],
                  [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
+
+
+    def draw_png(self):
+        self.draw_structure()
+        plt.savefig("test.png")
+        plt.show()
+        plt.clf()
+
     def draw_svg(self):
+        self.draw_structure()
+        plt.savefig("test.svg")
+        plt.clf()
+
+    def draw_structure(self):
 
         for atom in self.structure.graph:
             if atom.draw.colour != 'black':
@@ -709,9 +724,7 @@ class Drawer:
                          verticalalignment='center',
                          color=atom.draw.colour)
 
-        plt.savefig("test.svg")
-        plt.show()
-        plt.clf()
+        
 
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
