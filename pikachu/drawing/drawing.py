@@ -510,13 +510,13 @@ class Drawer:
 
 
 
-    def draw_png(self)
+    def draw_png(self):
         self.draw_structure()
         plt.savefig("test.png")
         plt.show()
         plt.clf()
 
-    def draw_svg(self)
+    def draw_svg(self):
         self.draw_structure()
         plt.savefig("test.svg")
         plt.clf()
