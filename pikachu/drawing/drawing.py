@@ -446,8 +446,9 @@ class Drawer:
         self.define_rings()
         self.process_structure()
         self.set_chiral_bonds()
-        self.draw_svg()
-        self.draw_png()
+        self.draw_structure()
+        #self.draw_svg()
+      #  self.draw_png()
 
 
     def get_hydrogen_text_orientation(self, atom):
@@ -497,7 +498,7 @@ class Drawer:
                 bond_wedge = truncated_line.get_bond_wedge_front(self.options.chiral_bond_width, chiral_center)
                 self.plot_chiral_bond_front(bond_wedge, ax, color=halfline.atom.draw.colour)
             else:
-                bond_lines = truncated_line.get_bond_wedge_back(self.options.chiral_bond_width, chiral_center)
+                bond_lines = halfline.get_bond_wedge_back(self.options.chiral_bond_width, chiral_center)
                 self.plot_chiral_bond_back(bond_lines, ax, color=halfline.atom.draw.colour)
 
     def plot_halflines(self, line, ax, midpoint):
@@ -516,17 +517,16 @@ class Drawer:
                  [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
 
-
     def draw_png(self):
         self.draw_structure()
         plt.savefig("test.png")
         plt.show()
-        plt.clf()
+        #plt.clf()
 
     def draw_svg(self):
         self.draw_structure()
         plt.savefig("test.svg")
-        plt.clf()
+       # plt.clf()
 
     def draw_structure(self):
 
@@ -723,6 +723,8 @@ class Drawer:
                          horizontalalignment=horizontal_alignment,
                          verticalalignment='center',
                          color=atom.draw.colour)
+
+        plt.show()
 
         
 

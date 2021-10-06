@@ -151,7 +151,12 @@ class HalfLine:
             line = SimpleLine(point_1, point_2)
             lines.append(line)
 
-        return lines[:3]
+        if self.atom.type == 'C':
+            return lines[:3]
+        else:
+            return [lines[2]]
+
+
 
     def get_truncated_line(self, ratio):
 
