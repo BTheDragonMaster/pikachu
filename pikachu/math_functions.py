@@ -82,6 +82,113 @@ class SimpleLine:
             self.point_2 = point_1
 
 
+class HalfLine:
+    def __init__(self, point_1, point_2, atom, angle):
+        self.point_1 = point_1
+        self.point_2 = point_2
+        self.atom = atom
+        self.angle = angle
+
+    def get_angle(self):
+
+        difference = Vector.subtract_vectors(self.point_2, self.point_1)
+
+        return difference.angle()
+
+    def get_perpendicular_points(self, distance, point):
+        angle = self.angle
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            angle = -angle
+            direction_combinations = ((1, 1), (-1, -1))
+
+        else:
+            direction_combinations = ((1, -1), (-1, 1))
+
+        dx = abs(math.sin(angle) * distance)
+        dy = abs(math.cos(angle) * distance)
+
+        point_1 = Vector(dx * direction_combinations[0][0] + point.x,
+                         dy * direction_combinations[0][1] + point.y)
+
+        point_2 = Vector(dx * direction_combinations[1][0] + point.x,
+                         dy * direction_combinations[1][1] + point.y)
+
+        return point_1, point_2
+
+    def get_bond_wedge_front(self, width, chiral_centre):
+        half_width = width * 0.5
+
+        point_1_mid, point_2_mid = self.get_perpendicular_points(half_width, self.point_2)
+        if self.atom == chiral_centre:
+            return self.point_1, point_1_mid, point_2_mid
+        else:
+            point_1, point_2 = self.get_perpendicular_points(width, self.point_1)
+            return point_1, point_2, point_2_mid, point_1_mid
+
+    def get_bond_wedge_back(self, width, chiral_center):
+        segment_size_x = (self.point_2.x - self.point_1.x) / 2.5
+        segment_size_y = (self.point_2.y - self.point_1.y) / 2.5
+        segment_width_increase = width / 5.0
+
+        points_along_line = []
+        widths = []
+
+        for i in range(6):
+            points_along_line.append(Vector(self.point_1.x + i * segment_size_x,
+                                            self.point_1.y + i * segment_size_y))
+
+            widths.append(i * segment_width_increase)
+
+        lines = []
+
+        if self.atom != chiral_center:
+            widths.reverse()
+
+        for i in range(6):
+            segment_width = widths[i]
+            point = points_along_line[i]
+            point_1, point_2 = self.get_perpendicular_points(segment_width, point)
+            line = SimpleLine(point_1, point_2)
+            lines.append(line)
+
+        return lines[:3]
+
+    def get_truncated_line(self, ratio):
+
+        ratio = 1 - ((1 - ratio) * 2.0)
+
+        old_x_length = abs(self.point_2.x - self.point_1.x)
+        old_y_length = abs(self.point_2.y - self.point_1.y)
+
+        new_x_length = ratio * old_x_length
+        new_y_length = ratio * old_y_length
+
+        truncation_x = (old_x_length - new_x_length) / 2.0
+        truncation_y = (old_y_length - new_y_length) / 2.0
+
+        new_point_1_x = self.point_1.x
+        new_point_1_y = self.point_1.y
+
+        if self.point_1.x > self.point_2.x:
+            if self.atom.type != 'C':
+                new_point_1_x = self.point_1.x - truncation_x
+
+        else:
+            if self.atom.type != 'C':
+                new_point_1_x = self.point_1.x + truncation_x
+
+        if self.point_1.y > self.point_2.y:
+            if self.atom.type != 'C':
+                new_point_1_y = self.point_1.y - truncation_y
+
+        else:
+            if self.atom.type != 'C':
+                new_point_1_y = self.point_1.y + truncation_y
+
+        truncated_line = HalfLine(Vector(new_point_1_x, new_point_1_y), self.point_2, self.atom, self.angle)
+        return truncated_line
+
+
 class Line:
     def __init__(self, point_1, point_2, atom_1, atom_2):
 
@@ -99,6 +206,13 @@ class Line:
 
         self.length = self.get_length()
         self.get_angle()
+
+    def divide_in_two(self, point):
+
+        halfline_1 = HalfLine(self.point_1, point, self.atom_1, self.get_angle())
+        halfline_2 = HalfLine(self.point_2, point, self.atom_2, self.get_angle())
+
+        return halfline_1, halfline_2
 
     def get_perpendicular_points(self, distance, point):
         angle = self.get_angle()

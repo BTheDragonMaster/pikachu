@@ -7,7 +7,7 @@ from pikachu.errors import SmilesError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
-from pikachu.chem.substructure_search import check_same_chirality, compare_all_matches
+from pikachu.chem.substructure_search import check_same_chirality, compare_all_matches, SubstructureMatch, find_substructures
 from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
 
@@ -48,6 +48,13 @@ class Structure:
         else:
             self.bond_lookup = {}
 
+    def get_atoms(self):
+        atoms = []
+        for atom in self.graph:
+            atoms.append(atom)
+
+        return atoms
+
     def refresh_structure(self):
         new_graph = {}
 
@@ -73,6 +80,8 @@ class Structure:
         self.graph = new_graph
         self.make_bond_lookup()
         self.set_atom_neighbours()
+        self.set_connectivities()
+        self.find_cycles()
 
     def get_next_in_ring(self, ring, current_atom, previous_atom):
         neighbours = self.graph[current_atom]
@@ -84,6 +93,30 @@ class Structure:
                         return neighbour
 
         return None
+
+    def colour_substructure_single(self, substructure, colour="hot pink", check_chiral_centres=True, check_bond_chirality=True):
+        matches = self.find_substructures(substructure,
+                                          check_chiral_centres=check_chiral_centres,
+                                          check_chiral_double_bonds=check_bond_chirality)
+
+        match = matches[0]
+        for parent_atom in match.atoms.values():
+            for atom in self.graph:
+                if atom == parent_atom:
+                    atom.draw.colour = colour
+
+    def colour_substructure_all(self, substructure, colour="hot pink", check_chiral_centres=True, check_bond_chirality=True):
+        matches = self.find_substructures(substructure,
+                                          check_chiral_centres=check_chiral_centres,
+                                          check_chiral_double_bonds=check_bond_chirality)
+
+        print(matches)
+
+        for match in matches:
+            for parent_atom in match.atoms.values():
+                for atom in self.graph:
+                    if atom == parent_atom:
+                        atom.draw.colour = colour
 
     def to_dash_molecule2d_input(self):
         nodes = []
@@ -498,7 +531,7 @@ class Structure:
         self.refine_s_bonds()
         self.drop_electrons()
         self.set_atom_neighbours()
-        self.set_connectivities()
+
         self.make_lone_pairs()
         self.make_bond_lookup()
         self.find_cycles()
@@ -507,6 +540,10 @@ class Structure:
         aromatic_cycles = self.find_aromatic_cycles()
         self.set_bonds_to_aromatic(aromatic_systems)
         self.set_bonds_to_aromatic(aromatic_cycles)
+        self.set_connectivities()
+
+    def define_cycles(self):
+        pass
 
     def make_lone_pairs(self):
         for atom in self.graph:
@@ -669,24 +706,86 @@ class Structure:
 
         return chirality_matches
 
+    def is_substructure_bond_composition(self, substructure):
+        bond_summary_to_count_parent = {}
+        bond_summary_to_count_child = {}
+
+        for bond_nr, bond in self.bonds:
+            bond_summary = bond.bond_summary
+            if 'H' not in [atom.type for atom in bond.neighbours]:
+                if bond_summary not in bond_summary_to_count_parent:
+                    bond_summary_to_count_parent[bond_summary] = 0
+                bond_summary_to_count_parent[bond_summary] += 1
+        for bond_nr, bond in substructure.bonds:
+            if 'H' not in [atom.type for atom in bond.neighbours]:
+                bond_summary = bond.bond_summary
+                if bond_summary not in bond_summary_to_count_child:
+                    bond_summary_to_count_child[bond_summary] = 0
+                bond_summary_to_count_child[bond_summary] += 1
+
+        can_be_substructure = True
+
+        for bond_summary, count in bond_summary_to_count_child.items():
+            if bond_summary not in bond_summary_to_count_parent:
+                can_be_substructure = False
+                break
+            elif count > bond_summary_to_count_parent[bond_summary]:
+                can_be_substructure = False
+                break
+
+        return can_be_substructure
+
+
+
+
+    def get_unvisited_bonds(self, bond_to_visited, bond_to_matching_attempts, child_bond, bond_match, parent_atom):
+        bonds = []
+        for parent_bond in parent_atom.bonds:
+            if parent_bond not in bond_match.values():
+                if not bond_to_visited[parent_bond]:
+                    bonds.append(parent_bond)
+                elif child_bond not in bond_to_matching_attempts[parent_bond]:
+                    bonds.append(parent_bond)
+
+        return bonds
+
+    def make_bond_match_dict(self):
+        bond_to_bond = {}
+        for bond in self.bonds.values():
+            bond_to_bond[bond] = None
+
+        return bond_to_bond
+
+    def find_substructures_bonds(self, substructure, check_chiral_centres=True, check_chiral_double_bonds=True):
+        matches = []
+
+        if self.is_substructure_atom_composition(substructure):
+            if self.is_substructure_bond_composition(substructure):
+                if self.is_substructure_atom_connectivity(substructure):
+                    pass
+
     def find_substructures(self, substructure, check_chiral_centres=True, check_chiral_double_bonds=True):
         matches = []
         if self.is_substructure_atom_composition(substructure):
             if self.is_substructure_atom_connectivity(substructure):
-                matches = self.find_substructure_in_structure(substructure)
+                matches = find_substructures(self, substructure)
+                # matches = self.find_substructure_in_structure(substructure)
+
+        for match in matches:
+            print(match.atoms)
 
         if check_chiral_centres:
             final_matches = []
 
             for match in matches:
-                if self.check_chiral_centres(substructure, match):
+                if self.check_chiral_centres(substructure, match.atoms):
                     final_matches.append(match)
             matches = final_matches
 
         if check_chiral_double_bonds:
             final_matches = []
             for match in matches:
-                if self.check_chiral_double_bonds(substructure, match):
+                if self.check_chiral_double_bonds(substructure, match.atoms):
                     final_matches.append(match)
             matches = final_matches
 
@@ -797,6 +896,7 @@ class Structure:
         for bond_nr in self.bonds:
             bond = self.bonds[bond_nr]
             bond.visited = False
+            bond.visited_child_bonds = set()
 
     def remove_visited(self):
         for atom in self.graph:
@@ -806,23 +906,24 @@ class Structure:
             delattr(bond, 'visited')
 
     def traceback(self, placed_atoms_parent, match_dict, reverse_match_dict, parent_options, atoms_to_place,
-                  child_bond_dict):
+                  child_bond_dict, bonds_visited_through_ring_closure):
 
         new_parent_candidate = None
         new_child_candidate = None
         previous_child_candidate = None
 
         for i in range(len(placed_atoms_parent) - 1, -1, -1):
+
             current_atom = placed_atoms_parent[i]
 
             try:
                 for option in parent_options[current_atom]:
-                    bond = self.bond_lookup[current_atom][option]
 
-                    if not bond.visited:
+                    if not option.visited:
                         new_parent_candidate = current_atom
                         new_child_candidate = reverse_match_dict[current_atom]
                         break
+
             except KeyError:
                 pass
 
@@ -870,6 +971,8 @@ class Structure:
 
         for seed in seeds:
 
+            print(seed, starting_atom)
+
             self.reset_visited()
 
             child_bond_dict = child.make_bond_dict()
@@ -879,6 +982,7 @@ class Structure:
             reverse_match = {}
             match[starting_atom] = seed
             reverse_match[seed] = starting_atom
+            visited_through_ring_closure = []
 
             atoms_to_place = set(copy.copy(list(child.graph.keys())))
             for atom in copy.deepcopy(atoms_to_place):
@@ -906,6 +1010,7 @@ class Structure:
                         break
 
                 if next_atom_child:
+
                     child_bond = child.bond_lookup[current_atom_child][next_atom_child]
                     next_atom_parent_options = []
                     parent_neighbours = current_atom_parent.neighbours
@@ -913,11 +1018,13 @@ class Structure:
                         parent_bond = self.bond_lookup[current_atom_parent][neighbour]
 
                         if neighbour.type == next_atom_child.type and child_bond.type == parent_bond.type:
-                            if not self.bond_lookup[current_atom_parent][neighbour].visited:
+                            bond = self.bond_lookup[current_atom_parent][neighbour]
+                            if child_bond not in bond.visited_child_bonds and neighbour not in match.values():
                                 if neighbour.potential_same_connectivity(next_atom_child.connectivity):
                                     next_atom_parent_options.append(neighbour)
 
-                    parent_options[current_atom_parent] = []
+                    if not current_atom_parent in parent_options:
+                        parent_options[current_atom_parent] = []
 
                     if next_atom_parent_options:
 
@@ -925,10 +1032,13 @@ class Structure:
                                                           key=lambda x: len(set(x.connectivity)), reverse=True)
                         for option in next_atom_parent_options:
                             bond = self.bond_lookup[current_atom_parent][option]
-                            parent_options[current_atom_parent].append(bond)
+                            if bond not in parent_options[current_atom_parent]:
+                                parent_options[current_atom_parent].append(bond)
 
                         next_atom_parent = next_atom_parent_options[0]
-                        self.bond_lookup[current_atom_parent][next_atom_parent].visited = True
+                        bond = self.bond_lookup[current_atom_parent][next_atom_parent]
+                        bond.visited = True
+                        bond.visited_child_bonds.add(child_bond)
 
                         match[next_atom_child] = next_atom_parent
                         reverse_match[next_atom_parent] = next_atom_child
@@ -937,6 +1047,18 @@ class Structure:
                         child_bond_dict[current_atom_child] -= 1
                         child_bond_dict[next_atom_child] -= 1
 
+                        for neighbour in next_atom_child.neighbours:
+                            if neighbour.type != 'H' and neighbour != current_atom_child \
+                                    and neighbour not in atoms_to_place:
+                                bond = self.bond_lookup[match[neighbour]][next_atom_parent]
+                                if not bond.visited:
+                                    visited_through_ring_closure.append(bond)
+                                    child_bond_dict[neighbour] -= 1
+                                    child_bond_dict[next_atom_child] -= 1
+                                    bond.visited = True
+                                    bond.visited_child_bonds.add(bond)
+
+
                         current_atom_child = next_atom_child
                         current_atom_parent = next_atom_parent
                         atoms_to_place.remove(current_atom_child)
@@ -944,7 +1066,8 @@ class Structure:
                     else:
                         new_child_candidate, new_parent_candidate = self.traceback(placed_atoms_parent, match,
                                                                                    reverse_match, parent_options,
-                                                                                   atoms_to_place, child_bond_dict)
+                                                                                   atoms_to_place, child_bond_dict,
+                                                                                   visited_through_ring_closure)
                         if not new_child_candidate:
                             match_active = False
                         else:

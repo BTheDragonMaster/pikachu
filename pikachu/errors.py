@@ -11,3 +11,14 @@ class SmilesError(Exception):
         self.message = self.error_to_message[error_type]
 
 
+class ColourError(Exception):
+    def __init__(self, colour):
+        if type(colour) == str:
+            if colour == 'too few colours':
+                self.message = f"Pikachu has too few colours to work with."
+
+            else:
+                self.message = f"Pikachu is unfamiliar with the colour {colour}. \n\nPikachu is confused. \nIt hurt itself in confusion."
+
+
+

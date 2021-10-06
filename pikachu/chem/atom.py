@@ -474,6 +474,7 @@ class AtomDrawProperties:
         self.connected_to_ring = False
         self.draw_explicit = False
         self.previous_atom = None
+        self.colour = 'black'
 
     def set_position(self, vector):
         self.position = vector

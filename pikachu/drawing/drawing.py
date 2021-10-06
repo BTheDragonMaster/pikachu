@@ -353,9 +353,7 @@ class Drawer:
                 other_chiral_centre = False
 
                 for atom in neighbour.neighbours:
-                    print(chiral_center, atom, atom.chiral)
                     if atom != chiral_center and atom.chiral:
-                        print("hey there")
                         other_chiral_centre = True
                         break
 
@@ -368,8 +366,6 @@ class Drawer:
                 else:
                     backup_options_chiral.append(neighbour)
 
-        print(chiral_center, options, backup_options_rings, backup_options_chiral)
-
         priority = options_h + options + backup_options_rings + backup_options_chiral
         assert len(priority) == 4
 
@@ -378,8 +374,6 @@ class Drawer:
     def determine_chirality(self, chiral_center):
 
         priority = self.prioritise_chiral_bonds(chiral_center)
-
-        print(chiral_center, priority)
 
         priority_matches_chirality = False
 
@@ -480,33 +474,50 @@ class Drawer:
 
         return None
 
-    def plot_chiral_bond_front(self, triangle, ax, color='black'):
+    def plot_chiral_bond_front(self, polygon, ax, color='black'):
         x = []
         y = []
-        for point in triangle:
+        for point in polygon:
             x.append(point.x)
             y.append(point.y)
 
         ax.fill(x, y, color=color)
 
-
     def plot_chiral_bond_back(self, lines, ax, color='black'):
         for line in lines:
             self.plot_line(line, ax, color=color)
 
-    def plot_chiral_bond(self, orientation, chiral_center, truncated_line, ax, color='black'):
-        if orientation == 'front':
-            bond_triangle = truncated_line.get_bond_triangle_front(self.options.chiral_bond_width, chiral_center)
-            self.plot_chiral_bond_front(bond_triangle, ax, color=color)
-        else:
-            bond_lines = truncated_line.get_bond_triangle_back(self.options.chiral_bond_width, chiral_center)
-            self.plot_chiral_bond_back(bond_lines, ax, color=color)
+    def plot_chiral_bond(self, orientation, chiral_center, line, ax, midpoint):
+        halflines = line.divide_in_two(midpoint)
+        for halfline in halflines:
+            truncated_line = halfline.get_truncated_line(self.options.short_bond_length)
+            if orientation == 'front':
+                bond_wedge = truncated_line.get_bond_wedge_front(self.options.chiral_bond_width, chiral_center)
+                self.plot_chiral_bond_front(bond_wedge, ax, color=halfline.atom.draw.colour)
+            else:
+                bond_lines = truncated_line.get_bond_wedge_back(self.options.chiral_bond_width, chiral_center)
+                self.plot_chiral_bond_back(bond_lines, ax, color=halfline.atom.draw.colour)
+
+    def plot_halflines(self, line, ax, midpoint):
+        halflines = line.divide_in_two(midpoint)
+        for halfline in halflines:
+            truncated_line = halfline.get_truncated_line(self.options.short_bond_length)
+            self.plot_line(truncated_line, ax, color=halfline.atom.draw.colour)
+
+    def plot_halflines_double(self, line, ax, midpoint):
+        halflines = line.divide_in_two(midpoint)
+        for halfline in halflines:
+            self.plot_line(halfline, ax, color=halfline.atom.draw.colour)
 
     def plot_line(self, line, ax, color='black'):
         ax.plot([line.point_1.x, line.point_2.x],
                  [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
     def draw_svg(self):
+
+        for atom in self.structure.graph:
+            if atom.draw.colour != 'black':
+                print(atom, atom.draw.colour)
 
         min_x = 100000000
         max_x = -100000000
@@ -564,24 +575,31 @@ class Drawer:
         for bond_nr, bond in self.structure.bonds.items():
             if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
                 line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position, bond.atom_1, bond.atom_2)
+                midpoint = line.get_midpoint()
                 truncated_line = line.get_truncated_line(self.options.short_bond_length)
                 if bond.type == 'single':
                     if bond in self.chiral_bonds:
                         orientation, chiral_center = self.chiral_bond_to_orientation[bond]
-                        self.plot_chiral_bond(orientation, chiral_center, truncated_line, ax, color='black')
+                        self.plot_chiral_bond(orientation, chiral_center, line, ax, midpoint)
                     else:
-                        self.plot_line(truncated_line, ax, color='black')
+                        self.plot_halflines(line, ax, midpoint)
                 elif bond.type == 'double':
                     if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
-                        self.plot_line(truncated_line, ax, color='black')
+                        self.plot_halflines(line, ax, midpoint)
 
-                        common_rings = self.get_common_rings(bond.atom_1, bond.atom_2)
-                        if common_rings:
+                        common_ring_numbers = self.get_common_rings(bond.atom_1, bond.atom_2)
 
-                            common_ring = self.get_ring(common_rings[0])
+                        if common_ring_numbers:
+                            common_rings = []
+                            for ring_nr in common_ring_numbers:
+                                common_rings.append(self.get_ring(ring_nr))
+
+                            common_rings.sort(key=lambda x: len(x.members))
+                            common_ring = common_rings[0]
                             ring_centre = common_ring.center
                             second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length, ax)
-                            self.plot_line(second_line, ax)
+                            second_line_midpoint = second_line.get_midpoint()
+                            self.plot_halflines_double(second_line, ax, second_line_midpoint)
 
                         else:
                             bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
@@ -589,7 +607,8 @@ class Drawer:
                                 vectors = [atom.draw.position for atom in bond_neighbours]
                                 gravitational_point = Vector.get_average(vectors)
                                 second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length, ax)
-                                self.plot_line(second_line, ax)
+                                second_line_midpoint = second_line.get_midpoint()
+                                self.plot_halflines_double(second_line, ax, second_line_midpoint)
                             else:
                                 print("Shouldn't happen!")
                     else:
@@ -599,12 +618,14 @@ class Drawer:
                             double_bond_line_1 = line.double_line_towards_center(dummy_1,
                                                                                  self.options.bond_spacing / 2.0,
                                                                                  self.options.double_bond_length)
+                            double_bond_line_1_midpoint = double_bond_line_1.get_midpoint()
                             double_bond_line_2 = line.double_line_towards_center(dummy_2,
                                                                                  self.options.bond_spacing / 2.0,
                                                                                  self.options.double_bond_length)
+                            double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
 
-                            self.plot_line(double_bond_line_1, ax)
-                            self.plot_line(double_bond_line_2, ax)
+                            self.plot_halflines_double(double_bond_line_1, ax, double_bond_line_1_midpoint)
+                            self.plot_halflines_double(double_bond_line_2, ax, double_bond_line_2_midpoint)
 
                         else:
 
@@ -622,14 +643,14 @@ class Drawer:
 
                                 line = Line(terminal_atom.draw.position, branched_atom.draw.position, terminal_atom, branched_atom)
 
-                             #   self.plot_line(line, ax, color='black')
-
-
                                 bond_1_line = Line(branched_atom.draw.position, closest_atom_1.draw.position, branched_atom, closest_atom_1)
                                 bond_2_line = Line(branched_atom.draw.position, closest_atom_2.draw.position, branched_atom, closest_atom_1)
 
                                 double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length, ax)
                                 double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length, ax)
+
+                                double_bond_line_1_midpoint = double_bond_line_1.get_midpoint()
+                                double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
 
                                 intersection_1 = double_bond_line_1.find_intersection(bond_1_line)
                                 intersection_2 = double_bond_line_2.find_intersection(bond_2_line)
@@ -641,16 +662,11 @@ class Drawer:
                                     double_bond_line_1.point_2 = intersection_1
                                     double_bond_line_2.point_2 = intersection_2
 
-                                self.plot_line(double_bond_line_1.get_truncated_line(self.options.short_bond_length), ax)
-                                self.plot_line(double_bond_line_2.get_truncated_line(self.options.short_bond_length), ax)
+                                self.plot_halflines(double_bond_line_1, ax, double_bond_line_1_midpoint)
+                                self.plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint)
+
                             else:
                                 pass
-
-      #  for atom in self.drawn_atoms:
-        #    circle = plt.Circle((atom.draw.position.x, atom.draw.position.y), 5.0, color='green')# color=self.options.background_color)
-        #    ax.add_patch(circle)
-
-
 
         for atom in self.structure.graph:
             if atom.type != 'C' and atom.draw.positioned:
@@ -690,7 +706,8 @@ class Drawer:
                 plt.text(atom.draw.position.x, atom.draw.position.y,
                          text,
                          horizontalalignment=horizontal_alignment,
-                         verticalalignment='center')
+                         verticalalignment='center',
+                         color=atom.draw.colour)
 
         plt.savefig("test.svg")
         plt.show()
