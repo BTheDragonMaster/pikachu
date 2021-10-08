@@ -304,9 +304,15 @@ class KKLayout:
 
 
 class Drawer:
-    def __init__(self, structure, options=None):
+    def __init__(self, structure, options=None, save_png=None):
         if options == None:
             self.options = Options()
+        if save_png == None:
+            self.save_png = None
+        else:
+            #Check if filename is valid
+            assert save_png.endswith('.png')
+            self.save_png = save_png
 
         self.structure = structure.kekulise()
         self.rings = []
@@ -517,11 +523,7 @@ class Drawer:
                  [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
 
-    def draw_png(self):
-        self.draw_structure()
-        plt.savefig("test.png")
-        plt.show()
-        #plt.clf()
+
 
     def draw_svg(self):
         self.draw_structure()
@@ -724,7 +726,14 @@ class Drawer:
                          verticalalignment='center',
                          color=atom.draw.colour)
 
-        plt.show()
+        # If a png filename is included in the initialization of the Drawer object, don't show the
+        # structure, but do save it as a png image to the provided filename
+        if self.save_png == None:
+            plt.show()
+        else:
+            plt.savefig(self.save_png)
+            plt.clf()
+            plt.close()
 
         
 
