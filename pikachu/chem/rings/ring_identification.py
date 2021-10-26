@@ -49,8 +49,8 @@ def check_five_ring(atom_set):
                     for electron in orbital.electrons:
                         if electron.atom == atom:
                             pi_electron_nr += 1
-            if pi_electron_nr % 4 == 0:
-                aromatic = True
-                heteroatom = sp3_hybridised_lone_pair[0]
+        if pi_electron_nr % 4 == 0:
+            aromatic = True
+            heteroatom = sp3_hybridised_lone_pair[0]
 
     return aromatic, heteroatom

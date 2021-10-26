@@ -55,8 +55,13 @@ class Structure:
 
         return atoms
 
+    def get_subtree(self, atom, parent_atom):
+        pass
+
     def refresh_structure(self):
         new_graph = {}
+
+
 
         for atom_1, atoms in self.graph.items():
             new_graph[atom_1] = []
@@ -65,6 +70,9 @@ class Structure:
                     if atom_2 == atom_3:
                         new_graph[atom_1].append(atom_3)
                         break
+
+        print(new_graph)
+
 
         for bond_nr, bond in self.bonds.items():
             for atom in self.graph:
@@ -78,9 +86,11 @@ class Structure:
                         atom.bonds.append(bond)
 
         self.graph = new_graph
+
         self.make_bond_lookup()
         self.set_atom_neighbours()
         self.set_connectivities()
+
         self.find_cycles()
 
     def get_next_in_ring(self, ring, current_atom, previous_atom):
@@ -1843,4 +1853,11 @@ class Structure:
                 start_nodes.append(atom)
 
         return start_nodes
+
+
+class Tree:
+    def __init__(self, is_root):
+        self.is_root = is_root
+        self.parent = None
+        self.children = []
 

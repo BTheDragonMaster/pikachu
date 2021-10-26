@@ -33,36 +33,57 @@ def draw_structure(structure):
 def draw_smiles(smiles):
     structure = read_smiles(smiles)
     structure = structure.kekulise()
-    Drawer(structure)
+    drawer = Drawer(structure)
+    drawer.show_molecule()
 
+def draw_svg_from_smiles(smiles, svg_out):
+    structure = read_smiles(smiles)
+    structure = structure.kekulise()
+    drawer = Drawer(structure)
+    drawer.save_svg(svg_out)
 
 def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBERRY,
                                check_chiral_centres=True,
-                               check_bond_chirality=True):
+                               check_bond_chirality=True,
+                               visualisation='show',
+                               out_file=None):
     child_structure = read_smiles(substructure_smiles)
     parent_structure = read_smiles(parent_smiles)
     parent_structure.colour_substructure_single(child_structure, colour=colour,
                                                 check_chiral_centres=check_chiral_centres,
                                                 check_bond_chirality=check_bond_chirality)
 
-    Drawer(parent_structure)
-
+    drawer = Drawer(parent_structure)
+    if visualisation == 'show':
+        drawer.show_molecule()
+    elif visualisation == 'svg':
+        assert out_file
+        drawer.save_svg(out_file)
 
 def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY,
                             check_chiral_centres=True,
-                            check_bond_chirality=True):
+                            check_bond_chirality=True,
+                            visualisation='show',
+                            out_file=None):
     child_structure = read_smiles(substructure_smiles)
     parent_structure = read_smiles(parent_smiles)
     parent_structure.colour_substructure_all(child_structure, colour=colour,
                                              check_chiral_centres=check_chiral_centres,
                                              check_bond_chirality=check_bond_chirality)
 
-    Drawer(parent_structure)
+    drawer = Drawer(parent_structure)
+    if visualisation == 'show':
+        drawer.show_molecule()
+    elif visualisation == 'svg':
+        assert out_file
+        drawer.save_svg(out_file)
 
 
 def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colours=None,
                                  check_chiral_centres=True,
-                                 check_bond_chirality=True):
+                                 check_bond_chirality=True,
+                                 visualisation='show',
+                                 out_file=None):
     parent_structure = read_smiles(parent_smiles)
 
     smiles_nr = len(substructure_smiles_list)
@@ -91,7 +112,9 @@ def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colour
                                                  check_chiral_centres=check_chiral_centres,
                                                  check_bond_chirality=check_bond_chirality)
 
-    Drawer(parent_structure)
-
-
-
+    drawer = Drawer(parent_structure)
+    if visualisation == 'show':
+        drawer.show_molecule()
+    elif visualisation == 'svg':
+        assert out_file
+        drawer.save_svg(out_file)

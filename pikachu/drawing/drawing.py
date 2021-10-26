@@ -522,13 +522,16 @@ class Drawer:
         ax.plot([line.point_1.x, line.point_2.x],
                  [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
+    def save_svg(self, out_file):
+        # self.draw_structure()
+        plt.savefig(out_file)
+        plt.clf()
+        plt.close()
 
-
-
-    def draw_svg(self):
-        self.draw_structure()
-        plt.savefig("test.svg")
-       # plt.clf()
+    def show_molecule(self):
+        plt.show()
+        plt.clf()
+        plt.close()
 
     def draw_structure(self):
 
@@ -728,12 +731,12 @@ class Drawer:
 
         # If a png filename is included in the initialization of the Drawer object, don't show the
         # structure, but do save it as a png image to the provided filename
-        if self.save_png == None:
-            plt.show()
-        else:
-            plt.savefig(self.save_png)
-            plt.clf()
-            plt.close()
+      #  if self.save_png == None:
+        #    plt.show()
+      #  else:
+         #   plt.savefig(self.save_png)
+         #   plt.clf()
+         #   plt.close()
 
         
 
@@ -814,9 +817,6 @@ class Drawer:
                         self.total_overlap_score, sorted_overlap_scores, atom_to_scores = self.get_overlap_score()
 
         self.resolve_secondary_overlaps(sorted_overlap_scores)
-
-        # add stereochemistry
-
 
     def position(self):
         start_atom = None
@@ -1202,6 +1202,8 @@ class Drawer:
     def bond_is_rotatable(self, bond):
         if bond.type != 'single':
             return False
+
+        #todo: If bond type IS single, make sure you can't rotate it if the adjacent bond is chiral
 
         # If bond is terminal, don't bother rotating.
 
@@ -1630,8 +1632,6 @@ class Drawer:
                 hidden.append(atom)
             else:
                 exposed.append(atom)
-
-
 
         for atom in self.structure.graph:
             atom.set_drawn_neighbours()

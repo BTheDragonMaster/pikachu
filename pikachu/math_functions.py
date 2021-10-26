@@ -582,12 +582,17 @@ class Vector:
 
         return Vector(average_x / len(vectors), average_y / len(vectors))
 
-
     @staticmethod
     def get_normals(vector_1, vector_2):
         delta = Vector.subtract_vectors(vector_2, vector_1)
 
         return [Vector(-delta.y, delta.x), Vector(delta.y, -delta.x)]
+
+    @staticmethod
+    def get_angle_between_vectors(vector_1, vector_2):
+        difference = Vector.subtract_vectors(vector_2, vector_1)
+
+        return difference.angle()
 
 
 class Polygon:

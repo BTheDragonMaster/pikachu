@@ -48,7 +48,6 @@ class Ring:
         current_atom = start_atom
         iteration = 0
 
-
         while current_atom != None and iteration < 100:
             previous = current_atom
 
@@ -72,10 +71,6 @@ class Ring:
             iteration += 1
 
 
-
-
-
-
 class RingOverlap:
     def __init__(self, ring_1, ring_2):
         self.id = None
@@ -87,7 +82,6 @@ class RingOverlap:
             for atom_2 in ring_2.members:
                 if atom_1 == atom_2:
                     self.atoms.add(atom_1)
-
 
     def __hash__(self):
         return self.id

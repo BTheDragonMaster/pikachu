@@ -6,6 +6,27 @@ from collections import OrderedDict, defaultdict
 import copy
 
 
+def in_cycle(cycles, atom):
+    for cycle in cycles:
+        if atom in cycle:
+            return True
+    return False
+
+
+def find_cycles(graph):
+    all_cycles = simple_cycles(graph)
+    cycles = []
+    sorted_cycles = set()
+    for cycle in all_cycles:
+        if len(cycle) > 2:
+            sorted_cycle = tuple(sorted(cycle, key=lambda x: x.nr))
+            if sorted_cycle not in sorted_cycles:
+                sorted_cycles.add(sorted_cycle)
+                cycles.append(cycle)
+
+    return cycles
+
+
 def check_aromatic(atom_set):
     aromatic = True
     for atom in atom_set:
@@ -63,6 +84,7 @@ def check_five_ring(atom_set):
 
     return aromatic, heteroatom
 
+
 def is_reverse_cycle(cycle_1, cycle_2):
     reversed_2 = list(reversed(cycle_2))
 
@@ -81,7 +103,8 @@ def is_reverse_cycle(cycle_1, cycle_2):
             return True
         else:
             return False
-    
+
+
 def simple_cycles(G):
     # Yield every elementary cycle in python graph G exactly once
     # Expects a dictionary mapping from vertices to iterables of vertices
@@ -93,17 +116,17 @@ def simple_cycles(G):
                 blocked.remove(node)
                 stack.update(B[node])
                 B[node].clear()
-    G = {v: set(nbrs) for (v,nbrs) in G.items()} # make a copy of the graph
+    G = {v: set(nbrs) for (v, nbrs) in G.items()} # make a copy of the graph
     sccs = strongly_connected_components(G)
     while sccs:
         scc = sccs.pop()
         startnode = scc.pop()
-        path=[startnode]
+        path = [startnode]
         blocked = set()
         closed = set()
         blocked.add(startnode)
         B = defaultdict(set)
-        stack = [ (startnode,list(G[startnode])) ]
+        stack = [ (startnode, list(G[startnode])) ]
         while stack:
             thisnode, nbrs = stack[-1]
             if nbrs:
@@ -129,6 +152,7 @@ def simple_cycles(G):
         remove_node(G, startnode)
         H = subgraph(G, set(scc))
         sccs.extend(strongly_connected_components(H))
+
 
 def strongly_connected_components(graph):
     # Tarjan's algorithm for finding SCC's
@@ -171,6 +195,7 @@ def strongly_connected_components(graph):
     
     return result
 
+
 def remove_node(G, target):
     # Completely remove a node from the graph
     # Expects values of G to be sets
@@ -178,12 +203,14 @@ def remove_node(G, target):
     for nbrs in G.values():
         nbrs.discard(target)
 
+
 def subgraph(G, vertices):
     # Get the subgraph of G induced by set vertices
     # Expects values of G to be sets
     return {v: G[v] & vertices for v in vertices}
 
-class Cycles():
+
+class Cycles:
     def __init__(self, structure):
         self.find_unique_cycles(structure)
         self.make_microcycle_graph()
@@ -312,7 +339,6 @@ class Cycles():
 
         else:
             new_cycles = []
-
 
         return new_cycles
 
