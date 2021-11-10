@@ -1,57 +1,54 @@
-# PIKACHU
+# INSTALLATION
 
 Python-based Informatics Kit for the Analysis of Chemical Units
 
-Step 1: Clone the repository:
-
-```git clone https://git.wur.nl/terlo012/pikachu.git```
-
-Step 2: Navigate to folder containing pikachu.py
-
-Step 3: Open python
-
-Step 4: Import required modules
+Step 1: Make a conda environment:
 
 ```
-import pikachu
-import reactions
-from pprint import pprint
+conda create -n pikachu
+conda activate pikachu
 ```
 
-Step 5: Load your SMILES string of interest and turn it into a structure
+Step 2: install dependencies:
 
 ```
-smiles = pikachu.Smiles("CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C")
-structure = smiles.smiles_to_structure()
-pprint(structure.graph)
+conda install pip
+pip install matplotlib
 ```
 
-Step 6: Now, you can manipulate your structure with the reactions in reactions.py (only hydrolysis has been fully tested). First, define the bond you want to break with BondDefiner:
+Step 3: clone the PIKAChU repository into a desired folder:
 
 ```
-peptide_bond = reactions.BondDefiner('peptide_bond', 'C(=O)NC', 0, 2)
-```
-This function takes a custom bond name, a SMILES string of the bond you want to (in this case) hydrolyse, an the atom indices of the two atoms between which the bond needs to be hydrolysed.
-
-Now, find occurrences of this bond in your structure:
-```
-bonds = reactions.find_bonds(structure, peptide_bond)
+git clone https://git.wur.nl/terlo012/pikachu.git
 ```
 
-Then, you can hydrolyse any or all of these bonds with the hydrolysis function. Note: this edits the structure in place, so you might want to make a copy of the original structure first.
+Step 4: Navigate to folder containing setup.py:
 
 ```
-import copy
-
-product = copy.deepcopy(structure)
-for bond in bonds:
-    reactions.hydrolyse(bond, product)
+cd pikachu
 ```
 
-Finally, you can split the resulting (possibly disconnected) graph(s) into separate graphs and visualise them:
+Step 5: Install PIKAChU:
 
 ```
-products = product.split_disconnected_structures()
-for product in products:
-    pprint(product.graph)
+pip install .
 ```
+
+# GETTING STARTED
+
+Step 1: Open python or initiate an empty .py file.
+
+Step 2: Import required modules to visualise your first structure:
+
+```
+from pikachu.general import draw_smiles
+```
+
+Step 3: Load your SMILES string of interest and draw it!
+
+```
+smiles = draw_smiles("CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C")
+```
+
+Step 4: Play around with the other functions in pikachu.general. For guidance, refer to documentation in the wiki and function descriptors.
+
