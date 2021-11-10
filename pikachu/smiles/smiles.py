@@ -416,7 +416,16 @@ class Smiles:
 
                     else:
                         if old_bond_type != 'single':
-                            structure.add_bond(atom_1, atom_2, old_bond_type, bond_nr)
+                            if old_bond_type == 'single_chiral':
+                                if bond_chiral_symbol == '/':
+                                    bond_chiral_symbol = '\\'
+                                elif bond_chiral_symbol == '\\':
+                                    bond_chiral_symbol = '/'
+
+                                structure.add_bond(atom_1, atom_2, bond_type, bond_nr, bond_chiral_symbol)
+                                bond_chiral_symbol = None
+                            else:
+                                structure.add_bond(atom_1, atom_2, old_bond_type, bond_nr)
                         else:
                             structure.add_bond(atom_1, atom_2, bond_type, bond_nr)
 
