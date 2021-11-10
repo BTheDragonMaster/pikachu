@@ -386,7 +386,7 @@ class Smiles:
                 # If we encounter a number that hasn't been encountered before, start a new cycle
 
                 if self.is_new_cycle(cyclic_dict, cycle_nr):
-                    self.start_cycle(cycle_nr, atom, cyclic_dict)
+                    self.start_cycle(cycle_nr, atom, cyclic_dict, bond_type)
 
                     if atom in chiral_dict:
                         self.add_cycle_placeholder(chiral_dict, atom, cycle_nr)
@@ -396,7 +396,7 @@ class Smiles:
                 else:
                     bond_nr += 1
 
-                    atom_1, atom_2 = self.end_cycle(cycle_nr, atom, cyclic_dict)
+                    atom_1, atom_2, old_bond_type = self.end_cycle(cycle_nr, atom, cyclic_dict)
 
                     if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
@@ -415,15 +415,17 @@ class Smiles:
                         bond_chiral_symbol = None
 
                     else:
-
-                        structure.add_bond(atom_1, atom_2, bond_type, bond_nr)
+                        if old_bond_type != 'single':
+                            structure.add_bond(atom_1, atom_2, old_bond_type, bond_nr)
+                        else:
+                            structure.add_bond(atom_1, atom_2, bond_type, bond_nr)
 
                     if atom_1 in chiral_dict:
                         self.replace_cycle_placeholder(chiral_dict, atom_1, atom_2, cycle_nr)
                     if atom_2 in chiral_dict:
                         chiral_dict[atom_2].append(atom_1)
 
-                    bond_type = 'single'
+                bond_type = 'single'
 
             elif label == 'chiral_double_bond':
                 bond_type = 'single_chiral'
@@ -534,7 +536,7 @@ class Smiles:
         else:
             return True
 
-    def start_cycle(self, cycle_nr: int, atom: 'Atom', cyclic_dict: Dict[int, 'Atom']) -> None:
+    def start_cycle(self, cycle_nr: int, atom: 'Atom', cyclic_dict: Dict[int, 'Atom'], bond_type: str) -> None:
         """Add a new atom and corresponding cycle number to cyclic dict
 
         Input:
@@ -544,7 +546,7 @@ class Smiles:
             an Atom Object
 
         """
-        cyclic_dict[cycle_nr] = atom
+        cyclic_dict[cycle_nr] = (atom, bond_type)
 
     def end_cycle(self, cycle_nr: int, atom: 'Atom', cyclic_dict: Dict[int, 'Atom']) -> Tuple['Atom']:
         """Return pair of atoms that close a cycle
@@ -559,12 +561,11 @@ class Smiles:
         atom_pair: tuple of two atoms, with each atom an Atom Object
 
         """
-        atom_old = cyclic_dict[cycle_nr]
-        atom_pair = (atom_old, atom)
+        atom_old, bond_type = cyclic_dict[cycle_nr]
 
         del cyclic_dict[cycle_nr]
 
-        return atom_pair
+        return atom_old, atom, bond_type
 
     def track_last_atoms_per_branch(self, new_atom: 'Atom', current_level: int,
                                     last_atoms_dict: Dict[int, 'Atom']) -> None:

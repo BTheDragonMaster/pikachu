@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import time
 import copy
 import math
 import matplotlib
@@ -307,12 +307,6 @@ class Drawer:
     def __init__(self, structure, options=None, save_png=None):
         if options == None:
             self.options = Options()
-        if save_png == None:
-            self.save_png = None
-        else:
-            #Check if filename is valid
-            assert save_png.endswith('.png')
-            self.save_png = save_png
 
         self.structure = structure.kekulise()
         self.rings = []
@@ -446,13 +440,33 @@ class Drawer:
                     self.chiral_bond_to_orientation[bond] = (wedge, atom)
 
     def draw(self):
+        start_time = time.time()
+
         if not self.options.draw_hydrogens:
             self.hide_hydrogens()
+        print("Hiding hydrogens..")
+        time_1 = time.time()
+        print(time_1 - start_time)
         self.get_atom_nr_to_atom()
+        print("Making atom dictionary..")
+        time_2 = time.time()
+        print(time_2 - time_1)
         self.define_rings()
+        print("Defining rings..")
+        time_3 = time.time()
+        print(time_3 - time_2)
         self.process_structure()
+        print("Processing structure..")
+        time_4 = time.time()
+        print(time_4 - time_3)
         self.set_chiral_bonds()
+        print("Setting chiral bonds..")
+        time_5 = time.time()
+        print(time_5 - time_4)
         self.draw_structure()
+        print("Drawing structure..")
+        time_6 = time.time()
+        print(time_6 - time_5)
         #self.draw_svg()
       #  self.draw_png()
 
@@ -523,7 +537,19 @@ class Drawer:
                  [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
     def save_svg(self, out_file):
-        # self.draw_structure()
+        if out_file.endswith('.svg'):
+            pass
+        else:
+            out_file += '.svg'
+        plt.savefig(out_file)
+        plt.clf()
+        plt.close()
+
+    def save_png(self, out_file):
+        if out_file.endswith('.png'):
+            pass
+        else:
+            out_file += '.png'
         plt.savefig(out_file)
         plt.clf()
         plt.close()
@@ -729,17 +755,6 @@ class Drawer:
                          verticalalignment='center',
                          color=atom.draw.colour)
 
-        # If a png filename is included in the initialization of the Drawer object, don't show the
-        # structure, but do save it as a png image to the provided filename
-      #  if self.save_png == None:
-        #    plt.show()
-      #  else:
-         #   plt.savefig(self.save_png)
-         #   plt.clf()
-         #   plt.close()
-
-        
-
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
             return True
@@ -747,8 +762,15 @@ class Drawer:
         return False
 
     def process_structure(self):
+        a_time = time.time()
         self.position()
+        pos_time_1 = time.time()
+        print("Positioning...")
+        print(pos_time_1 - a_time)
         self.structure.refresh_structure()
+        pos_time_2 = time.time()
+        print("Refreshing...")
+        print(pos_time_2 - pos_time_1)
         self.restore_ring_information()
 
         self.resolve_primary_overlaps()
@@ -817,6 +839,10 @@ class Drawer:
                         self.total_overlap_score, sorted_overlap_scores, atom_to_scores = self.get_overlap_score()
 
         self.resolve_secondary_overlaps(sorted_overlap_scores)
+
+        pos_time_3 = time.time()
+        print("Overlap resolution...")
+        print(pos_time_3 - pos_time_2)
 
     def position(self):
         start_atom = None
@@ -1614,7 +1640,11 @@ class Drawer:
     def hide_hydrogens(self):
         hidden = []
         exposed = []
+        sometime = time.time()
         self.structure.refresh_structure()
+        print('refreshing structure')
+        newtime = time.time()
+        print(newtime - sometime)
         for atom in self.structure.graph:
             if atom.type != 'H':
                 continue

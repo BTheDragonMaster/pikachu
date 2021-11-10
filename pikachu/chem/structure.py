@@ -35,6 +35,7 @@ class Structure:
         if graph:
             self.graph = graph
             self.set_atom_neighbours()
+            self.set_atoms()
         else:
             self.graph = {}
         if bonds:
@@ -58,32 +59,27 @@ class Structure:
     def get_subtree(self, atom, parent_atom):
         pass
 
-    def refresh_structure(self):
+    def set_atoms(self):
+        self.atoms = {}
+        for atom in self.graph:
+            self.atoms[atom.nr] = atom
+
+    def refresh_structure(self, find_cycles=False):
         new_graph = {}
-
-
+        self.set_atoms()
 
         for atom_1, atoms in self.graph.items():
             new_graph[atom_1] = []
             for atom_2 in atoms:
-                for atom_3 in self.graph:
-                    if atom_2 == atom_3:
-                        new_graph[atom_1].append(atom_3)
-                        break
-
-        print(new_graph)
-
+                new_graph[atom_1].append(self.atoms[atom_2.nr])
 
         for bond_nr, bond in self.bonds.items():
-            for atom in self.graph:
-                if bond.atom_1 == atom:
-                    bond.atom_1 = atom
-                    if not bond in atom.bonds:
-                        atom.bonds.append(bond)
-                if bond.atom_2 == atom:
-                    bond.atom_2 = atom
-                    if not bond in atom.bonds:
-                        atom.bonds.append(bond)
+            bond.atom_1 = self.atoms[bond.atom_1.nr]
+            bond.atom_2 = self.atoms[bond.atom_2.nr]
+            if bond not in bond.atom_1.bonds:
+                bond.atom_1.bonds.append(bond)
+            if bond not in bond.atom_2.bonds:
+                bond.atom_2.bonds.append(bond)
 
         self.graph = new_graph
 
@@ -91,7 +87,8 @@ class Structure:
         self.set_atom_neighbours()
         self.set_connectivities()
 
-        self.find_cycles()
+        if find_cycles:
+            self.find_cycles()
 
     def get_next_in_ring(self, ring, current_atom, previous_atom):
         neighbours = self.graph[current_atom]
@@ -551,9 +548,7 @@ class Structure:
         self.set_bonds_to_aromatic(aromatic_systems)
         self.set_bonds_to_aromatic(aromatic_cycles)
         self.set_connectivities()
-
-    def define_cycles(self):
-        pass
+        self.set_atoms()
 
     def make_lone_pairs(self):
         for atom in self.graph:
@@ -781,9 +776,6 @@ class Structure:
                 matches = find_substructures(self, substructure)
                 # matches = self.find_substructure_in_structure(substructure)
 
-        for match in matches:
-            print(match.atoms)
-
         if check_chiral_centres:
             final_matches = []
 
@@ -980,8 +972,6 @@ class Structure:
                 seeds.append(atom)
 
         for seed in seeds:
-
-            print(seed, starting_atom)
 
             self.reset_visited()
 
@@ -1261,12 +1251,6 @@ class Structure:
         bond.electrons.append(electron_1)
         bond.electrons.append(electron_2)
 
-        print("Making bond..")
-        print(atom_1)
-        atom_1.valence_shell.print_shell()
-        print(atom_2)
-        atom_2.valence_shell.print_shell()
-
     def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:
             self.graph[atom_1].append(atom_2)
@@ -1524,11 +1508,9 @@ class Structure:
         counter = 0
         for paths in paths_collection:
             if paths:
-                print(paths)
                 counter += 1
                 new_graph = working_graph.put_paths_in_graph(paths)
                 new_graphs.append(new_graph)
-        print("Counter", counter)
 
         # add back connectors
 
@@ -1737,8 +1719,6 @@ class Structure:
         for atom in self.graph:
             self.bond_nr_dict[atom] = len(atom.bonds)
 
-        pprint(self.bond_nr_dict)
-
     def find_a_path(self, start_atom):
         """Return a list of linked atoms from a structure
 
@@ -1794,8 +1774,6 @@ class Structure:
             except KeyError:
                 break
 
-        print("Path", path)
-
         return path
 
     def find_start_nodes(self, paths):
@@ -1834,7 +1812,6 @@ class Structure:
         for node in self.graph:
             for next_node in self.graph[node]:
                 if next_node not in self.graph:
-                    print("Removing a connector..")
                     self.graph[node].remove(next_node)
 
     def find_new_start_node(self):

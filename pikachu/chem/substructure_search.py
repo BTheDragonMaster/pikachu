@@ -116,7 +116,6 @@ class SubstructureMatch:
         new_parent_candidate = None
         new_child_candidate = None
 
-
         for i in range(len(self.placed_bonds_and_atoms) - 1, -1, -1):
 
             current_child_bond, current_child_atom = self.placed_bonds_and_atoms[i]
@@ -173,17 +172,28 @@ class SubstructureMatch:
         self.placed_bonds_and_atoms.append((self.current_bond_child, self.next_atom_child, ))
 
     def remove_match(self, child_atom, child_bond):
+
         parent_atom_to_remove = self.atoms[child_atom]
 
-        self.atoms[child_atom] = None
-        del self.atoms_reversed[parent_atom_to_remove]
-        self.bonds[child_bond] = None
+        remove_atom = True
+        for bond in self.bonds:
+            if bond and bond != child_bond and self.bonds[bond] and child_atom in bond.neighbours:
+                remove_atom = False
+                break
+
+        if remove_atom:
+            self.atoms[child_atom] = None
+            del self.atoms_reversed[parent_atom_to_remove]
+
         self.atom_to_bond_count[child_atom] += 1
 
         if child_bond:
+            self.bonds[child_bond] = None
             previous_child_atom = child_bond.get_connected_atom(child_atom)
             self.atom_to_bond_count[previous_child_atom] += 1
             self.bonds_to_place.add(child_bond)
+        else:
+            pass
 
         self.atoms_to_place.add(child_atom)
 

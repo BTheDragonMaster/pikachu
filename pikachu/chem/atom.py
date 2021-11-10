@@ -263,6 +263,7 @@ class Atom:
             print("Warning! Rogue electron.")
             print(self)
             print(bond_nr)
+            print(self.bonds)
             print(bonds_to_make)
             print(bonds_accounted_for)
             print(electron_nr)
