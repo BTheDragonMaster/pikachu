@@ -57,7 +57,7 @@ def draw_structure(structure):
 
     """
     structure = structure.kekulise()
-    Drawer(structure)
+    drawer = Drawer(structure)
     drawer.show_molecule()
 
 
@@ -194,6 +194,7 @@ def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBE
     elif visualisation == 'png':
         assert out_file
         drawer.save_png(out_file)
+
 
 def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY,
                             check_chiral_centres=True,
