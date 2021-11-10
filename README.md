@@ -5,7 +5,7 @@ Python-based Informatics Kit for the Analysis of Chemical Units
 Step 1: Make a conda environment:
 
 ```
-conda create -n pikachu
+conda create -n pikachu python=3.9
 conda activate pikachu
 ```
 
