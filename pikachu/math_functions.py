@@ -320,7 +320,91 @@ class Line:
         squared_length = self.point_1.get_squared_distance(self.point_2)
         return math.sqrt(squared_length)
 
-    def double_line_towards_center(self, center, distance, line_ratio, ax=None):
+    def get_parallel_lines(self, distance):
+        angle = self.get_angle()
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            direction_combinations = ((1, 1), (-1, -1))
+
+        else:
+            direction_combinations = ((1, -1), (-1, 1))
+
+        right_angle = self.get_right_angle()
+
+        x_translation = abs(math.cos(right_angle) * distance)
+        y_translation = abs(math.sin(right_angle) * distance)
+
+        line_1_directions = direction_combinations[0]
+        line_2_directions = direction_combinations[1]
+
+        x_translation_line_1 = line_1_directions[0] * x_translation
+        y_translation_line_1 = line_1_directions[1] * y_translation
+
+        x_translation_line_2 = line_2_directions[0] * x_translation
+        y_translation_line_2 = line_2_directions[1] * y_translation
+
+        new_x1_line_1 = self.point_1.x + x_translation_line_1
+        new_x2_line_1 = self.point_2.x + x_translation_line_1
+        new_y1_line_1 = self.point_1.y + y_translation_line_1
+        new_y2_line_1 = self.point_2.y + y_translation_line_1
+
+        new_x1_line_2 = self.point_1.x + x_translation_line_2
+        new_x2_line_2 = self.point_2.x + x_translation_line_2
+        new_y1_line_2 = self.point_1.y + y_translation_line_2
+        new_y2_line_2 = self.point_2.y + y_translation_line_2
+
+        new_point_1_line_1 = Vector(new_x1_line_1, new_y1_line_1)
+        new_point_2_line_1 = Vector(new_x2_line_1, new_y2_line_1)
+
+        new_point_1_line_2 = Vector(new_x1_line_2, new_y1_line_2)
+        new_point_2_line_2 = Vector(new_x2_line_2, new_y2_line_2)
+
+        line_1 = Line(new_point_1_line_1, new_point_2_line_1, self.atom_1, self.atom_2)
+        line_2 = Line(new_point_1_line_2, new_point_2_line_2, self.atom_1, self.atom_2)
+
+        return line_1, line_2
+
+    def get_parallel_line(self, center, distance):
+        angle = self.get_angle()
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            direction_combinations = ((1, 1), (-1, -1))
+
+        else:
+            direction_combinations = ((1, -1), (-1, 1))
+
+        right_angle = self.get_right_angle()
+
+        x_translation = abs(math.cos(right_angle) * distance)
+        y_translation = abs(math.sin(right_angle) * distance)
+
+        midpoint = self.get_midpoint()
+        translated_midpoint_1 = Vector(direction_combinations[0][0] * x_translation + midpoint.x,
+                                       direction_combinations[0][1] * y_translation + midpoint.y)
+
+        translated_midpoint_2 = Vector(direction_combinations[1][0] * x_translation + midpoint.x,
+                                       direction_combinations[1][1] * y_translation + midpoint.y)
+
+        directions = direction_combinations[0]
+
+        if center.get_squared_distance(translated_midpoint_1) > center.get_squared_distance(translated_midpoint_2):
+            directions = direction_combinations[1]
+
+        x_translation = directions[0] * x_translation
+        y_translation = directions[1] * y_translation
+
+        new_x1 = self.point_1.x + x_translation
+        new_x2 = self.point_2.x + x_translation
+        new_y1 = self.point_1.y + y_translation
+        new_y2 = self.point_2.y + y_translation
+
+        new_point_1 = Vector(new_x1, new_y1)
+        new_point_2 = Vector(new_x2, new_y2)
+
+        line = Line(new_point_1, new_point_2, self.atom_1, self.atom_2)
+
+        #return line.get_truncated_line(line_ratio)
+        return line
+
+    def double_line_towards_center(self, center, distance, line_ratio):
 
         angle = self.get_angle()
         if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:

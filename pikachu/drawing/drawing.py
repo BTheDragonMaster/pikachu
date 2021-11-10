@@ -643,7 +643,7 @@ class Drawer:
                             common_rings.sort(key=lambda x: len(x.members))
                             common_ring = common_rings[0]
                             ring_centre = common_ring.center
-                            second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length, ax)
+                            second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length)
                             second_line_midpoint = second_line.get_midpoint()
                             self.plot_halflines_double(second_line, ax, second_line_midpoint)
 
@@ -652,7 +652,7 @@ class Drawer:
                             if bond_neighbours:
                                 vectors = [atom.draw.position for atom in bond_neighbours]
                                 gravitational_point = Vector.get_average(vectors)
-                                second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length, ax)
+                                second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length)
                                 second_line_midpoint = second_line.get_midpoint()
                                 self.plot_halflines_double(second_line, ax, second_line_midpoint)
                             else:
@@ -692,8 +692,8 @@ class Drawer:
                                 bond_1_line = Line(branched_atom.draw.position, closest_atom_1.draw.position, branched_atom, closest_atom_1)
                                 bond_2_line = Line(branched_atom.draw.position, closest_atom_2.draw.position, branched_atom, closest_atom_1)
 
-                                double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length, ax)
-                                double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length, ax)
+                                double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
+                                double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
 
                                 double_bond_line_1_midpoint = double_bond_line_1.get_midpoint()
                                 double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
@@ -712,7 +712,26 @@ class Drawer:
                                 self.plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint)
 
                             else:
-                                pass
+                                self.plot_halflines(line, ax, midpoint)
+
+                                bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
+                                if bond_neighbours:
+                                    vectors = [atom.draw.position for atom in bond_neighbours]
+                                    gravitational_point = Vector.get_average(vectors)
+                                    second_line = line.get_parallel_line(gravitational_point,
+                                                                         self.options.bond_spacing)
+                                    second_line_midpoint = second_line.get_midpoint()
+                                    self.plot_halflines(second_line, ax, second_line_midpoint)
+                                else:
+                                    print("Shouldn't happen!")
+
+                elif bond.type == 'triple':
+                    self.plot_halflines(line, ax, midpoint)
+                    line_1, line_2 = line.get_parallel_lines(self.options.bond_spacing)
+                    line_1_midpoint = line_1.get_midpoint()
+                    line_2_midpoint = line_2.get_midpoint()
+                    self.plot_halflines(line_1, ax, line_1_midpoint)
+                    self.plot_halflines(line_2, ax, line_2_midpoint)
 
         for atom in self.structure.graph:
             if atom.type != 'C' and atom.draw.positioned:
@@ -868,6 +887,8 @@ class Drawer:
 
     def create_next_bond(self, atom, previous_atom=None, angle=0.0,
                          previous_branch_shortest=False, skip_positioning=False):
+
+        print(atom)
 
         if atom.draw.positioned and not skip_positioning:
             return
@@ -1426,12 +1447,12 @@ class Drawer:
         return len(masked_atoms) - 1
 
     def get_last_atom_with_angle(self, atom):
-        angle = 0
 
         parent_atom = atom.draw.previous_atom
+        angle = parent_atom.draw.angle
 
         while parent_atom and not angle:
-            parent_atom = atom.draw.previous_atom
+            parent_atom = parent_atom.draw.previous_atom
             angle = parent_atom.draw.angle
 
         return parent_atom
