@@ -734,45 +734,132 @@ class Drawer:
                     self.plot_halflines(line_2, ax, line_2_midpoint)
 
         for atom in self.structure.graph:
-            if atom.type != 'C' and atom.draw.positioned:
-                text = atom.type
+            if atom.draw.positioned:
+                if atom.type != 'C':
+                    text = atom.type
+                else:
+                    text = ''
+
                 horizontal_alignment = 'center'
-                if atom.draw.has_hydrogen:
-               # if len(atom.drawn_neighbours) == 1 and atom.draw.has_hydrogen:
+
+                orientation = self.get_hydrogen_text_orientation(atom)
+
+                if not atom.charge and atom.type != 'C':
+
+                    if atom.draw.has_hydrogen:
+                   # if len(atom.drawn_neighbours) == 1 and atom.draw.has_hydrogen:
+                        hydrogen_count = 0
+                        for neighbour in atom.neighbours:
+                            if neighbour.type == 'H' and not neighbour.draw.is_drawn:
+                                hydrogen_count += 1
+
+                        if hydrogen_count:
+
+                            if hydrogen_count > 1:
+                                if orientation == 'H_before_atom':
+                                    text = r'$H_{hydrogens}{atom_type}$'.format(hydrogens=hydrogen_count,
+                                                                                atom_type=atom.type)
+                                    horizontal_alignment = 'right'
+                                    atom.draw.position.x += 3
+                                else:
+                                    text = r'${atom_type}H_{hydrogens}$'.format(hydrogens=hydrogen_count,
+                                                                                atom_type=atom.type)
+                                    horizontal_alignment = 'left'
+                                    atom.draw.position.x -= 3
+                            elif hydrogen_count == 1:
+                                if orientation == 'H_before_atom':
+                                    text = f'H{atom.type}'
+                                    horizontal_alignment = 'right'
+                                    atom.draw.position.x += 3
+                                else:
+                                    text = f'{atom.type}H'
+                                    horizontal_alignment = 'left'
+                                    atom.draw.position.x -= 3
+
+                elif atom.charge:
+                    if atom.charge > 0:
+                        charge_symbol = '+'
+                    else:
+                        charge_symbol = '-'
+
                     hydrogen_count = 0
                     for neighbour in atom.neighbours:
                         if neighbour.type == 'H' and not neighbour.draw.is_drawn:
                             hydrogen_count += 1
 
-                    if hydrogen_count:
+                    if not hydrogen_count:
 
-                        orientation = self.get_hydrogen_text_orientation(atom)
+                        if abs(atom.charge) > 1:
+
+                            text = r'${atom_type}^{charge}{charge_symbol}$'.format(charge=atom.charge,
+                                                                                   atom_type=atom.type,
+                                                                                   charge_symbol=charge_symbol)
+                        elif abs(atom.charge) == 1:
+                            text = r'${atom_type}^{charge_symbol}$'.format(atom_type=atom.type,
+                                                                           charge_symbol=charge_symbol)
+
+                        horizontal_alignment = 'left'
+                        atom.draw.position.x -= 3
+                    else:
+
                         if hydrogen_count > 1:
                             if orientation == 'H_before_atom':
-                                text = r'$H_{hydrogens}${atom_type}'.format(hydrogens=hydrogen_count,
-                                                                            atom_type=atom.type)
+                                if abs(atom.charge) > 1:
+                                    text = r'$H_{hydrogens}{atom_type}^{charge}{charge_symbol}$'.format(hydrogens=hydrogen_count,
+                                                                                                        atom_type=atom.type,
+                                                                                                        charge=atom.charge,
+                                                                                                        charge_symbol=charge_symbol)
+                                elif abs(atom.charge) == 1:
+                                    text = r'$H_{hydrogens}{atom_type}^{charge_symbol}$'.format(hydrogens=hydrogen_count,
+                                                                                                atom_type=atom.type,
+                                                                                                charge_symbol=charge_symbol)
+
                                 horizontal_alignment = 'right'
                                 atom.draw.position.x += 3
+
                             else:
-                                text = r'${atom_type}H_{hydrogens}$'.format(hydrogens=hydrogen_count,
-                                                                            atom_type=atom.type)
+                                if abs(atom.charge) > 1:
+                                    text = r'${atom_type}H_{hydrogens}^{charge}{charge_symbol}$'.format(hydrogens=hydrogen_count,
+                                                                                                        atom_type=atom.type,
+                                                                                                        charge=atom.charge,
+                                                                                                        charge_symbol=charge_symbol)
+                                elif abs(atom.charge) == 1:
+                                    text = r'${atom_type}H_{hydrogens}^{charge_symbol}$'.format(hydrogens=hydrogen_count,
+                                                                                                atom_type=atom.type,
+                                                                                                charge_symbol=charge_symbol)
+
                                 horizontal_alignment = 'left'
                                 atom.draw.position.x -= 3
                         elif hydrogen_count == 1:
                             if orientation == 'H_before_atom':
-                                text = f'H{atom.type}'
+                                if abs(atom.charge) > 1:
+
+                                    text = r'$H{atom_type}^{charge}{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                            charge=atom.charge,
+                                                                                            charge_symbol=charge_symbol)
+                                elif abs(atom.charge) == 1:
+                                    text = r'$H{atom_type}^{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                    charge_symbol=charge_symbol)
                                 horizontal_alignment = 'right'
                                 atom.draw.position.x += 3
                             else:
-                                text = f'{atom.type}H'
+                                if abs(atom.charge) > 1:
+                                    text = r'${atom_type}H^{charge}{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                            charge=atom.charge,
+                                                                                            charge_symbol=charge_symbol)
+
+                                elif abs(atom.charge) == 1:
+                                    text = r'${atom_type}H^{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                    charge_symbol=charge_symbol)
                                 horizontal_alignment = 'left'
                                 atom.draw.position.x -= 3
 
-                plt.text(atom.draw.position.x, atom.draw.position.y,
-                         text,
-                         horizontalalignment=horizontal_alignment,
-                         verticalalignment='center',
-                         color=atom.draw.colour)
+                if text:
+                    plt.text(atom.draw.position.x, atom.draw.position.y,
+                             text,
+                             horizontalalignment=horizontal_alignment,
+                             verticalalignment='center',
+                             color=atom.draw.colour)
 
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
@@ -1130,11 +1217,13 @@ class Drawer:
                         previous_bond = self.structure.bond_lookup[atom][previous_atom]
 
                         # checks if the previous bond was a chiral double bond
+                        # TODO: make sure chiral bonds aren't drawn first!
                         if previous_bond.type == 'double' and previous_bond.chiral:
-                            configuration_cis_atom = previous_bond.chiral_dict[previous_atom.draw.previous_atom][cis_atom]
-                            if configuration_cis_atom == 'cis':
-                                trans_atom.draw.angle = -a
-                                cis_atom.draw.angle = a
+                            if previous_atom.draw.previous_atom:
+                                configuration_cis_atom = previous_bond.chiral_dict[previous_atom.draw.previous_atom][cis_atom]
+                                if configuration_cis_atom == 'cis':
+                                    trans_atom.draw.angle = -a
+                                    cis_atom.draw.angle = a
 
                 self.create_next_bond(trans_atom, atom, previous_angle + trans_atom.draw.angle, previous_branch_shortest)
                 self.create_next_bond(cis_atom, atom, previous_angle + cis_atom.draw.angle, previous_branch_shortest)

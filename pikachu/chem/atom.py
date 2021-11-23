@@ -150,33 +150,53 @@ class Atom:
         self.make_shells()
         self.fill_shells()
 
-        if self.type == 'Fe':
-
-            self.valence_shell.print_shell()
-            for orbital_nr, orbital in self.valence_shell.orbitals.items():
-                print(orbital.electrons)
-
         self.excitable = self.valence_shell.is_excitable()
 
-        if self.type == 'C' and self.charge == 0:
+        # Can't excite carbon if it has more than 4 electrons
+
+        if (self.type == 'C' or self.type == 'B') and self.charge >= 0:
             self.excite()
         else:
+
+            # Assigns a value to all bonds: 2 for double bond, 1 for single, ~1.5 for aromatic
             bond_weights = [BOND_PROPERTIES.bond_type_to_weight[bond.type] for bond in self.bonds]
             aromatic_count = 0
             for bond in self.bonds:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
 
+            # If uneven number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
+            # three outgoing aromatic bonds
+
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
             if self.pyrrole:
                 nr_of_nonH_bonds -= 1
 
-            if nr_of_nonH_bonds > ATOM_PROPERTIES.element_to_valences[self.type][0]:
+            # Does this work for all atoms? Doesn't for carbon. Should this be made general?
+
+            bonding_electrons = self.get_bonding_electrons()
+
+            if nr_of_nonH_bonds > bonding_electrons:
                 if self.excitable:
                     self.excite()
                 else:
                     raise SmilesError('violated_bonding_laws')
+
+        #    if nr_of_nonH_bonds > ATOM_PROPERTIES.element_to_valences[self.type][0] + self.charge:
+         #       if self.excitable:
+          #          print("exciting", self)
+          #          self.excite()
+           #     else:
+            #        raise SmilesError('violated_bonding_laws')
+
+    def get_bonding_electrons(self):
+        counter = 0
+        for orbital_name, orbital in self.valence_shell.orbitals.items():
+            if len(orbital.electrons) == 1:
+                counter += 1
+        return counter
+
 
     def make_shells(self):
         for i in range(self.shell_nr):
@@ -198,9 +218,6 @@ class Atom:
         electrons_assigned = 0
 
         electrons_remaining = ATOM_PROPERTIES.element_to_atomic_nr[self.type] - self.charge
-        if self.type == 'Fe':
-            print('charge', self.charge)
-            print(electrons_remaining)
 
         # Iterate over the orbitals in order of them being filled
 
@@ -234,7 +251,6 @@ class Atom:
         return bonds
 
     def remove_bond(self, bond):
-        print(self.bonds)
         self.bonds.remove(bond)
 
     def calc_electron_pair_nr(self):

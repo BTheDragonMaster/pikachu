@@ -106,11 +106,12 @@ class Structure:
                                           check_chiral_centres=check_chiral_centres,
                                           check_chiral_double_bonds=check_bond_chirality)
 
-        match = matches[0]
-        for parent_atom in match.atoms.values():
-            for atom in self.graph:
-                if atom == parent_atom:
-                    atom.draw.colour = colour
+        if matches:
+            match = matches[0]
+            for parent_atom in match.atoms.values():
+                for atom in self.graph:
+                    if atom == parent_atom:
+                        atom.draw.colour = colour
 
     def colour_substructure_all(self, substructure, colour="hot pink", check_chiral_centres=True, check_bond_chirality=True):
         matches = self.find_substructures(substructure,
@@ -704,6 +705,8 @@ class Structure:
 
                 chirality_matches = check_same_chirality(chiral_centre, parent_atom, match)
                 if not chirality_matches:
+                    print(chiral_centre, parent_atom, match)
+
                     break
             else:
                 chirality_matches = False

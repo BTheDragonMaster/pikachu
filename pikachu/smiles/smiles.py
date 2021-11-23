@@ -157,6 +157,7 @@ class Smiles:
         skip = False
         double_digits = False
         square_brackets = False
+        component = ''
 
         for i, character in enumerate(self.smiles):
             if skip:
@@ -168,18 +169,28 @@ class Smiles:
                     self.components.append(component)
                     component = ''
             elif double_digits:
-                try:
-                    next_character = self.smiles[i + 1]
 
-                    if next_character not in {'0', '1', '2', '3', '4',
-                                              '5', '6', '7', '8', '9'}:
-                        double_digits = False
-                        self.components.append(component + character)
-                        component = ''
-                    else:
-                        component += character
-                except IndexError:
-                    self.components.append(component + character)
+                assert character in {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
+                component += character
+                if len(component) == 2:
+                    self.components.append(component)
+                    double_digits = False
+                    component = ''
+
+
+      #          try:
+         #           next_character = self.smiles[i + 1]
+
+          #          if next_character not in {'0', '1', '2', '3', '4',
+           #                                   '5', '6', '7', '8', '9'}:
+          #              print(len(component))
+            #            double_digits = False
+           #             self.components.append(component + character)
+            #            component = ''
+            #        else:
+            #            component += character
+            #    except IndexError:
+            #        self.components.append(component + character)
             else:
 
                 if character in self.two_atom_dict:
@@ -422,7 +433,7 @@ class Smiles:
                                 elif bond_chiral_symbol == '\\':
                                     bond_chiral_symbol = '/'
 
-                                structure.add_bond(atom_1, atom_2, bond_type, bond_nr, bond_chiral_symbol)
+                                structure.add_bond(atom_1, atom_2, 'single', bond_nr, bond_chiral_symbol)
                                 bond_chiral_symbol = None
                             else:
                                 structure.add_bond(atom_1, atom_2, old_bond_type, bond_nr)
@@ -431,6 +442,7 @@ class Smiles:
 
                     if atom_1 in chiral_dict:
                         self.replace_cycle_placeholder(chiral_dict, atom_1, atom_2, cycle_nr)
+
                     if atom_2 in chiral_dict:
                         chiral_dict[atom_2].append(atom_1)
 

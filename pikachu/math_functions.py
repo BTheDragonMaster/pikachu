@@ -151,12 +151,10 @@ class HalfLine:
             line = SimpleLine(point_1, point_2)
             lines.append(line)
 
-        if self.atom.type == 'C':
+        if self.atom.type == 'C' and not self.atom.charge:
             return lines[:3]
         else:
             return [lines[2]]
-
-
 
     def get_truncated_line(self, ratio):
 
@@ -175,19 +173,19 @@ class HalfLine:
         new_point_1_y = self.point_1.y
 
         if self.point_1.x > self.point_2.x:
-            if self.atom.type != 'C':
+            if self.atom.type != 'C' or self.atom.charge:
                 new_point_1_x = self.point_1.x - truncation_x
 
         else:
-            if self.atom.type != 'C':
+            if self.atom.type != 'C' or self.atom.charge:
                 new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            if self.atom.type != 'C':
+            if self.atom.type != 'C' or self.atom.charge:
                 new_point_1_y = self.point_1.y - truncation_y
 
         else:
-            if self.atom.type != 'C':
+            if self.atom.type != 'C' or self.atom.charge:
                 new_point_1_y = self.point_1.y + truncation_y
 
         truncated_line = HalfLine(Vector(new_point_1_x, new_point_1_y), self.point_2, self.atom, self.angle)
@@ -497,27 +495,27 @@ class Line:
         new_point_2_y = self.point_2.y
 
         if self.point_1.x > self.point_2.x:
-            if self.atom_1.type != 'C':
+            if self.atom_1.type != 'C' or self.atom_1.charge:
                 new_point_1_x = self.point_1.x - truncation_x
-            if self.atom_2.type != 'C':
+            if self.atom_2.type != 'C' or self.atom_2.charge:
                 new_point_2_x = self.point_2.x + truncation_x
 
         else:
-            if self.atom_2.type != 'C':
+            if self.atom_2.type != 'C' or self.atom_2.charge:
                 new_point_2_x = self.point_2.x - truncation_x
-            if self.atom_1.type != 'C':
+            if self.atom_1.type != 'C' or self.atom_1.charge:
                 new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            if self.atom_1.type != 'C':
+            if self.atom_1.type != 'C' or self.atom_1.charge:
                 new_point_1_y = self.point_1.y - truncation_y
-            if self.atom_2.type != 'C':
+            if self.atom_2.type != 'C' or self.atom_2.charge:
                 new_point_2_y = self.point_2.y + truncation_y
 
         else:
-            if self.atom_2.type != 'C':
+            if self.atom_2.type != 'C' or self.atom_2.charge:
                 new_point_2_y = self.point_2.y - truncation_y
-            if self.atom_1.type != 'C':
+            if self.atom_1.type != 'C' or self.atom_1.charge:
                 new_point_1_y = self.point_1.y + truncation_y
 
         truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y), self.atom_1, self.atom_2)

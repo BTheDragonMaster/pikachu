@@ -30,6 +30,7 @@ class SubstructureMatch:
         self.bonds_to_place = set()
 
         self.placed_bonds_and_atoms = [(None, self.current_atom_child)]
+        self.attempt_path = []
 
         self.atom_to_bond_count = {}
         self.initialise_bond_counts()
@@ -40,6 +41,8 @@ class SubstructureMatch:
         self.parent_bond_to_visited = {}
         self.parent_bond_to_matching_attempts = {}
         self.parent_atom_to_bonds = {}
+
+        self.failed_attempt_paths = set()
 
         self.initialise_bonds_to_visited()
 
@@ -52,6 +55,8 @@ class SubstructureMatch:
                 self.atom_to_bond_count[atom] = len(atom.get_non_hydrogen_neighbours())
 
     def find_next_matching_atoms(self):
+        # Get parent bonds that could potentially still match
+
         candidate_parent_bonds = self.get_next_bonds_parent()
         if self.current_atom_parent not in self.parent_atom_to_bonds:
             self.parent_atom_to_bonds[self.current_atom_parent] = []
@@ -59,8 +64,10 @@ class SubstructureMatch:
             if bond.bond_summary == self.current_bond_child.bond_summary:
                 next_child_atom_candidate = self.current_bond_child.get_connected_atom(self.current_atom_child)
                 next_parent_atom_candidate = bond.get_connected_atom(self.current_atom_parent)
+                # Make sure the atom matching is possible: either the match must already exist, or if it doesn't,
+                # both parent atom and child atom must be free to match to one another.
                 if self.atoms[next_child_atom_candidate] == next_parent_atom_candidate \
-                        or self.atoms[next_child_atom_candidate] == None:
+                        or (self.atoms[next_child_atom_candidate] == None and next_parent_atom_candidate not in self.atoms.values()):
 
                     if next_parent_atom_candidate.potential_same_connectivity(next_child_atom_candidate.connectivity):
                         self.current_bond_parent = bond
@@ -104,13 +111,25 @@ class SubstructureMatch:
     def get_next_bonds_parent(self):
         bonds = []
         for parent_bond in self.current_atom_parent.bonds:
+            # Ignore bonds that are attached to a hydrogen
+            # Only consider bonds that haven't been matched to another bond already
             if parent_bond not in self.bonds.values() and 'H' not in [atom.type for atom in parent_bond.neighbours]:
                 if not self.parent_bond_to_visited[parent_bond]:
                     bonds.append(parent_bond)
-                elif self.current_bond_child not in self.parent_bond_to_matching_attempts[parent_bond]:
-                    bonds.append(parent_bond)
+                # makes sure a matching attempt wasn't made before between parent bond and child bond.
+                # Problem with this: what if the bond was correct, but the route there wasn't?
+                else:
+                    attempt_path = tuple(self.attempt_path + [parent_bond])
+                    if attempt_path not in self.failed_attempt_paths:
+                        bonds.append(parent_bond)
+
+               # elif self.current_bond_child not in self.parent_bond_to_matching_attempts[parent_bond]:
+                #    bonds.append(parent_bond)
 
         return bonds
+
+    # STILL NOT GOOD ENOUGH! ONLY LOOK AT THE LAST ATTEMPT!
+    # STORE ATTEMPT PATHS?
 
     def traceback(self):
         new_parent_candidate = None
@@ -138,12 +157,24 @@ class SubstructureMatch:
 
                 del self.placed_bonds_and_atoms[i]
 
+                try:
+                    del self.attempt_path[i - 1]
+                except IndexError:
+                    pass
+
+                if self.attempt_path:
+                    self.failed_attempt_paths.add(tuple(self.attempt_path))
+
+
                 self.remove_match(current_child_atom, current_child_bond)
 
         return new_child_candidate, new_parent_candidate
 
     def get_next_bonds_child(self):
         candidate_child_bonds = []
+
+        # Only consider bonds that still have to be placed
+
         for bond in self.current_atom_child.bonds:
             if bond in self.bonds_to_place:
                 candidate_child_bonds.append(bond)
@@ -170,16 +201,25 @@ class SubstructureMatch:
         self.current_atom_child = self.next_atom_child
         self.current_atom_parent = self.next_atom_parent
         self.placed_bonds_and_atoms.append((self.current_bond_child, self.next_atom_child, ))
+        self.attempt_path.append(self.current_bond_parent)
 
     def remove_match(self, child_atom, child_bond):
 
         parent_atom_to_remove = self.atoms[child_atom]
 
         remove_atom = True
+
+        # Make sure that atom is only removed from a match if all bonds with that atom are removed
+
         for bond in self.bonds:
-            if bond and bond != child_bond and self.bonds[bond] and child_atom in bond.neighbours:
-                remove_atom = False
-                break
+            # Only consider a bond if it has matched to a parent bond
+            if bond and self.bonds[bond]:
+                # Only consider bonds neighbouring the child atom
+                if child_atom in bond.neighbours:
+                    # Only consider bonds different than the one that is currently being removed
+                    if bond != child_bond:
+                        remove_atom = False
+                        break
 
         if remove_atom:
             self.atoms[child_atom] = None
@@ -294,6 +334,8 @@ def check_same_chirality(atom_1, atom_2, match):
             equivalent_atom_list.append(match[atom])
 
     permutation = equivalent_atom_list[:]
+    print(equivalent_atom_list)
+    print(atom_2.neighbours)
 
     if len(equivalent_atom_list) != 4:
         lone_pairs = atom_2.lone_pairs
@@ -308,15 +350,16 @@ def check_same_chirality(atom_1, atom_2, match):
     chiral_permutations = get_chiral_permutations(permutation)
 
     if atom_1.chiral == atom_2.chiral:
-        if tuple(permutation) in chiral_permutations:
+        if tuple(atom_2.neighbours) in chiral_permutations:
             return True
         else:
             return False
     else:
-        if tuple(permutation) in chiral_permutations:
+        if tuple(atom_2.neighbours) in chiral_permutations:
             return False
         else:
             return True
+
 
 def find_substructures(structure, child):
     atom_connectivities_child = child.get_connectivities()
@@ -342,17 +385,21 @@ def find_substructures(structure, child):
 
         match = SubstructureMatch(child, structure, starting_atom, seed)
 
-        # keeps track of bond traversal
+        # keeps track of bond traversal: if there are bonds left to place, continue trying to match.
+        # If the match becomes inactive because no exact matches are found, abort
 
         while match.bonds_to_place and match.active:
 
             match.current_bond_parent = None
             match.next_atom_child = None
             match.next_atom_parent = None
-
             candidate_child_bonds = match.get_next_bonds_child()
 
+            # Are there still outgoing bonds that haven't been traversed from the current child atom?
+
             if candidate_child_bonds:
+
+                # Choose the first one
 
                 match.current_bond_child = candidate_child_bonds[0]
                 match.find_next_matching_atoms()
@@ -361,6 +408,8 @@ def find_substructures(structure, child):
                     match.add_match()
 
                 else:
+                    attempt_path = tuple(match.attempt_path)
+                    match.failed_attempt_paths.add(attempt_path)
 
                     new_child_candidate, new_parent_candidate = match.traceback()
 
@@ -372,11 +421,38 @@ def find_substructures(structure, child):
 
             else:
                 if match.bonds_to_place:
-                    bond = list(match.bonds_to_place)[0]
 
-                    match.current_atom_child = bond.atom_1
-                    match.current_atom_parent = match.atoms[match.current_atom_child]
+                    # Happens if one or multiple cycles need closing somewhere.
+
+                    if None not in match.atoms.values():
+                        bond = list(match.bonds_to_place)[0]
+
+                        match.current_atom_child = bond.atom_1
+                        match.current_atom_parent = match.atoms[match.current_atom_child]
+
+                    # Happens if we jump to a different bond elsewhere
+
+                    else:
+                        # Make sure we only consider bonds that are connected to an atom that is currently matched
+
+                        for bond in match.bonds_to_place:
+
+                            if match.atoms[bond.atom_1] or match.atoms[bond.atom_2]:
+                                # decide which atom to 'look' from
+
+                                if match.atoms[bond.atom_1]:
+                                    match.current_atom_child = bond.atom_1
+                                else:
+                                    match.current_atom_child = bond.atom_2
+
+                                match.current_atom_parent = match.atoms[match.current_atom_child]
+                                break
+
+                        else:
+                            match.active = False
+
                 else:
+                    # This only happens if a match is complete, upon which we escape from the while loop.
                     pass
 
         if match.active:
