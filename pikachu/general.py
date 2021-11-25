@@ -181,6 +181,10 @@ def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBE
     """
     child_structure = read_smiles(substructure_smiles)
     parent_structure = read_smiles(parent_smiles)
+
+    if not colour.startswith('#'):
+        colour = get_hex(colour)
+        
     parent_structure.colour_substructure_single(child_structure, colour=colour,
                                                 check_chiral_centres=check_chiral_centres,
                                                 check_bond_chirality=check_bond_chirality)
@@ -221,6 +225,10 @@ def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY
     """
     child_structure = read_smiles(substructure_smiles)
     parent_structure = read_smiles(parent_smiles)
+
+    if not colour.startswith('#'):
+        colour = get_hex(colour)
+
     parent_structure.colour_substructure_all(child_structure, colour=colour,
                                              check_chiral_centres=check_chiral_centres,
                                              check_bond_chirality=check_bond_chirality)

@@ -132,7 +132,6 @@ def build_ecfp_bitvector(structures, depth=2, bits=1024):
             substructure_to_count[identifier] += 1
 
     substructures = sorted(list(substructure_to_count.items()), key=lambda x: x[1], reverse=True)
-    print(substructures)
     bitvector_substructures = [x[0] for x in substructures[:bits]]
     bitvector_mapping = {}
     for substructure in bitvector_substructures:
