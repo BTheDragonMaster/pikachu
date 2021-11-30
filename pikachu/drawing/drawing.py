@@ -584,10 +584,13 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-        font_size = 3500 / height
-        self.line_width = 600 / height
+        print("Height:", height)
+        print("Width:", width)
 
-        fig, ax = plt.subplots(figsize=(10, 10))
+       # font_size = 3500 / height
+        self.line_width = 2
+
+        fig, ax = plt.subplots(figsize=((width + 2 * self.options.padding) / 50.0, (height + 2 * self.options.padding) / 50.0), dpi=100)
       #  fig, ax = plt.subplots()
         ax.set_aspect('equal', adjustable='box')
         ax.axis('off')
@@ -596,15 +599,13 @@ class Drawer:
         ax.set_ylim([min_y - self.options.padding, max_y + self.options.padding])
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
-
-
       #  figure, ax = plt.subplots(figsize=(8, 8))
        # ax.patch.set_face_color(self.options.background_color)
       #  ax.set_aspect()('equal', adjustable='box')
       #  plt.gca().set_aspect('equal', adjustable='box')
 
-        params = {'mathtext.default': 'regular',
-                  'font.size': font_size}
+        params = {'mathtext.default': 'regular',}
+       #           'font.size': font_size}
         plt.rcParams.update(params)
 
         ring_centers_x = []
