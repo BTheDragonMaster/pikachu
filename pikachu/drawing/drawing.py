@@ -444,29 +444,29 @@ class Drawer:
 
         if not self.options.draw_hydrogens:
             self.hide_hydrogens()
-        print("Hiding hydrogens..")
+      #  print("Hiding hydrogens..")
         time_1 = time.time()
-        print(time_1 - start_time)
+      #  print(time_1 - start_time)
         self.get_atom_nr_to_atom()
-        print("Making atom dictionary..")
+      #  print("Making atom dictionary..")
         time_2 = time.time()
-        print(time_2 - time_1)
+      #  print(time_2 - time_1)
         self.define_rings()
-        print("Defining rings..")
+     #   print("Defining rings..")
         time_3 = time.time()
-        print(time_3 - time_2)
+      #  print(time_3 - time_2)
         self.process_structure()
-        print("Processing structure..")
+     #   print("Processing structure..")
         time_4 = time.time()
-        print(time_4 - time_3)
+     #   print(time_4 - time_3)
         self.set_chiral_bonds()
-        print("Setting chiral bonds..")
+     #   print("Setting chiral bonds..")
         time_5 = time.time()
-        print(time_5 - time_4)
+      #  print(time_5 - time_4)
         self.draw_structure()
-        print("Drawing structure..")
+      #  print("Drawing structure..")
         time_6 = time.time()
-        print(time_6 - time_5)
+     #   print(time_6 - time_5)
         #self.draw_svg()
       #  self.draw_png()
 
@@ -561,10 +561,6 @@ class Drawer:
 
     def draw_structure(self):
 
-        for atom in self.structure.graph:
-            if atom.draw.colour != 'black':
-                print(atom, atom.draw.colour)
-
         min_x = 100000000
         max_x = -100000000
         min_y = 100000000
@@ -584,8 +580,8 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-        print("Height:", height)
-        print("Width:", width)
+     #   print("Height:", height)
+      #  print("Width:", width)
 
        # font_size = 3500 / height
         self.line_width = 2
@@ -872,12 +868,12 @@ class Drawer:
         a_time = time.time()
         self.position()
         pos_time_1 = time.time()
-        print("Positioning...")
-        print(pos_time_1 - a_time)
+       # print("Positioning...")
+       # print(pos_time_1 - a_time)
         self.structure.refresh_structure()
         pos_time_2 = time.time()
-        print("Refreshing...")
-        print(pos_time_2 - pos_time_1)
+      #  print("Refreshing...")
+      #  print(pos_time_2 - pos_time_1)
         self.restore_ring_information()
 
         self.resolve_primary_overlaps()
@@ -948,8 +944,8 @@ class Drawer:
         self.resolve_secondary_overlaps(sorted_overlap_scores)
 
         pos_time_3 = time.time()
-        print("Overlap resolution...")
-        print(pos_time_3 - pos_time_2)
+      #  print("Overlap resolution...")
+      #  print(pos_time_3 - pos_time_2)
 
     def position(self):
         start_atom = None
@@ -976,7 +972,7 @@ class Drawer:
     def create_next_bond(self, atom, previous_atom=None, angle=0.0,
                          previous_branch_shortest=False, skip_positioning=False):
 
-        print(atom)
+     #   print(atom)
 
         if atom.draw.positioned and not skip_positioning:
             return
@@ -1519,6 +1515,17 @@ class Drawer:
                 if anchored_ring.center:
                     anchored_ring.center.rotate_around_vector(angle, center)
 
+    def rotate_subtree_independent(self, root, root_parent, masked_atoms, angle, center):
+
+        masked_atoms.append(root_parent)
+        masked_atoms = set(masked_atoms)
+
+        for atom in self.traverse_substructure(root, {masked_atoms}):
+            atom.draw.position.rotate_around_vector(angle, center)
+            for anchored_ring in atom.draw.anchored_rings:
+                if anchored_ring.center:
+                    anchored_ring.center.rotate_around_vector(angle, center)
+
     def traverse_substructure(self, atom, visited):
         yield atom
         visited.add(atom)
@@ -1753,9 +1760,9 @@ class Drawer:
         exposed = []
         sometime = time.time()
         self.structure.refresh_structure()
-        print('refreshing structure')
+      #  print('refreshing structure')
         newtime = time.time()
-        print(newtime - sometime)
+      #  print(newtime - sometime)
         for atom in self.structure.graph:
             if atom.type != 'H':
                 continue

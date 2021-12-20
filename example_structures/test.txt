@@ -1,0 +1,1 @@
+C[C@@]12[C@H]3C4=C(C[C@@]5([C@@H]1O2)C(=C(C6=C(C=CC(=C6C5=O)O)O)O)C3=O)C(=C(C7=C4O[C@@]8([C@H](CCC(=O)C8=C7O)O)C(=O)OC)O)Cl

@@ -60,6 +60,8 @@ def parse_explicit(component):
             charges.append(i)
         elif character == '@':
             chirals.append(i)
+        elif character == '*':
+            element.append(i)
 
     element = ''.join([informative[x] for x in element])
 
