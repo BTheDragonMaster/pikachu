@@ -48,6 +48,8 @@ def draw_npatlas(npatlas_file, drawing_dir, failed_smiles_dir):
                 print(smiles)
                 failed_smiles.write(f'{smiles}\t{e}\n')
 
+            print(f"Handled smiles number {i}: {smiles}.")
+
     failed_drawings.close()
 
 

@@ -543,7 +543,8 @@ class Drawer:
             out_file += '.svg'
         plt.savefig(out_file)
         plt.clf()
-        plt.close()
+        plt.close(plt.gcf())
+        plt.close('all')
 
     def save_png(self, out_file):
         if out_file.endswith('.png'):
