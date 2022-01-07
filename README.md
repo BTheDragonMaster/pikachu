@@ -9,29 +9,16 @@ conda create -n pikachu python=3.9
 conda activate pikachu
 ```
 
-Step 2: install dependencies:
+Step 2: install pip:
 
 ```
 conda install pip
-pip install matplotlib
 ```
 
-Step 3: clone the PIKAChU repository into a desired folder:
+Step 3: Install PIKAChU:
 
 ```
-git clone https://git.wur.nl/terlo012/pikachu.git
-```
-
-Step 4: Navigate to folder containing setup.py:
-
-```
-cd pikachu
-```
-
-Step 5: Install PIKAChU:
-
-```
-pip install .
+pip install pikachu-chem
 ```
 
 # GETTING STARTED
