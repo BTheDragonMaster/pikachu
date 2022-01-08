@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import math
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
 
@@ -217,6 +217,14 @@ class Line:
 
         return halfline_1, halfline_2
 
+    def get_atom_coords(self, atom):
+        if atom == self.atom_1:
+            return self.point_1
+        elif atom == self.atom_2:
+            return self.point_2
+        else:
+            return None
+
     def get_perpendicular_points(self, distance, point):
         angle = self.get_angle()
         if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
@@ -236,6 +244,35 @@ class Line:
                          dy * direction_combinations[1][1] + point.y)
 
         return point_1, point_2
+
+    def get_perpendicular_lines(self, distance):
+        angle = self.get_angle()
+        if -math.pi < angle < 0.0 or math.pi < angle < 2.0 * math.pi:
+            angle = -angle
+            direction_combinations = ((1, 1), (-1, -1))
+
+        else:
+            direction_combinations = ((1, -1), (-1, 1))
+
+        dx = abs(math.sin(angle) * distance)
+        dy = abs(math.cos(angle) * distance)
+
+        point_1 = Vector(dx * direction_combinations[0][0] + self.point_1.x,
+                         dy * direction_combinations[0][1] + self.point_1.y)
+
+        point_2 = Vector(dx * direction_combinations[1][0] + self.point_1.x,
+                         dy * direction_combinations[1][1] + self.point_1.y)
+
+        point_3 = Vector(dx * direction_combinations[0][0] + self.point_2.x,
+                         dy * direction_combinations[0][1] + self.point_2.y)
+
+        point_4 = Vector(dx * direction_combinations[1][0] + self.point_2.x,
+                         dy * direction_combinations[1][1] + self.point_2.y)
+
+        line_1 = Line(point_1, point_3, self.atom_1, self.atom_2)
+        line_2 = Line(point_2, point_4, self.atom_1, self.atom_2)
+
+        return line_1, line_2
 
     def get_bond_triangle_front(self, width, chiral_centre):
         if self.atom_1 == chiral_centre:
@@ -580,6 +617,24 @@ class Vector:
 
         self.x = x + vector.x
         self.y = y + vector.y
+
+    def get_closest_atom(self, atom_1, atom_2):
+        distance_1 = self.get_squared_distance(atom_1.draw.position)
+        distance_2 = self.get_squared_distance(atom_2.draw.position)
+
+        if distance_1 < distance_2:
+            return atom_1
+        else:
+            return atom_2
+
+    def get_closest_point_index(self, point_1, point_2):
+        distance_1 = self.get_squared_distance(point_1)
+        distance_2 = self.get_squared_distance(point_2)
+
+        if distance_1 < distance_2:
+            return 0
+        else:
+            return 1
 
     def get_squared_length(self):
         return self.x ** 2 + self.y ** 2

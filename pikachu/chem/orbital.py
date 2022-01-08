@@ -57,7 +57,7 @@ class OrbitalSet:
                     break
 
 
-class Orbital():
+class Orbital:
     subtype_dict = {'p': {1: 'x',
                           2: 'y',
                           3: 'z'},

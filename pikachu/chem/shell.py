@@ -56,6 +56,22 @@ class Shell:
                 if self.atom == electron.atom:
                     electron.set_orbital(orbital)
 
+    def count_p_orbitals(self):
+        count = 0
+        for orbital_name, orbital in self.orbitals.items():
+            if orbital.orbital_type == 'p':
+                count += 1
+
+        return count
+
+    def count_d_orbitals(self):
+        count = 0
+        for orbital_name, orbital in self.orbitals.items():
+            if orbital.orbital_type == 'd':
+                count += 1
+
+        return count
+
     def dehybridise(self):
         for orbital_set in self.orbital_sets:
             for i, orbital in enumerate(self.orbital_sets[orbital_set].orbitals):
@@ -76,7 +92,10 @@ class Shell:
                     electron.set_orbital(orbital)
 
     def sp_hybridise(self, p_nr):
-        # print("P nr:", p_nr, self.atom)
+        if p_nr == 1:
+            orbital_type = 'sp'
+        else:
+            orbital_type = f'sp{p_nr}'
         hybridised_p = 0
 
         orbital_nr = 1
@@ -85,12 +104,12 @@ class Shell:
             orbital = self.orbitals[orbital_name]
             if orbital.orbital_type == 's':
                 orbital.orbital_nr = orbital_nr
-                orbital.orbital_type = f'sp{p_nr}'
+                orbital.orbital_type = orbital_type
                 orbital_nr += 1
             elif orbital.orbital_type == 'p':
                 if not orbital.bond or orbital.bonding_orbital == 'sigma':
                     if hybridised_p < p_nr:
-                        orbital.orbital_type = f'sp{p_nr}'
+                        orbital.orbital_type = orbital_type
                         orbital.orbital_nr = orbital_nr
                         hybridised_p += 1
                         orbital_nr += 1
@@ -100,20 +119,25 @@ class Shell:
 
         orbital_nr = 1
 
+        if d_nr == 1:
+            orbital_type = 'sp3d'
+        else:
+            orbital_type = f'sp3d{d_nr}'
+
         for orbital_name in self.orbitals:
             orbital = self.orbitals[orbital_name]
             if orbital.orbital_type == 's':
-                orbital.orbital_type = f'sp3d{d_nr}'
+                orbital.orbital_type = orbital_type
                 orbital.orbital_nr = orbital_nr
                 orbital_nr += 1
             if orbital.orbital_type == 'p':
-                orbital.orbital_type = f'sp3d{d_nr}'
+                orbital.orbital_type = orbital_type
                 orbital.orbital_nr = orbital_nr
                 orbital_nr += 1
             elif orbital.orbital_type == 'd':
                 if not orbital.bond or orbital.bonding_orbital == 'sigma':
                     if hybridised_d < d_nr:
-                        orbital.orbital_type = f'sp3d{d_nr}'
+                        orbital.orbital_type = orbital_type
                         hybridised_d += 1
                         orbital.orbital_nr = orbital_nr
                         orbital_nr += 1

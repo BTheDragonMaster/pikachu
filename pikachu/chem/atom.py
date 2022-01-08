@@ -363,6 +363,38 @@ class Atom:
                     electron.set_orbital(orbital)
                     if orbital.orbital_type == 'p':
                         electron.set_aromatic()
+                        
+    def promote_pi_bonds_to_d_orbitals(self):
+
+        if self.is_promotable() and 'd' in self.hybridisation:
+            
+            donor_orbitals = []
+            receiver_orbitals = []
+            for orbital_name in self.valence_shell.orbitals:
+                orbital = self.valence_shell.orbitals[orbital_name]
+                if 'p' in orbital.orbital_type and orbital.orbital_type != 'p' and orbital.electron_nr == 2:
+                    if orbital.electrons[0].atom != orbital.electrons[1].atom:
+                        donor_orbitals.append(orbital)
+    
+                elif orbital.orbital_type == 'd' and orbital.electron_nr == 1:
+                    receiver_orbitals.append(orbital)
+
+            if donor_orbitals and receiver_orbitals:
+                donor_orbital = donor_orbitals[0]
+                receiver_orbital = receiver_orbitals[0]
+
+                moved_electron = None
+
+                for electron in donor_orbital.electrons:
+                    if electron.atom != self:
+                        moved_electron = electron
+
+                donor_orbital.remove_electron(moved_electron)
+                receiver_orbital.add_electron(moved_electron)
+
+                receiver_orbital.set_bond(donor_orbital.bond, 'pi')
+                donor_orbital.remove_bond()
+
 
     def promote_pi_bond_to_d_orbital(self):
         assert self.is_promotable()

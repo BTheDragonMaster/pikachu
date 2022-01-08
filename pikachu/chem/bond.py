@@ -8,7 +8,6 @@ class Bond:
         atoms = [atom_1, atom_2]
         atoms.sort(key=lambda a: a.nr)
 
-
         self.atom_1 = atoms[0]
         self.atom_2 = atoms[1]
         self.neighbours = atoms
@@ -211,6 +210,7 @@ class Bond:
         """
         Combine the electrons of two p-orbitals to form a pi-bond
         """
+
         assert self.type != 'single'
 
         if self.atom_1.pyrrole or self.atom_2.pyrrole:

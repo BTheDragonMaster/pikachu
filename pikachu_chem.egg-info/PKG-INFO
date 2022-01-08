@@ -1,12 +1,13 @@
 Metadata-Version: 2.1
-Name: pikachu
-Version: 1.0.0
+Name: pikachu-chem
+Version: 1.0.1
 Summary: PIKACHU: Python-based Informatics Kit for Analysing CHemical Units
 Home-page: UNKNOWN
 Author: Barbara Terlouw
 Author-email: barbara.terlouw@wur.nl
 License: UNKNOWN
 Platform: UNKNOWN
+License-File: LICENSE.txt
 
 An easy-to-use cheminformatics kit with few dependencies.
 

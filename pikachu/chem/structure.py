@@ -382,6 +382,9 @@ class Structure:
 
         return steric_atoms
 
+    # TODO:
+    # call find_next_bond_nr in make_bond
+
     def find_next_bond_nr(self):
         """
         Return the next available integer to label a bond
@@ -535,6 +538,7 @@ class Structure:
 
         self.refine_p_bonds()
         self.hybridise_atoms()
+        self.check_d_orbitals()
 
         self.refine_s_bonds()
         self.drop_electrons()
@@ -554,6 +558,10 @@ class Structure:
     def make_lone_pairs(self):
         for atom in self.graph:
             atom.make_lone_pairs()
+
+    def check_d_orbitals(self):
+        for atom in self.graph:
+            atom.promote_pi_bonds_to_d_orbitals()
 
     def remove_bond_between_atoms(self, atom_1, atom_2):
         bond = self.bond_lookup[atom_1][atom_2]
@@ -742,9 +750,6 @@ class Structure:
                 break
 
         return can_be_substructure
-
-
-
 
     def get_unvisited_bonds(self, bond_to_visited, bond_to_matching_attempts, child_bond, bond_match, parent_atom):
         bonds = []
@@ -1284,6 +1289,9 @@ class Structure:
 
     def print_graph(self):
         pprint(self.graph)
+
+    def print_atoms(self):
+        pprint(self.atoms)
 
     def print_bonds(self):
         pprint(self.bonds)

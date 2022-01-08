@@ -3,7 +3,7 @@ import time
 import copy
 import math
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
 from pikachu.drawing.sssr import SSSR
@@ -687,11 +687,15 @@ class Drawer:
 
                                 line = Line(terminal_atom.draw.position, branched_atom.draw.position, terminal_atom, branched_atom)
 
-                                bond_1_line = Line(branched_atom.draw.position, closest_atom_1.draw.position, branched_atom, closest_atom_1)
-                                bond_2_line = Line(branched_atom.draw.position, closest_atom_2.draw.position, branched_atom, closest_atom_1)
+                                double_bond_line_1, double_bond_line_2 = line.get_perpendicular_lines(self.options.bond_spacing / 2.0)
+                                terminal_atom_pos_1 = double_bond_line_1.get_atom_coords(terminal_atom)
+                                terminal_atom_pos_2 = double_bond_line_2.get_atom_coords(terminal_atom)
 
-                                double_bond_line_1 = line.double_line_towards_center(closest_atom_1.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
-                                double_bond_line_2 = line.double_line_towards_center(closest_atom_2.draw.position, self.options.bond_spacing / 2.0, self.options.double_bond_length)
+                                closest_atom_to_pos_1 = terminal_atom_pos_1.get_closest_atom(closest_atom_1, closest_atom_2)
+                                closest_atom_to_pos_2 = terminal_atom_pos_2.get_closest_atom(closest_atom_1, closest_atom_2)
+
+                                bond_1_line = Line(branched_atom.draw.position, closest_atom_to_pos_1.draw.position, branched_atom, closest_atom_to_pos_1)
+                                bond_2_line = Line(branched_atom.draw.position, closest_atom_to_pos_2.draw.position, branched_atom, closest_atom_to_pos_2)
 
                                 double_bond_line_1_midpoint = double_bond_line_1.get_midpoint()
                                 double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
@@ -700,11 +704,18 @@ class Drawer:
                                 intersection_2 = double_bond_line_2.find_intersection(bond_2_line)
 
                                 if terminal_atom.draw.position.x > branched_atom.draw.position.x:
-                                    double_bond_line_1.point_1 = intersection_1
-                                    double_bond_line_2.point_1 = intersection_2
+                                    # check for parallel lines
+                                    if intersection_1 and intersection_1.x < 100000 and intersection_1.y < 100000:
+                                        double_bond_line_1.point_1 = intersection_1
+                                    if intersection_2 and intersection_2.x < 100000 and intersection_2.y < 100000:
+                                        double_bond_line_2.point_1 = intersection_2
+
                                 else:
-                                    double_bond_line_1.point_2 = intersection_1
-                                    double_bond_line_2.point_2 = intersection_2
+                                    # check for parallel lines
+                                    if intersection_1 and intersection_1.x < 100000 and intersection_1.y < 100000:
+                                        double_bond_line_1.point_2 = intersection_1
+                                    if intersection_2 and intersection_2.x < 100000 and intersection_2.y < 100000:
+                                        double_bond_line_2.point_2 = intersection_2
 
                                 self.plot_halflines(double_bond_line_1, ax, double_bond_line_1_midpoint)
                                 self.plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint)
@@ -1093,8 +1104,10 @@ class Drawer:
 
                     current_bond.draw.center = True
 
-                    if current_bond.type == 'triple' or (previous_atom and previous_bond.type == 'triple'):
+                    if current_bond.type == 'double' or current_bond.type == 'triple' or (previous_atom and previous_bond.type == 'triple'):
                         next_atom.draw.angle = 0.0
+
+                    #TODO: if bond type is double, make sure that the carbon in the middle is drawn
 
                     next_atom.draw.draw_explicit = True
 
