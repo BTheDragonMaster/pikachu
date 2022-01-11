@@ -165,7 +165,7 @@ class Atom:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
 
-            # If uneven number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
+            # If odd number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
             # three outgoing aromatic bonds
 
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
@@ -196,7 +196,6 @@ class Atom:
             if len(orbital.electrons) == 1:
                 counter += 1
         return counter
-
 
     def make_shells(self):
         for i in range(self.shell_nr):
