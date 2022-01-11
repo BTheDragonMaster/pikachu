@@ -801,6 +801,9 @@ class Structure:
 
         return matches
 
+    def get_atom(self, atom):
+        return self.atoms[atom.nr]
+
     def is_substructure_atom_composition(self, child):
 
         atom_counts_self = self.get_atom_counts()
@@ -1205,22 +1208,8 @@ class Structure:
         self.bond_lookup[atom_2][atom_1] = bond
 
     def make_bond(self, atom_1, atom_2, bond_nr):
-        if atom_1 in self.graph:
-            self.graph[atom_1].append(atom_2)
-        else:
-            self.graph[atom_1] = [atom_2]
-
-        if atom_2 in self.graph:
-            self.graph[atom_2].append(atom_1)
-        else:
-            self.graph[atom_2] = [atom_1]
 
         bond = Bond(atom_1, atom_2, 'single', bond_nr)
-
-        atom_1.add_bond(bond)
-        atom_2.add_bond(bond)
-
-        self.bonds[bond_nr] = bond
 
         electron_1 = None
         electron_2 = None
@@ -1248,10 +1237,25 @@ class Structure:
         orbital_1.set_bond(bond, 'sigma')
         orbital_2.set_bond(bond, 'sigma')
 
+        atom_1.add_bond(bond)
+        atom_2.add_bond(bond)
+
+        self.bonds[bond_nr] = bond
+
         if not atom_1 in self.bond_lookup:
             self.bond_lookup[atom_1] = {}
         if not atom_2 in self.bond_lookup:
             self.bond_lookup[atom_2] = {}
+
+        if atom_1 in self.graph:
+            self.graph[atom_1].append(atom_2)
+        else:
+            self.graph[atom_1] = [atom_2]
+
+        if atom_2 in self.graph:
+            self.graph[atom_2].append(atom_1)
+        else:
+            self.graph[atom_2] = [atom_1]
 
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond

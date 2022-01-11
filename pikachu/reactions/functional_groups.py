@@ -1,5 +1,13 @@
 from pikachu.smiles.smiles import Smiles
+from pikachu.chem.structure import Structure
+from pikachu.chem.bond import Bond
 
+
+class IndexTracker:
+
+    def __init__(self):
+        self.atoms = {}
+        self.bonds = {}
 
 def find_bonds(bond_neighbourhood, structure):
     """
@@ -102,3 +110,117 @@ class GroupDefiner:
 
         if not self.atom_1:
             raise Exception("Can't find atoms adjacent to bond.")
+
+
+def combine_structures(structures):
+    """
+    Returns a single combined Structure object from multiple input Structures
+    Structures: tuple of to be combined Structure objects
+    """
+    index_tracker = IndexTracker()
+
+    new_graph = {}
+    new_bonds = {}
+    struct1, struct2 = structures
+    bonds1 = struct1.bonds
+    bonds2 = struct2.bonds
+    new_bonds_1 = {}
+
+    #make sure you dont add atoms with the same atom.nr
+    atom_nrs = []
+    for atom in struct2.graph:
+        atom_nrs.append(atom.nr)
+    index = 0
+    for atom in struct1.graph:
+        while index in atom_nrs:
+            if index not in atom_nrs:
+                atom.nr = index
+                break
+            index += 1
+        else:
+            atom.nr = index
+            for other_atom in struct1.graph:
+                if atom in other_atom.neighbours:
+                    atom.nr = index
+            atom_nrs.append(index)
+            index += 1
+
+    #refresh bond_lookup and structure
+    struct1.make_bond_lookup()
+    struct1.refresh_structure()
+
+    # make sure you add no double bond nrs
+    start = 0
+    bonds = []
+    bond_nrs = []
+    for atom in struct2.graph:
+        for bond in atom.bonds:
+            if bond.nr not in bond_nrs:
+                bond_nrs.append(bond.nr)
+    new_nrs = []
+
+    #Bond objects are identified only by Bond.nr, reset each Bond.nr first to
+    #nr that is not used in both to-be combined structures, to make sure
+    #no bonds are skipped in the loop
+    for atom in struct1.graph:
+        for bond in atom.bonds[:]:
+            bond.nr = 9999999
+    for atom in struct1.graph:
+        for bond in atom.bonds[:]:
+            if bond not in bonds:
+                while start in bond_nrs:
+                    if start not in bond_nrs and start not in new_nrs:
+                        bond.nr = start
+                        bonds.append(bond)
+                        bond_nrs.append(start)
+                        new_nrs.append(start)
+                        break
+                    start += 1
+                else:
+                    if start not in new_nrs:
+                        bond.nr = start
+                        bonds.append(bond)
+                        bond_nrs.append(start)
+                        new_nrs.append(start)
+                        start += 1
+
+    # Refresh second structure
+    struct2.get_connectivities()
+    struct2.set_connectivities()
+    struct2.set_atom_neighbours()
+    struct2.make_bond_lookup()
+
+    #added 29-11-21: bond nrs are not refreshed as keys in structure.bonds dict
+    struct1.bonds = {}
+    for bond_nr, bond in bonds1.items():
+        updated_bond_nr = bond.nr
+        struct1.bonds[updated_bond_nr] = bond
+    bonds1 = struct1.bonds
+
+    #In order to prevent aliasing issues, make all bonds new Bond instances for
+    #the bonds in structure 1:
+    for nr, bond in bonds1.items():
+        atom1 = bond.atom_1
+        atom2 = bond.atom_2
+        bond_type = bond.type
+        bond_summary = bond.bond_summary
+        bond_electrons = bond.electrons
+        bond_nr = bond.nr
+        new_bond = Bond(atom1, atom2, bond_type, bond_nr)
+        new_bond.bond_summary = bond_summary
+        new_bonds_1[bond_nr] = new_bond
+        new_bond.electrons = bond_electrons
+
+    #Make new structure object of the combined structure
+    bonds2.update(new_bonds_1)
+    for structure in structures:
+        new_graph.update(structure.graph)
+        new_bonds.update(structure.bonds)
+    new_structure = Structure(new_graph, bonds2)
+    new_structure.make_bond_lookup()
+    new_structure.set_connectivities()
+    new_structure.refresh_structure()
+    new_structure.find_cycles()
+    for bond_nr, bond in new_structure.bonds.items():
+        bond.set_bond_summary()
+    return new_structure
