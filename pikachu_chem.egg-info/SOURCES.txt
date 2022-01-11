@@ -39,6 +39,7 @@ pikachu/inchi/inchi.py
 pikachu/parsers/__init__.py
 pikachu/parsers/np_atlas.py
 pikachu/reactions/__init__.py
+pikachu/reactions/basic_reactions.py
 pikachu/reactions/functional_groups.py
 pikachu/smiles/__init__.py
 pikachu/smiles/graph_to_smiles.py

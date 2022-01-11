@@ -65,8 +65,15 @@ def find_atoms(atom_neighbourhood, structure):
     locations = structure.find_substructures(atom_neighbourhood.structure)
     atoms = []
     for match in locations:
-        atom = match.atoms[atom_neighbourhood.atom_1]
-        atoms.append(atom)
+        if atom_neighbourhood.atom_1.type != 'H':
+            atom = match.atoms[atom_neighbourhood.atom_1]
+            atoms.append(atom)
+        else:
+            neighbour = atom_neighbourhood.atom_1.neighbours[0]
+            if neighbour.type != 'H':
+                neighbouring_atom = match.atoms[neighbour]
+                atom = neighbouring_atom.get_neighbour('H')
+                atoms.append(atom)
 
     return atoms
 

@@ -1,5 +1,5 @@
 from pikachu.general import read_smiles, draw_structure
-from pikachu.reactions.functional_groups import find_bonds, BondDefiner, combine_structures
+from pikachu.reactions.functional_groups import find_bonds, BondDefiner, combine_structures, GroupDefiner, find_atoms
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 
 
@@ -187,7 +187,11 @@ if __name__ == "__main__":
     alanine = "NC(C)C(=O)O"
 
     c_oh_bond = BondDefiner("c_oh_bond", "C(=O)O", 0, 2)
+    # n_h_bond = BondDefiner("n_h_bond", "[H]NCC(=O)", 0, 1)
     n_h_bond = BondDefiner("n_h_bond", "NCC(=O)", 0, 4)
+
+    print(n_h_bond.atom_1)
+    print(n_h_bond.atom_2)
 
     structure_1 = read_smiles(glycine)
     structure_2 = read_smiles(alanine)
