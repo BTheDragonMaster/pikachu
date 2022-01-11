@@ -428,6 +428,10 @@ class Atom:
 
         self.hybridise()
 
+    def reset_hybridisation(self):
+        self.valence_shell.dehybridise()
+        self.hybridise()
+
     def calc_hydrogens(self):
         hydrogens = 0
         if self.type in ['B', 'C', 'N', 'O', 'P', 'S', 'F', 'Cl', 'Br', 'I']:

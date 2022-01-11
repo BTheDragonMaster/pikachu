@@ -514,4 +514,6 @@ class AtomProperties:
                        'Cd': {2},
                        'Hg': {2},
                        'Al': {3}}
+
+
 ATOM_PROPERTIES = AtomProperties()
