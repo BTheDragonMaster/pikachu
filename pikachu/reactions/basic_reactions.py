@@ -190,9 +190,6 @@ if __name__ == "__main__":
     # n_h_bond = BondDefiner("n_h_bond", "[H]NCC(=O)", 0, 1)
     n_h_bond = BondDefiner("n_h_bond", "NCC(=O)", 0, 4)
 
-    print(n_h_bond.atom_1)
-    print(n_h_bond.atom_2)
-
     structure_1 = read_smiles(glycine)
     structure_2 = read_smiles(alanine)
 
