@@ -24,10 +24,29 @@ def find_bonds(bond_neighbourhood, structure):
     locations = structure.find_substructures(bond_neighbourhood.structure)
     bonds = []
     for match in locations:
-        atom_1 = match.atoms[bond_neighbourhood.atom_1]
-        atom_2 = match.atoms[bond_neighbourhood.atom_2]
-        bond = structure.bond_lookup[atom_1][atom_2]
-        bonds.append(bond)
+        atom_1 = None
+        atom_2 = None
+
+        if bond_neighbourhood.atom_1.type != 'H':
+            atom_1 = match.atoms[bond_neighbourhood.atom_1]
+        elif bond_neighbourhood.atom_2.type != 'H':
+            atom_2 = match.atoms[bond_neighbourhood.atom_2]
+            if atom_2.has_neighbour('H'):
+                atom_1 = atom_2.get_neighbour('H')
+            else:
+                continue
+
+        if bond_neighbourhood.atom_2.type != 'H':
+            atom_2 = match.atoms[bond_neighbourhood.atom_2]
+        elif bond_neighbourhood.atom_1.type != 'H':
+            atom_1 = match.atoms[bond_neighbourhood.atom_1]
+            if atom_1.has_neighbour('H'):
+                atom_2 = atom_1.get_neighbour('H')
+            else:
+                continue
+        if atom_1 and atom_2:
+            bond = structure.bond_lookup[atom_1][atom_2]
+            bonds.append(bond)
 
     return bonds
 

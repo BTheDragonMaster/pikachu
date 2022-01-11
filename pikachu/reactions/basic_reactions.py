@@ -78,12 +78,86 @@ def hydrolysis(structure, bond):
     return [h_structure, oh_structure]
 
 
+def condensation(structure_1, structure_2, oh_bond, h_bond):
+    o_atom = None
+    o_neighbour = None
+
+    for atom in oh_bond.neighbours:
+        if not o_atom and atom.type == 'O' and atom.has_neighbour('H'):
+            o_atom = atom
+        else:
+            o_neighbour = atom
+
+    if not o_atom:
+        raise Exception(f"The selected bond {oh_bond} does not attach to an -OH leaving group.")
+
+    h_atom = None
+    h_neighbour = None
+
+    for atom in h_bond.neighbours:
+        if not h_atom and atom.type == 'H':
+            h_atom = atom
+        else:
+            h_neighbour = atom
+
+    if not h_atom:
+        raise Exception(f"The selected bond {h_bond} does not attach to an -H leaving group.")
+
+    structure_1.print_graph()
+    structure_2.print_graph()
+
+    structure_1.break_bond(oh_bond)
+    structure_2.break_bond(h_bond)
+
+    structure_1.print_graph()
+    structure_2.print_graph()
+
+    structure = combine_structures([structure_1, structure_2])
+
+    h_atom = structure.get_atom(h_atom)
+    o_atom = structure.get_atom(o_atom)
+    h_neighbour = structure.get_atom(h_neighbour)
+    o_neighbour = structure.get_atom(o_neighbour)
+
+    structure.make_bond(h_atom, o_atom, structure.find_next_bond_nr())
+    structure.make_bond(h_neighbour, o_neighbour, structure.find_next_bond_nr())
+
+    structure.print_graph()
+
+    structures = structure.split_disconnected_structures()
+
+    water = None
+    product = None
+
+    for structure in structures:
+        if h_atom in structure.graph:
+            water = structure
+        elif h_neighbour in structure.graph:
+            product = structure
+
+    return [product, water]
+
+
+
+
 if __name__ == "__main__":
     smiles = "NCC(=O)NCC(=O)O"
     structure = read_smiles(smiles)
     peptide_bond = BondDefiner("peptide bond", "C(=O)N", 0, 2)
     peptide_bonds = find_bonds(peptide_bond, structure)
     structures = hydrolysis(structure, peptide_bonds[0])
+    glycine = "NCC(=O)O"
+    alanine = "NC(C)C(=O)O"
 
-    for s in structures:
-        draw_structure(s)
+    c_oh_bond = BondDefiner("c_oh_bond", "C(=O)O", 0, 2)
+    n_h_bond = BondDefiner("n_h_bond", "NCC(=O)", 0, 4)
+
+    structure_1 = read_smiles(glycine)
+    structure_2 = read_smiles(alanine)
+
+    c_oh_glycine = find_bonds(c_oh_bond, structure_1)[0]
+    n_h_alanine = find_bonds(n_h_bond, structure_2)[0]
+
+    product, water = condensation(structure_1, structure_2, c_oh_glycine, n_h_alanine)
+
+    draw_structure(water)

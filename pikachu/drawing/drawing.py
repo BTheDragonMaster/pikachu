@@ -472,13 +472,16 @@ class Drawer:
 
 
     def get_hydrogen_text_orientation(self, atom):
-        neighbour = atom.drawn_neighbours[0]
-        if neighbour.draw.position.x > atom.draw.position.x + 3:
-            orientation = 'H_before_atom'
-        else:
-            orientation = 'H_after_atom'
+        try:
+            neighbour = atom.drawn_neighbours[0]
+            if neighbour.draw.position.x > atom.draw.position.x + 3:
+                orientation = 'H_before_atom'
+            else:
+                orientation = 'H_after_atom'
 
-        return orientation
+            return orientation
+        except IndexError:
+            return 'H_before_atom'
 
     @staticmethod
     def in_same_ring(atom_1, atom_2):

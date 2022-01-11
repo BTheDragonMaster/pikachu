@@ -144,6 +144,13 @@ class Atom:
                 drawn_neighbours.append(neighbour)
 
         return drawn_neighbours
+    
+    def has_neighbour(self, atom_type):
+        for neighbour in self.neighbours:
+            if neighbour.type == atom_type:
+                return True
+        
+        return False
 
     def add_shell_layout(self):
         self.shell_nr = ATOM_PROPERTIES.element_to_shell_nr[self.type]
@@ -229,6 +236,12 @@ class Atom:
                 electrons_remaining -= electrons_to_dump
             else:
                 break
+                
+    def get_neighbour(self, atom_type):
+        for neighbour in self.neighbours:
+            if neighbour.type == atom_type:
+                return neighbour
+        return None
 
     def excite(self):
         assert self.excitable
