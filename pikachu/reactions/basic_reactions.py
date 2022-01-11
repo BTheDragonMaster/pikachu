@@ -4,6 +4,20 @@ from pikachu.chem.atom_properties import ATOM_PROPERTIES
 
 
 def hydrolysis(structure, bond):
+    """
+    Return hydrolysed product from a structure and the bond to be hydrolysed
+
+    Input
+    ----------
+    structure: Structure object, structure to be hydrolysed
+    bond: Bond object, bond to be hydrolysed
+
+    Returns
+    -------
+    list of [h_structure, oh_structure], with h_structure the product that gained an 'H' atom from the hydrolysis,
+        and oh_structure the product that gained an 'OH' group.
+
+    """
 
     # Create the water molecule required for hydrolysis
     water = read_smiles("O")
@@ -79,6 +93,24 @@ def hydrolysis(structure, bond):
 
 
 def condensation(structure_1, structure_2, oh_bond, h_bond):
+    """
+    Returns condensed product of structure 1 and structure 2, and a water molecule
+
+    Input
+    ----------
+    structure_1: Structure object, structure containing -OH leaving group
+    structure_2: Structure object, structure containing -H leaving group
+    oh_bond: Bond object, bond attached to -OH leaving group
+    h_bond: Bond object, bond attached to -H leaving group
+
+    Returns
+    -------
+    list of [product, water], both Structure objects, with product the condensed product of structure 1 and structure 2
+        and water a water molecule.
+
+    """
+
+    # Ensure that the defined OH-bond actually has an -OH leaving group
     o_atom = None
     o_neighbour = None
 
@@ -90,6 +122,8 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
 
     if not o_atom:
         raise Exception(f"The selected bond {oh_bond} does not attach to an -OH leaving group.")
+
+    # Ensure that the defined H-bond actually has an -H leaving group
 
     h_atom = None
     h_neighbour = None
@@ -103,31 +137,36 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
     if not h_atom:
         raise Exception(f"The selected bond {h_bond} does not attach to an -H leaving group.")
 
-    structure_1.print_graph()
-    structure_2.print_graph()
+    # Break the bonds between the leaving groups and the rest of the product
 
     structure_1.break_bond(oh_bond)
     structure_2.break_bond(h_bond)
 
-    structure_1.print_graph()
-    structure_2.print_graph()
+    # Put the two structures into the same object
 
     structure = combine_structures([structure_1, structure_2])
+
+    # Retrieve the atoms that have to form bonds: h_atom with o_atom to form water, and h_neighbour with o_neighbour
+    # to form the product
 
     h_atom = structure.get_atom(h_atom)
     o_atom = structure.get_atom(o_atom)
     h_neighbour = structure.get_atom(h_neighbour)
     o_neighbour = structure.get_atom(o_neighbour)
 
+    # Create the bonds
+
     structure.make_bond(h_atom, o_atom, structure.find_next_bond_nr())
     structure.make_bond(h_neighbour, o_neighbour, structure.find_next_bond_nr())
 
-    structure.print_graph()
+    # Put the water and the product into different Structure instances
 
     structures = structure.split_disconnected_structures()
 
     water = None
     product = None
+
+    # Find out which of the structures is your product and which is your water
 
     for structure in structures:
         if h_atom in structure.graph:
@@ -136,8 +175,6 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
             product = structure
 
     return [product, water]
-
-
 
 
 if __name__ == "__main__":
@@ -160,4 +197,4 @@ if __name__ == "__main__":
 
     product, water = condensation(structure_1, structure_2, c_oh_glycine, n_h_alanine)
 
-    draw_structure(water)
+    draw_structure(product)
