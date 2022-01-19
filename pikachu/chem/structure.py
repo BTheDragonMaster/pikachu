@@ -11,7 +11,7 @@ from pikachu.chem.substructure_search import check_same_chirality, compare_all_m
 from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
 
-sys.setrecursionlimit(100000)
+sys.setrecursionlimit(1000000)
 
 
 class Structure:
@@ -47,7 +47,7 @@ class Structure:
         if bond_lookup:
             self.bond_lookup = bond_lookup
         else:
-            self.bond_lookup = {}
+            self.make_bond_lookup()
 
     def get_atoms(self):
         atoms = []
@@ -63,6 +63,22 @@ class Structure:
         self.atoms = {}
         for atom in self.graph:
             self.atoms[atom.nr] = atom
+
+    def copy(self):
+        new_graph = {}
+        new_bonds = {}
+
+        for atom_1, atoms in self.graph.items():
+            new_graph[atom_1] = []
+            for atom_2 in atoms:
+                new_graph[atom_1].append(self.atoms[atom_2.nr])
+
+        for bond_nr, bond in self.bonds.items():
+            new_bonds[bond_nr] = bond
+
+        new_structure = Structure(new_graph, new_bonds)
+
+        return new_structure
 
     def refresh_structure(self, find_cycles=False):
         new_graph = {}
@@ -1486,8 +1502,8 @@ class Structure:
             bidirectional graph that is not connected to the other graphs in
             the list
         """
-        working_graph = copy.deepcopy(self)
-        working_graph.refresh_structure()
+        working_graph = self.copy()
+        # working_graph.refresh_structure()
         new_graphs = []
         working_graph.make_bond_nr_dict()
 
@@ -1506,6 +1522,7 @@ class Structure:
             potential_start_nodes = working_graph.find_start_nodes(paths)
 
             try:
+
                 start_node = potential_start_nodes[0]
 
             except IndexError:
@@ -1731,8 +1748,8 @@ class Structure:
         """
         """
         self.bond_nr_dict = {}
-        for atom in self.graph:
-            self.bond_nr_dict[atom] = len(atom.bonds)
+        for atom, neighbours in self.graph.items():
+            self.bond_nr_dict[atom] = len(neighbours)
 
     def find_a_path(self, start_atom):
         """Return a list of linked atoms from a structure

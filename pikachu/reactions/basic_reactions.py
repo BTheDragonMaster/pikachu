@@ -53,43 +53,85 @@ def hydrolysis(structure, bond):
     # Begin hydrolysis by breaking the desired bond
         
     structure.break_bond(bond)
-    product_1, product_2 = structure.split_disconnected_structures()
+    products = structure.split_disconnected_structures()
 
-    # Determine which structure will bond with OH and which with H
-    
-    oh_acceptor_structure = product_1
-    h_acceptor_structure = product_2
-    
-    if h_acceptor in product_1.graph:
-        h_acceptor_structure = product_1
-        oh_acceptor_structure = product_2
+    # If the hydrolysis was outside of a cycle
 
-    # Put structures into a single structure object. This also updates the atom numbers of the original structures
+    if len(products) == 2:
+        product_1, product_2 = structure.split_disconnected_structures()
 
-    h_structure = combine_structures([h, h_acceptor_structure])
-    oh_structure = combine_structures([oh, oh_acceptor_structure])
+        # Determine which structure will bond with OH and which with H
 
-    # Obtain the reacting oxygen, hydrogen, OH acceptor and H acceptor atoms from the combined structure
+        oh_acceptor_structure = product_1
+        h_acceptor_structure = product_2
 
-    oxygen = None
-    for atom in oh.graph:
-        if atom.type == 'O':
-            oxygen = oh_structure.get_atom(atom)
-            break
+        if h_acceptor in product_1.graph:
+            h_acceptor_structure = product_1
+            oh_acceptor_structure = product_2
 
-    hydrogen = h_structure.get_atom(list(h.graph.keys())[0])
+        # Put structures into a single structure object. This also updates the atom numbers of the original structures
 
-    h_acceptor = h_structure.get_atom(h_acceptor)
-    oh_acceptor = oh_structure.get_atom(oh_acceptor)
+        h_structure = combine_structures([h, h_acceptor_structure])
+        oh_structure = combine_structures([oh, oh_acceptor_structure])
 
-    # Create the required bonds
+        # Obtain the reacting oxygen, hydrogen, OH acceptor and H acceptor atoms from the combined structure
 
-    h_structure.make_bond(hydrogen, h_acceptor, h_structure.find_next_bond_nr())
-    oh_structure.make_bond(oxygen, oh_acceptor, oh_structure.find_next_bond_nr())
+        oxygen = None
+        for atom in oh.graph:
+            if atom.type == 'O':
+                oxygen = oh_structure.get_atom(atom)
+                break
 
-    # Return the hydrolysed product
+        hydrogen = h_structure.get_atom(list(h.graph.keys())[0])
 
-    return [h_structure, oh_structure]
+        h_acceptor = h_structure.get_atom(h_acceptor)
+        oh_acceptor = oh_structure.get_atom(oh_acceptor)
+
+        # Create the required bonds
+
+        h_structure.make_bond(hydrogen, h_acceptor, h_structure.find_next_bond_nr())
+        oh_structure.make_bond(oxygen, oh_acceptor, oh_structure.find_next_bond_nr())
+
+        # Return the hydrolysed product
+
+        return [h_structure, oh_structure]
+
+    # If the hydrolysis breaks a cyclic structure, only one product is returned
+
+    else:
+        product = products[0]
+
+        # Put structures into a single structure object. This also updates the atom numbers of the original structures
+
+        product_structure = combine_structures([water, product])
+
+        # Obtain the reacting oxygen, hydrogen, OH acceptor and H acceptor atoms from the combined structure
+
+        hydrogen = None
+        oxygen = None
+
+        for atom in water.graph:
+            if atom.type == 'H' and not atom.neighbours:
+                hydrogen = product_structure.get_atom(atom)
+            if atom.type == 'O':
+                oxygen = product_structure.get_atom(atom)
+
+
+        h_acceptor = product_structure.get_atom(h_acceptor)
+        oh_acceptor = product_structure.get_atom(oh_acceptor)
+
+        # Create the required bonds
+
+        product_structure.make_bond(hydrogen, h_acceptor, product_structure.find_next_bond_nr())
+        product_structure.make_bond(oxygen, oh_acceptor, product_structure.find_next_bond_nr())
+
+        # Recalculate the cycles in the product
+
+        product_structure.refresh_structure(find_cycles=True)
+
+        # Return the hydrolysed product
+
+        return [product_structure]
 
 
 def condensation(structure_1, structure_2, oh_bond, h_bond):
