@@ -206,6 +206,67 @@ class Bond:
         s_bonding_orbital_1.set_bond(self, 'sigma')
         s_bonding_orbital_2.set_bond(self, 'sigma')
 
+    def make_single(self):
+        assert self.type == 'double'
+
+        double_bond_electrons = []
+
+        for electron in self.electrons:
+            if electron.orbital.bonding_orbital == 'pi':
+                double_bond_electrons.append(electron)
+
+        assert len(double_bond_electrons) == 2
+
+        electron_1, electron_2 = double_bond_electrons
+
+        orbital_1 = electron_1.orbital
+        orbital_2 = electron_2.orbital
+
+        orbital_1.remove_electron(electron_2)
+        orbital_2.remove_electron(electron_1)
+
+        orbital_1.remove_bond()
+        orbital_2.remove_bond()
+
+        self.electrons.remove(electron_1)
+        self.electrons.remove(electron_2)
+
+        self.type = 'single'
+
+    def make_double(self):
+        assert self.type == 'single'
+
+        electron_1 = None
+        electron_2 = None
+
+        orbital_1 = None
+        orbital_2 = None
+
+        for orbital_name, orbital in self.atom_1.valence_shell.orbitals.items():
+            if orbital.electron_nr == 1 and not orbital.electrons[0].aromatic:
+                orbital_1 = orbital
+                electron_1 = orbital.electrons[0]
+                break
+
+        for orbital_name, orbital in self.atom_2.valence_shell.orbitals.items():
+            if orbital.electron_nr == 1 and not orbital.electrons[0].aromatic:
+                orbital_2 = orbital
+                electron_2 = orbital.electrons[0]
+                break
+
+        orbital_1.add_electron(electron_2)
+        orbital_2.add_electron(electron_1)
+
+        orbital_1.set_bond(self, 'pi')
+        orbital_2.set_bond(self, 'pi')
+
+        self.electrons.append(electron_1)
+        self.electrons.append(electron_2)
+        self.type = 'double'
+
+        self.atom_1.reset_hybridisation()
+        self.atom_2.reset_hybridisation()
+
     def combine_p_orbitals(self):
         """
         Combine the electrons of two p-orbitals to form a pi-bond

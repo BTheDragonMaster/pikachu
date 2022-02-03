@@ -121,6 +121,7 @@ def hydrolysis(structure, bond):
         oh_acceptor = product_structure.get_atom(oh_acceptor)
 
         # Create the required bonds
+        # If the hydrolysis breaks a cyclic structure, only one product is returned
 
         product_structure.make_bond(hydrogen, h_acceptor, product_structure.find_next_bond_nr())
         product_structure.make_bond(oxygen, oh_acceptor, product_structure.find_next_bond_nr())

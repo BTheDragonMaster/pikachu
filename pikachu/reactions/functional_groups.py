@@ -48,7 +48,7 @@ def find_bonds(bond_neighbourhood, structure):
             bond = structure.bond_lookup[atom_1][atom_2]
             bonds.append(bond)
 
-    return bonds
+    return list(set(bonds))
 
 
 def find_atoms(atom_neighbourhood, structure):
@@ -75,7 +75,7 @@ def find_atoms(atom_neighbourhood, structure):
                 atom = neighbouring_atom.get_neighbour('H')
                 atoms.append(atom)
 
-    return atoms
+    return list(set(atoms))
 
 
 class BondDefiner:

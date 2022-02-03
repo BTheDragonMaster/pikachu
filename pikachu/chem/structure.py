@@ -77,6 +77,7 @@ class Structure:
             new_bonds[bond_nr] = bond
 
         new_structure = Structure(new_graph, new_bonds)
+        new_structure.cycles = self.cycles
 
         return new_structure
 
@@ -1223,6 +1224,8 @@ class Structure:
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond
 
+    
+
     def make_bond(self, atom_1, atom_2, bond_nr):
 
         bond = Bond(atom_1, atom_2, 'single', bond_nr)
@@ -1566,7 +1569,7 @@ class Structure:
             new_structure.infer_bonds()
             new_structure.set_atom_neighbours()
             new_structure.make_bond_lookup()
-            new_structure.refresh_structure()
+            new_structure.refresh_structure(find_cycles=True)
 
         return new_structures
 
