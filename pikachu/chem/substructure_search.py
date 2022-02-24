@@ -131,9 +131,12 @@ class SubstructureMatch:
     # STILL NOT GOOD ENOUGH! ONLY LOOK AT THE LAST ATTEMPT!
     # STORE ATTEMPT PATHS?
 
-    def traceback(self):
+    def traceback(self, counter):
         new_parent_candidate = None
         new_child_candidate = None
+
+        current_child_bond = None
+        current_child_atom = None
 
         for i in range(len(self.placed_bonds_and_atoms) - 1, -1, -1):
 
@@ -152,6 +155,7 @@ class SubstructureMatch:
                 pass
 
             if new_parent_candidate:
+
                 break
             else:
 
@@ -164,7 +168,6 @@ class SubstructureMatch:
 
                 if self.attempt_path:
                     self.failed_attempt_paths.add(tuple(self.attempt_path))
-
 
                 self.remove_match(current_child_atom, current_child_bond)
 
@@ -334,8 +337,6 @@ def check_same_chirality(atom_1, atom_2, match):
             equivalent_atom_list.append(match[atom])
 
     permutation = equivalent_atom_list[:]
-    print(equivalent_atom_list)
-    print(atom_2.neighbours)
 
     if len(equivalent_atom_list) != 4:
         lone_pairs = atom_2.lone_pairs
@@ -388,6 +389,8 @@ def find_substructures(structure, child):
         # keeps track of bond traversal: if there are bonds left to place, continue trying to match.
         # If the match becomes inactive because no exact matches are found, abort
 
+        counter = 0
+
         while match.bonds_to_place and match.active:
 
             match.current_bond_parent = None
@@ -405,13 +408,15 @@ def find_substructures(structure, child):
                 match.find_next_matching_atoms()
 
                 if match.current_bond_parent:
+
                     match.add_match()
 
                 else:
+                    counter += 1
+                    
                     attempt_path = tuple(match.attempt_path)
                     match.failed_attempt_paths.add(attempt_path)
-
-                    new_child_candidate, new_parent_candidate = match.traceback()
+                    new_child_candidate, new_parent_candidate = match.traceback(counter)
 
                     if not new_child_candidate:
                         match.active = False

@@ -37,10 +37,18 @@ class Atom:
 
         self.chiral = chiral
         self.charge = charge
+
         self.pyrrole = False
+        self.furan = False
+        self.thiophene = False
         self.shells = {}
         self.lone_pairs = []
         self.draw = AtomDrawProperties()
+        self.hybridisation = ''
+        self.connectivity = ()
+        self.neighbours = []
+        self.drawn_neighbours = []
+
 
     def __eq__(self, atom):
         if type(atom) == Atom:
@@ -66,6 +74,31 @@ class Atom:
                 charge_string = str(abs(self.charge)) + '-'
 
         return f'{self.type}{charge_string}_{self.nr}'
+
+
+    def copy(self):
+        atom_copy = Atom(self.type, self.nr, self.chiral, self.charge, self.aromatic)
+        atom_copy.hybridisation = self.hybridisation
+        atom_copy.pyrrole = self.pyrrole
+        atom_copy.furan = self.furan
+        atom_copy.thiophene = self.thiophene
+        atom_copy.draw = AtomDrawProperties()
+        atom_copy.draw.colour = self.draw.colour
+        connectivity = []
+
+        for connection in self.connectivity:
+            connectivity.append(connection)
+
+        atom_copy.connectivity = tuple(connectivity)
+
+        for neighbour in self.neighbours:
+            atom_copy.neighbours.append(neighbour)
+
+        # Note: when copying a structure, neighbours need to be refreshed again
+        # after all atoms have been changed!
+
+        return atom_copy
+
 
     def make_lone_pairs(self):
 
@@ -166,18 +199,21 @@ class Atom:
         else:
 
             # Assigns a value to all bonds: 2 for double bond, 1 for single, ~1.5 for aromatic
-            bond_weights = [BOND_PROPERTIES.bond_type_to_weight[bond.type] for bond in self.bonds]
+            bond_weights = []
+            # bond_weights = [BOND_PROPERTIES.bond_type_to_weight[bond.type] for bond in self.bonds]
             aromatic_count = 0
             for bond in self.bonds:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
+                if not bond.has_neighbour('H'):
+                    bond_weights.append(BOND_PROPERTIES.bond_type_to_weight[bond.type])
 
             # If odd number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
             # three outgoing aromatic bonds
 
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
-            if self.pyrrole:
+            if self.pyrrole or self.furan or self.thiophene:
                 nr_of_nonH_bonds -= 1
 
             # Does this work for all atoms? Doesn't for carbon. Should this be made general?
@@ -189,13 +225,6 @@ class Atom:
                     self.excite()
                 else:
                     raise SmilesError('violated_bonding_laws')
-
-        #    if nr_of_nonH_bonds > ATOM_PROPERTIES.element_to_valences[self.type][0] + self.charge:
-         #       if self.excitable:
-          #          print("exciting", self)
-          #          self.excite()
-           #     else:
-            #        raise SmilesError('violated_bonding_laws')
 
     def get_bonding_electrons(self):
         counter = 0
@@ -295,6 +324,7 @@ class Atom:
             print(bonds_to_make)
             print(bonds_accounted_for)
             print(electron_nr)
+            self.valence_shell.print_shell()
 
         electron_pair_nr = int(unbonded_electrons / 2)
 
@@ -322,7 +352,7 @@ class Atom:
                 aromatic_bond_nr += 1
 
         if aromatic_bond_nr == 2:
-            if not self.pyrrole:
+            if not self.pyrrole and not self.furan and not self.thiophene:
                 bond_nr += 3
             else:
                 bond_nr += 2

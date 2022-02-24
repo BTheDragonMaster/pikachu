@@ -32,6 +32,7 @@ class Structure:
     """
 
     def __init__(self, graph=None, bonds=None, bond_lookup=None):
+
         if graph:
             self.graph = graph
             self.set_atom_neighbours()
@@ -56,6 +57,13 @@ class Structure:
 
         return atoms
 
+    def bond_exists(self, atom_1, atom_2):
+        if atom_1 in self.bond_lookup:
+            if atom_2 in self.bond_lookup[atom_1]:
+                return True
+            return False
+        return False
+
     def get_subtree(self, atom, parent_atom):
         pass
 
@@ -63,6 +71,67 @@ class Structure:
         self.atoms = {}
         for atom in self.graph:
             self.atoms[atom.nr] = atom
+            
+    def deepcopy(self):
+
+        new_graph = {}
+        new_bonds = {}
+        new_atoms = {}
+
+        for atom_nr, atom in self.atoms.items():
+            new_atoms[atom_nr] = atom.copy()
+        
+        for atom_1, atoms in self.graph.items():
+            new_atom_1 = new_atoms[atom_1.nr]
+            new_graph[new_atom_1] = []
+            for atom_2 in atoms:
+                new_atom_2 = new_atoms[atom_2.nr]
+                new_graph[new_atom_1].append(new_atom_2)
+                
+        for bond_nr, bond in self.bonds.items():
+            new_atom_1 = new_atoms[bond.atom_1.nr]
+            new_atom_2 = new_atoms[bond.atom_2.nr]
+            new_bond = Bond(new_atom_1, new_atom_2, bond.type, bond.nr)
+
+            for atom_1 in bond.chiral_dict:
+                new_1 = new_atoms[atom_1.nr]
+                new_bond.chiral_dict[new_1] = {}
+                for atom_2 in bond.chiral_dict[atom_1]:
+                    new_2 = new_atoms[atom_2.nr]
+                    new_bond.chiral_dict[new_1][new_2] = bond.chiral_dict[atom_1][atom_2]
+
+            new_bonds[bond_nr] = new_bond
+            if new_bond not in new_atom_1.bonds:
+                new_atom_1.bonds.append(new_bond)
+            if new_bond not in new_atom_2.bonds:
+                new_atom_2.bonds.append(new_bond)
+                
+        new_structure = Structure(new_graph, new_bonds)
+
+        new_structure.add_shells_non_hydrogens()
+        new_structure.add_shells()
+
+        new_structure.refine_p_bonds()
+
+        new_structure.hybridise_atoms()
+
+        new_structure.check_d_orbitals()
+
+        new_structure.refine_s_bonds()
+        new_structure.drop_electrons()
+        new_structure.set_atom_neighbours()
+
+        new_structure.make_lone_pairs()
+        new_structure.make_bond_lookup()
+        new_structure.find_cycles()
+        new_structure.promote_electrons_in_five_rings()
+        aromatic_systems = new_structure.find_aromatic_systems()
+        aromatic_cycles = new_structure.find_aromatic_cycles()
+        new_structure.set_bonds_to_aromatic(aromatic_systems)
+        new_structure.set_bonds_to_aromatic(aromatic_cycles)
+        new_structure.set_connectivities()
+
+        return new_structure
 
     def copy(self):
         new_graph = {}
@@ -134,8 +203,6 @@ class Structure:
         matches = self.find_substructures(substructure,
                                           check_chiral_centres=check_chiral_centres,
                                           check_chiral_double_bonds=check_bond_chirality)
-
-        print(matches)
 
         for match in matches:
             for parent_atom in match.atoms.values():
@@ -473,10 +540,13 @@ class Structure:
         next_atom_nr = self.find_next_atom_nr()
         atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
         atom.add_shell_layout()
+        atom.hybridise()
 
         for i, neighbour in enumerate(neighbours):
             next_bond_nr = self.find_next_bond_nr()
             self.make_bond(atom, neighbour, next_bond_nr)
+
+        self.atoms[atom.nr] = atom
 
         return atom
 
@@ -497,6 +567,10 @@ class Structure:
                 heteroatom.promote_lone_pair_to_p_orbital()
                 if heteroatom.type == 'N':
                     heteroatom.pyrrole = True
+                elif heteroatom.type == 'O':
+                    heteroatom.furan = True
+                elif heteroatom.type == 'S':
+                    heteroatom.thiophene = True
 
     def find_aromatic_cycles(self):
         """
@@ -730,7 +804,7 @@ class Structure:
 
                 chirality_matches = check_same_chirality(chiral_centre, parent_atom, match)
                 if not chirality_matches:
-                    print(chiral_centre, parent_atom, match)
+                    # print(chiral_centre, parent_atom, match)
 
                     break
             else:
@@ -799,7 +873,6 @@ class Structure:
         if self.is_substructure_atom_composition(substructure):
             if self.is_substructure_atom_connectivity(substructure):
                 matches = find_substructures(self, substructure)
-                # matches = self.find_substructure_in_structure(substructure)
 
         if check_chiral_centres:
             final_matches = []
@@ -1127,6 +1200,11 @@ class Structure:
         for atom in self.graph:
             atom.drop_electrons()
 
+    def add_shells_non_hydrogens(self):
+        for atom in self.graph:
+            if atom.type != 'H':
+                atom.add_shell_layout()
+
     def add_shells(self):
         for atom in self.graph:
             if not atom.shells:
@@ -1282,6 +1360,10 @@ class Structure:
         bond.electrons.append(electron_1)
         bond.electrons.append(electron_2)
 
+        atom_1.set_neighbours(self)
+        atom_2.set_neighbours(self)
+
+
     def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:
             self.graph[atom_1].append(atom_2)
@@ -1412,12 +1494,14 @@ class Structure:
 
     def kekulise(self):
 
-        pruned = self.find_pi_subgraph(prune=True)
-        unpruned = self.find_pi_subgraph(prune=False)
+        kekule_structure = self.deepcopy()
+
+        pruned = kekule_structure.find_pi_subgraph(prune=True)
+        unpruned = kekule_structure.find_pi_subgraph(prune=False)
 
         aromatic_unmatched = set(unpruned.keys()) - set(pruned.keys())
 
-        matching = Match.from_structure(self)
+        matching = Match.from_structure(kekule_structure)
         unmatched_nodes = matching.unmatched_nodes()
         if unmatched_nodes != 0:
             raise Exception("This structure cannot be kekulised!")
@@ -1443,23 +1527,96 @@ class Structure:
                         if not single_bond_pair in single_bond_pairs:
                             single_bond_pairs.add(single_bond_pair)
 
-        kekule_structure = copy.deepcopy(self)
+        # kekule_structure = copy.deepcopy(self)
+
+        # kekule_structure = self.copy()
 
         for pair in double_bond_pairs:
-            bond = kekule_structure.bond_lookup[pair[0]][pair[1]]
+            new_atom_1 = kekule_structure.atoms[pair[0].nr]
+            new_atom_2 = kekule_structure.atoms[pair[1].nr]
+            bond = kekule_structure.bond_lookup[new_atom_1][new_atom_2]
             bond.type = 'double'
             bond.aromatic = False
             bond.atom_1.aromatic = False
             bond.atom_2.aromatic = False
+            aromatic_electron_1 = None
+            aromatic_electron_2 = None
+            aromatic_orbital_1 = None
+            aromatic_orbital_2 = None
+            bond.set_bond_summary()
+
+            # THIS IS NEW! REMOVE IF THINGS BREAK!!
+            for orbital_name, orbital in new_atom_1.valence_shell.orbitals.items():
+                if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
+                    electron = orbital.electrons[0]
+                    if electron.aromatic:
+                        aromatic_orbital_1 = orbital
+                        aromatic_electron_1 = electron
+
+            for orbital_name, orbital in new_atom_2.valence_shell.orbitals.items():
+                if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
+                    electron = orbital.electrons[0]
+                    if electron.aromatic:
+                        aromatic_orbital_2 = orbital
+                        aromatic_electron_2 = electron
+
+            if aromatic_electron_1 and aromatic_electron_2:
+
+                aromatic_electron_1.set_unaromatic()
+                aromatic_electron_2.set_unaromatic()
+
+                aromatic_orbital_1.add_electron(aromatic_electron_2)
+                aromatic_orbital_2.add_electron(aromatic_electron_1)
+
+                aromatic_orbital_1.set_bond(bond, 'pi')
+                aromatic_orbital_2.set_bond(bond, 'pi')
+
+                bond.set_bond_summary()
+            else:
+                print("WARNING: Something might have gone wrong with kekulisation.")
 
         for pair in single_bond_pairs:
-            bond = kekule_structure.bond_lookup[pair[0]][pair[1]]
+            new_atom_1 = kekule_structure.atoms[pair[0].nr]
+            new_atom_2 = kekule_structure.atoms[pair[1].nr]
+            bond = kekule_structure.bond_lookup[new_atom_1][new_atom_2]
             bond.type = 'single'
             bond.aromatic = False
             bond.atom_1.aromatic = False
             bond.atom_2.aromatic = False
             bond.atom_1.pyrrole = False
             bond.atom_2.pyrrole = False
+            bond.atom_1.furan = False
+            bond.atom_2.furan = False
+            bond.atom_1.thiophene = False
+            bond.atom_2.thiophene = False
+
+            bond.set_bond_summary()
+
+            # THIS IS NEW! REMOVE IF SOMETHING BREAKS!!!
+
+            if 'double' not in [b.type for b in bond.atom_1.bonds]:
+                for orbital_name, orbital in bond.atom_1.valence_shell.orbitals.items():
+                    if orbital.orbital_type == 'p':
+                        for electron in orbital.electrons:
+                            electron.set_unaromatic()
+
+            if 'double' not in [b.type for b in bond.atom_2.bonds]:
+                for orbital_name, orbital in bond.atom_2.valence_shell.orbitals.items():
+                    if orbital.orbital_type == 'p':
+                        for electron in orbital.electrons:
+                            electron.set_unaromatic()
+
+            electrons_to_remove = []
+            for electron in bond.electrons:
+                if electron.orbital_type == 'p':
+                    electrons_to_remove.append(electron)
+
+            for electron in electrons_to_remove:
+                bond.electrons.remove(electron)
+
+        for atom in kekule_structure.graph:
+            print(atom)
+            atom.valence_shell.print_shell()
 
         return kekule_structure
 

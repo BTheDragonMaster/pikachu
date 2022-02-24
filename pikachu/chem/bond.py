@@ -57,6 +57,22 @@ class Bond:
             if neighbour != atom:
                 return neighbour
 
+    def has_neighbour(self, atom_type):
+        if self.atom_1.type == atom_type:
+            return True
+        elif self.atom_2.type == atom_type:
+            return True
+
+        return False
+
+    def get_neighbour(self, atom_type):
+        if self.atom_1.type == atom_type:
+            return self.atom_1
+        elif self.atom_2.type == atom_type:
+            return self.atom_2
+        else:
+            return None
+
     def get_neighbouring_bonds(self):
         neighbouring_bonds = []
         for atom in self.neighbours:
@@ -207,6 +223,7 @@ class Bond:
         s_bonding_orbital_2.set_bond(self, 'sigma')
 
     def make_single(self):
+        print(self.type)
         assert self.type == 'double'
 
         double_bond_electrons = []
@@ -232,6 +249,7 @@ class Bond:
         self.electrons.remove(electron_2)
 
         self.type = 'single'
+        self.set_bond_summary()
 
     def make_double(self):
         assert self.type == 'single'
@@ -266,6 +284,8 @@ class Bond:
 
         self.atom_1.reset_hybridisation()
         self.atom_2.reset_hybridisation()
+        
+        self.set_bond_summary()
 
     def combine_p_orbitals(self):
         """
@@ -274,7 +294,7 @@ class Bond:
 
         assert self.type != 'single'
 
-        if self.atom_1.pyrrole or self.atom_2.pyrrole:
+        if self.atom_1.pyrrole or self.atom_2.pyrrole or self.atom_1.thiophene or self.atom_2.thiophene or self.atom_1.furan or self.atom_2.furan:
             pass
         else:
             p_bonding_orbitals_1 = []
