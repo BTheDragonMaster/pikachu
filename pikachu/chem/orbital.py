@@ -1,5 +1,6 @@
 from pikachu.chem.electron import Electron
 
+
 class OrbitalSet:
     def __init__(self, atom, shell_nr, orbital_type):
         self.atom = atom

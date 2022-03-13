@@ -7,7 +7,7 @@ from pikachu.errors import SmilesError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
-from pikachu.chem.substructure_search import check_same_chirality, compare_all_matches, SubstructureMatch, find_substructures
+from pikachu.chem.substructure_matching import check_same_chirality, compare_all_matches, SubstructureMatch, find_substructures
 from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
 
@@ -540,11 +540,12 @@ class Structure:
         next_atom_nr = self.find_next_atom_nr()
         atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
         atom.add_shell_layout()
-        atom.hybridise()
 
         for i, neighbour in enumerate(neighbours):
             next_bond_nr = self.find_next_bond_nr()
             self.make_bond(atom, neighbour, next_bond_nr)
+
+        atom.hybridise()
 
         self.atoms[atom.nr] = atom
 
@@ -804,8 +805,6 @@ class Structure:
 
                 chirality_matches = check_same_chirality(chiral_centre, parent_atom, match)
                 if not chirality_matches:
-                    # print(chiral_centre, parent_atom, match)
-
                     break
             else:
                 chirality_matches = False
@@ -1614,10 +1613,6 @@ class Structure:
             for electron in electrons_to_remove:
                 bond.electrons.remove(electron)
 
-        for atom in kekule_structure.graph:
-            print(atom)
-            atom.valence_shell.print_shell()
-
         return kekule_structure
 
     def break_any_bond(self, atom_1, atom_2):
@@ -1800,69 +1795,69 @@ class Structure:
     # Auxillary functions
     # ========================================================================
 
-    def make_H_string(self, atom, valence_dict):
-        H_nr = valence_dict[atom]['max'] - valence_dict[atom]['current']
-        if H_nr > 1:
-            H_string = "[%sH%d]" % (atom.type, H_nr)
-        elif H_nr == 1:
-            H_string = "[%sH]" % (atom.type)
-        else:
-            H_string = "[%s]" % (atom.type)
+    # def make_H_string(self, atom, valence_dict):
+    #     H_nr = valence_dict[atom]['max'] - valence_dict[atom]['current']
+    #     if H_nr > 1:
+    #         H_string = "[%sH%d]" % (atom.type, H_nr)
+    #     elif H_nr == 1:
+    #         H_string = "[%sH]" % (atom.type)
+    #     else:
+    #         H_string = "[%s]" % (atom.type)
+    #
+    #     return H_string
+    #
+    # def make_nr_string(self, bond):
+    #     bond_nr, bond_type = bond
+    #     if bond_type == 1:
+    #         string = ''
+    #     elif bond_type == 2:
+    #         string = '='
+    #     elif bond_type == 3:
+    #         string = '#'
+    #
+    #     if bond_nr > 9:
+    #         bond_string = '%%%d' % bond_nr
+    #     else:
+    #         bond_string = str(bond_nr)
+    #
+    #     return ''.join([string, bond_string])
+    #
+    # def make_valence_dict(self):
+    #     valence_dict = {}
+    #     for atom in self.structure:
+    #         valence_dict[atom] = {}
+    #         valence_dict[atom]['current'] = len(self.structure[atom])
+    #         valence_dict[atom]['max'] = atom.get_valence(len(self.structure[atom]))
+    #
+    #     return valence_dict
 
-        return H_string
-
-    def make_nr_string(self, bond):
-        bond_nr, bond_type = bond
-        if bond_type == 1:
-            string = ''
-        elif bond_type == 2:
-            string = '='
-        elif bond_type == 3:
-            string = '#'
-
-        if bond_nr > 9:
-            bond_string = '%%%d' % bond_nr
-        else:
-            bond_string = str(bond_nr)
-
-        return ''.join([string, bond_string])
-
-    def make_valence_dict(self):
-        valence_dict = {}
-        for atom in self.structure:
-            valence_dict[atom] = {}
-            valence_dict[atom]['current'] = len(self.structure[atom])
-            valence_dict[atom]['max'] = atom.get_valence(len(self.structure[atom]))
-
-        return valence_dict
-
-    def record_bonds(self):
-        bond_record = {}
-
-        counter = 1
-
-        self.bond_record = {}
-        for atom_1 in self.structure:
-            self.bond_record[atom_1] = []
-
-            for atom_2 in self.structure[atom_1]:
-                bond_type = self.structure[atom_1].count(atom_2)
-
-                if atom_1.nr > atom_2.nr:
-                    pair = (atom_2, atom_1)
-                else:
-                    pair = (atom_1, atom_2)
-
-                if not pair in bond_record:
-                    bond_nr = counter
-                    bond_record[pair] = bond_nr
-                    counter += 1
-                else:
-                    bond_nr = bond_record[pair]
-
-                if not (bond_nr, bond_type) in self.bond_record[atom_1]:
-                    self.bond_record[atom_1] += [(bond_nr, bond_type)]
-            self.bond_record[atom_1].sort()
+    # def record_bonds(self):
+    #     bond_record = {}
+    #
+    #     counter = 1
+    #
+    #     self.bond_record = {}
+    #     for atom_1 in self.structure:
+    #         self.bond_record[atom_1] = []
+    #
+    #         for atom_2 in self.structure[atom_1]:
+    #             bond_type = self.structure[atom_1].count(atom_2)
+    #
+    #             if atom_1.nr > atom_2.nr:
+    #                 pair = (atom_2, atom_1)
+    #             else:
+    #                 pair = (atom_1, atom_2)
+    #
+    #             if not pair in bond_record:
+    #                 bond_nr = counter
+    #                 bond_record[pair] = bond_nr
+    #                 counter += 1
+    #             else:
+    #                 bond_nr = bond_record[pair]
+    #
+    #             if not (bond_nr, bond_type) in self.bond_record[atom_1]:
+    #                 self.bond_record[atom_1] += [(bond_nr, bond_type)]
+    #         self.bond_record[atom_1].sort()
 
     def put_paths_in_graph(self, paths):
         """Return single structure from bond paths

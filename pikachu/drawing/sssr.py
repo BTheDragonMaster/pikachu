@@ -18,10 +18,13 @@ class SSSR(structure.Structure):
         connected_components = self.get_graph_components(adjacency_matrix)
         rings = []
 
+        print("Connected components:", connected_components)
+
         for component in connected_components:
             cc_adjacency_matrix = self.get_subgraph_adjacency_matrix(component)
             bond_counts = {}
             ring_counts = {}
+
             for atom_1 in cc_adjacency_matrix:
                 bond_counts[atom_1] = 0
                 ring_counts[atom_1] = 0
@@ -52,8 +55,13 @@ class SSSR(structure.Structure):
                 continue
 
             d, pe, pe_prime = self.get_path_included_distance_matrices(cc_adjacency_matrix)
+            print("d", d)
+            print("pe", pe)
+            print("pe_prime", pe_prime)
             ring_candidates = self.get_ring_candidates(d, pe, pe_prime)
-            c_sssr = self.get_sssr(ring_candidates, d, cc_adjacency_matrix, pe, pe_prime, bond_counts, ring_counts, sssr_nr)
+            c_sssr = self.get_sssr(ring_candidates, cc_adjacency_matrix, bond_counts, ring_counts, sssr_nr)
+            print("Ring counts:", ring_counts)
+            print("c_sssr", c_sssr)
 
             for ring in c_sssr:
                 original_ring = self.get_original_ring_order(list(ring))
@@ -192,7 +200,7 @@ class SSSR(structure.Structure):
 
     def get_path_included_distance_matrices(self, adjacency_matrix):
         """
-            Use Floyd-Warshall algorithm to compute the shortest paths between all vertice pairs in a graph
+            Use Floyd-Warshall algorithm to compute the shortest paths between all vertex pairs in a graph
 
         """
         atoms = list(adjacency_matrix.keys())
@@ -204,14 +212,19 @@ class SSSR(structure.Structure):
         i = length
 
         for atom_1 in atoms:
+
             d[atom_1] = {}
             pe[atom_1] = {}
             pe_prime[atom_1] = {}
+
             for atom_2 in atoms:
+                # Initialise shortest paths to infinity, 0 (same atom) or 1 (neighbours)
                 if atom_1 == atom_2 or adjacency_matrix[atom_1][atom_2] == 1:
                     d[atom_1][atom_2] = adjacency_matrix[atom_1][atom_2]
                 else:
                     d[atom_1][atom_2] = float('inf')
+
+                # For neighbours: set the pe
 
                 if d[atom_1][atom_2] == 1:
                     pe[atom_1][atom_2] = [[[atom_1, atom_2]]]
@@ -219,6 +232,10 @@ class SSSR(structure.Structure):
                     pe[atom_1][atom_2] = []
 
                 pe_prime[atom_1][atom_2] = []
+
+        # For each atom triplet, check if the sum of the distances between two of the three
+        # atom pairs is smaller than the current distance recorded between the remaining atom
+        # pair
 
         for atom_k in atoms:
             for atom_i in atoms:
@@ -228,13 +245,17 @@ class SSSR(structure.Structure):
 
                     if previous_path_length > new_path_length:
                         if previous_path_length == new_path_length + 1:
-                            length_l = len(pe[atom_i][atom_j])
-                            pe_prime[atom_i][atom_j] = [None] * length_l
-                            for l in range(length_l - 1, -1, -1):
-                                length_m = len(pe[atom_i][atom_j][l])
-                                pe_prime[atom_i][atom_j][l] = [None] * length_m
-                                for m in range(length_m - 1, -1, -1):
+                            path_nr = len(pe[atom_i][atom_j])
+                            pe_prime[atom_i][atom_j] = [None] * path_nr
+                            for l in range(path_nr - 1, -1, -1):
+                                edge_nr = len(pe[atom_i][atom_j][l])
+                                pe_prime[atom_i][atom_j][l] = [None] * edge_nr
+                                for m in range(edge_nr - 1, -1, -1):
                                     length_n = len(pe[atom_i][atom_j][l][m])
+                                    if length_n != 2:
+                                        print("Something")
+                                    else:
+                                        print("It's two")
                                     pe_prime[atom_i][atom_j][l][m] = [None] * length_n
                                     for n in range(length_n - 1, -1, -1):
                                         pe_prime[atom_i][atom_j][l][m][n] = [pe[atom_i][atom_j][l][m][0],
@@ -244,7 +265,6 @@ class SSSR(structure.Structure):
 
                         d[atom_i][atom_j] = new_path_length
                         pe[atom_i][atom_j] = [[]]
-
 
                         pe[atom_i][atom_j][0] = list(reversed(pe[atom_i][atom_k][0])) + list(reversed(pe[atom_k][atom_j][0]))
 
@@ -266,7 +286,9 @@ class SSSR(structure.Structure):
 
         for atom_1 in d:
             for atom_2 in d[atom_1]:
-                if d[atom_1][atom_2] == 0 or (len(pe[atom_1][atom_2]) == 1 and pe_prime[atom_1][atom_2] == 0):
+                # If the atom distance is 0, or if there's only one shortest path and there is no 
+                # shortest path one longer than the shortest path
+                if d[atom_1][atom_2] == 0 or (len(pe[atom_1][atom_2]) == 1 and len(pe_prime[atom_1][atom_2]) == 0):
                     continue
                 else:
                     if len(pe_prime[atom_1][atom_2]) != 0:
@@ -278,10 +300,11 @@ class SSSR(structure.Structure):
                         candidates.append([vertices_in_cycle, pe[atom_1][atom_2], pe_prime[atom_1][atom_2]])
 
         candidates = sorted(candidates, key=lambda x: x[0])
+        print("Candidates", candidates)
 
         return candidates
 
-    def get_sssr(self, ring_candidates, d, cc_adjacency_matrix, pe, pe_prime, bond_counts, ring_counts, sssr_nr):
+    def get_sssr(self, ring_candidates, cc_adjacency_matrix, bond_counts, ring_counts, sssr_nr):
         c_sssr = []
         all_bonds = []
 

@@ -1722,6 +1722,7 @@ class Drawer:
 
     def define_rings(self):
         rings = SSSR(self.structure).get_rings()
+        print(rings)
         if not rings:
             return None
 

@@ -1,6 +1,5 @@
 from pikachu.errors import SmilesError
 from pikachu.chem.chirality import get_chiral_permutations
-from pikachu.general import read_smiles
 
 
 class SubstructureMatch:
@@ -46,8 +45,6 @@ class SubstructureMatch:
         self.initialise_seed(child_seed, parent_seed)
         counter = 0
         while None in self.bonds.values() and self.active:
-            if counter < 30:
-                print("main:", self.current_attempted_path)
             counter += 1
             next_child_bond = self.get_next_child_bond()
             if next_child_bond:
@@ -57,16 +54,15 @@ class SubstructureMatch:
                     self.add_match(next_child_atom, next_parent_atom, next_child_bond, next_parent_bond)
                 else:
                     self.failed_attempted_paths.add(tuple(self.current_attempted_path))
-                    next_child_atom, next_parent_atom, next_child_bond, next_parent_bond = self.traceback(counter)
+                    next_child_atom, next_parent_atom, next_child_bond, next_parent_bond = self.traceback()
                     if next_child_atom and next_parent_atom and next_child_bond and next_parent_bond:
                         self.add_match(next_child_atom, next_parent_atom, next_child_bond, next_parent_bond)
                     else:
-                        print("here!")
                         self.active = False
             else:
                 self.active = False
 
-    def traceback(self, counter):
+    def traceback(self):
         # Iterate over the current attempted path in reverse,
         for i in range(len(self.current_attempted_path) - 1, 0, -1):
 
@@ -80,14 +76,6 @@ class SubstructureMatch:
             current_child_atom = None
             previous_child_atom = None
 
-            if counter < 30:
-
-                print(i)
-
-                print("traceback:", self.current_attempted_path)
-                print(current_parent_atom, previous_parent_atom)
-                print("atoms:", self.atoms)
-
             for child_atom, parent_atom in self.atoms.items():
                 if current_parent_atom == parent_atom:
                     current_child_atom = child_atom
@@ -100,14 +88,8 @@ class SubstructureMatch:
             # as no alternative candidate bonds exists from the previous child atom
 
             if not self.child.bond_exists(current_child_atom, previous_child_atom):
-                if counter < 30:
-                    print(current_parent_atom, previous_parent_atom)
-                    print("SHOULD NOT HAPPEN.")
                 continue
             else:
-                if counter < 30:
-                    print(i, current_parent_atom)
-                    print(self.failed_attempted_paths)
                 next_child_bond = self.child.bond_lookup[current_child_atom][previous_child_atom]
                 self.remove_match(current_child_atom, next_child_bond)
 
@@ -121,9 +103,7 @@ class SubstructureMatch:
                         next_child_atom = current_child_atom
 
                         # Make sure that we did not try this route before
-                        if counter < 30:
-                            print(tuple(new_path + [next_parent_atom]))
-                            print(self.failed_attempted_paths)
+
                         if tuple(new_path + [next_parent_atom]) not in self.failed_attempted_paths:
                             self.current_child_atom = previous_child_atom
                             self.current_parent_atom = previous_parent_atom
@@ -131,7 +111,6 @@ class SubstructureMatch:
                             self.current_attempted_path = new_path
                             return next_child_atom, next_parent_atom, next_child_bond, next_parent_bond
 
-                print("failed:", new_path)
                 self.failed_attempted_paths.add(tuple(new_path))
 
         return None, None, None, None
@@ -374,19 +353,3 @@ def find_substructures(structure, child):
     filter_duplicate_matches(matches)
 
     return matches
-
-
-if __name__ == "__main__":
-    substructure_1 = read_smiles('OC1=CC=C(C[C@@H](N)C=O)C=C1')
-    substructure_2 = read_smiles('C1=CC=C(C[C@@H](N)C=O)C=C1')
-    daptomycin = read_smiles(r"CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C")
-    vancomycin = read_smiles(r"C[C@H]1[C@H]([C@@](C[C@@H](O1)O[C@@H]2[C@H]([C@@H]([C@H](O[C@H]2OC3=C4C=C5C=C3OC6=C(C=C(C=C6)[C@H]([C@H](C(=O)N[C@H](C(=O)N[C@H]5C(=O)N[C@@H]7C8=CC(=C(C=C8)O)C9=C(C=C(C=C9[C@H](NC(=O)[C@H]([C@@H](C1=CC(=C(O4)C=C1)Cl)O)NC7=O)C(=O)O)O)O)CC(=O)N)NC(=O)[C@@H](CC(C)C)NC)O)Cl)CO)O)O)(C)N)O")
-
-    matches = find_substructures(vancomycin, substructure_1)
-    for match in matches:
-        print(match.atoms)
-        print(match.bonds)
-
-
-
-

@@ -8,6 +8,18 @@ from pprint import pprint
 
 
 def get_cyclic_label(cycle_nr):
+    """
+    Return string to be inserted in the SMILES string to indicate a cycle
+
+    Input
+    ----------
+    cycle_nr: int, number of the cycle to be closed
+
+    Output
+    -------
+    str, string to be inserted in the SMILES string to indicate a cycle
+
+    """
     if cycle_nr > 9:
         return '%' + str(cycle_nr)
     else:
@@ -59,10 +71,24 @@ class GraphToSmiles:
         self.make_smiles_components()
         self.find_original_atom_indices()
         self.resolve_chiral_centres()
+        self.add_bond_chirality()
         self.smiles = ''.join(self.components)
         # print(''.join(self.components))
 
+
     def is_numerical_component(self, component):
+        """
+        Return bool, True if the component is numerical and therefore represents a cycle, False if not
+
+        Input
+        ----------
+        component: str, component of the SMILES string to be created
+
+        Output
+        -------
+        bool, True if component is numerical and therefore represents a cycle, False if not
+
+        """
         for character in component:
             if character not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '%']:
                 return False
@@ -83,6 +109,133 @@ class GraphToSmiles:
                     current_index -= 1
 
                 self.atom_to_index[atom_to_adjust] = current_index
+
+    def add_bond_chirality(self):
+        bond_to_direction = {}
+        atom_pair_to_direction = {}
+
+        for bond_nr, bond in self.original_structure.bonds.items():
+            if bond.chiral:
+
+                cis_trans_atoms = []
+                options = bond.chiral_dict.keys()
+                for atom in options:
+                    if atom.type != 'H':
+                        cis_trans_atoms.append(atom)
+
+                neighbours = []
+
+                for atom in cis_trans_atoms:
+                    if bond.atom_1 in atom.neighbours:
+                        neighbours.append(bond.atom_1)
+                    elif bond.atom_2 in atom.neighbours:
+                        neighbours.append(bond.atom_2)
+
+                for i, atom_1 in enumerate(cis_trans_atoms):
+                    if atom_1 not in atom_pair_to_direction:
+                        atom_pair_to_direction[atom_1] = {}
+
+                    attaching_atom = neighbours[i]
+
+                    if attaching_atom not in atom_pair_to_direction:
+                        atom_pair_to_direction[attaching_atom] = {}
+
+                    attaching_atom_index = self.atom_to_index[attaching_atom]
+
+                    other_atom = bond.get_connected_atom(attaching_atom)
+
+                    atom_1_index = self.atom_to_index[atom_1]
+
+                    bond_1 = self.original_structure.bond_lookup[atom_1][attaching_atom]
+                    print(bond_to_direction)
+                    if bond_1 not in bond_to_direction:
+                        place_bond_1 = True
+                        for atom_2 in bond.chiral_dict[atom_1]:
+                            print(atom_2)
+                            if atom_2.type != 'H':
+
+                                bond_2 = self.original_structure.bond_lookup[atom_2][other_atom]
+
+                                place_bond_2 = True
+
+                                if atom_2 not in atom_pair_to_direction:
+                                    atom_pair_to_direction[atom_2] = {}
+
+                                if other_atom not in atom_pair_to_direction:
+                                    atom_pair_to_direction[other_atom] = {}
+
+                                if bond_2 in bond_to_direction:
+                                    place_bond_2 = False
+
+                                    if atom_pair_to_direction[atom_2][other_atom] == 'up' and bond.chiral_dict[atom_1][atom_2] == 'trans':
+                                        bond_to_direction[bond_1] = 'down'
+                                        atom_pair_to_direction[atom_1][attaching_atom] = 'down'
+                                        atom_pair_to_direction[attaching_atom][atom_1] = 'up'
+                                    elif atom_pair_to_direction[atom_2][other_atom] == 'up' and bond.chiral_dict[atom_1][atom_2] == 'cis':
+                                        bond_to_direction[bond_1] = 'up'
+                                        atom_pair_to_direction[atom_1][attaching_atom] = 'up'
+                                        atom_pair_to_direction[attaching_atom][atom_1] = 'down'
+                                    elif atom_pair_to_direction[atom_2][other_atom] == 'down' and bond.chiral_dict[atom_1][atom_2] == 'trans':
+                                        bond_to_direction[bond_1] = 'up'
+                                        atom_pair_to_direction[atom_1][attaching_atom] = 'up'
+                                        atom_pair_to_direction[attaching_atom][atom_1] = 'down'
+                                    elif atom_pair_to_direction[atom_2][other_atom] == 'down' and bond.chiral_dict[atom_1][atom_2] == 'cis':
+                                        bond_to_direction[bond_1] = 'down'
+                                        atom_pair_to_direction[atom_1][attaching_atom] = 'down'
+                                        atom_pair_to_direction[attaching_atom][atom_1] = 'up'
+
+                                else:
+                                    atom_pair_to_direction[atom_1][attaching_atom] = 'up'
+                                    atom_pair_to_direction[attaching_atom][atom_1] = 'down'
+                                    bond_to_direction[bond_1] = 'up'
+
+                                    if bond.chiral_dict[atom_1][atom_2] == 'trans':
+                                        atom_pair_to_direction[atom_2][other_atom] = 'down'
+                                        atom_pair_to_direction[other_atom][atom_2] = 'up'
+                                        bond_to_direction[bond_2] = 'down'
+                                    elif bond.chiral_dict[atom_1][atom_2] == 'cis':
+                                        atom_pair_to_direction[atom_2][other_atom] = 'up'
+                                        atom_pair_to_direction[other_atom][atom_2] = 'down'
+                                        bond_to_direction[bond_2] = 'up'
+
+                                if place_bond_1:
+
+                                    if attaching_atom_index > atom_1_index:
+                                        insertion_point_1 = attaching_atom_index - 1
+                                        direction_1 = atom_pair_to_direction[atom_1][attaching_atom]
+                                    else:
+                                        insertion_point_1 = atom_1_index - 1
+                                        direction_1 = atom_pair_to_direction[attaching_atom][atom_1]
+
+                                    if direction_1 == 'up':
+                                        symbol_1 = '/'
+                                    else:
+                                        symbol_1 = '\\'
+
+                                    self.add_insert([symbol_1], insertion_point_1)
+                                    print(1, atom_1, attaching_atom, self.components)
+                                    place_bond_1 = False
+
+                                if place_bond_2:
+                                    atom_2_index = self.atom_to_index[atom_2]
+                                    other_atom_index = self.atom_to_index[other_atom]
+
+                                    if other_atom_index > atom_2_index:
+                                        insertion_point_2 = other_atom_index - 1
+                                        direction_2 = atom_pair_to_direction[atom_2][other_atom]
+                                    else:
+                                        insertion_point_2 = atom_2_index - 1
+                                        direction_2 = atom_pair_to_direction[other_atom][atom_2]
+
+                                    if direction_2 == 'up':
+                                        symbol_2 = '/'
+                                    else:
+                                        symbol_2 = "\\"
+
+                                    self.add_insert([symbol_2], insertion_point_2)
+                                    print(2, atom_2, other_atom, self.components)
+
+
 
     def resolve_chiral_centres(self):
         for atom in self.original_structure.graph:
@@ -127,6 +280,8 @@ class GraphToSmiles:
                                     break
 
                     indices_and_atoms.append((index, neighbour))
+                print(atom.neighbours)
+                print(indices_and_atoms)
 
                 atom_order = [atom for _,atom in sorted(indices_and_atoms)]
                 chirality = determine_chirality(atom_order, atom.chiral)
@@ -173,7 +328,9 @@ class GraphToSmiles:
             first_atom = list(self.terminal_nodes)[0]
         elif self.branch_points:
             first_atom = list(self.branch_points)[0]
-        else: #this happens when the entire graph is cyclic
+
+        # this happens when the entire graph is cyclic
+        else: 
             first_atom = list(self.structure.graph.keys())[0]
 
         self.atom_to_index[first_atom] = 0
@@ -195,11 +352,12 @@ class GraphToSmiles:
                     cyclic = True
                     cycle_nr += 1
                     cyclic_label = get_cyclic_label(cycle_nr)
+                    
+                bond = working_graph.bond_lookup[current_atom][next_atom]
 
-                bond_type = working_graph.bond_lookup[current_atom][next_atom].type
-                bond_symbol = BOND_PROPERTIES.bond_type_to_symbol[bond_type]
+                bond_symbol = BOND_PROPERTIES.bond_type_to_symbol[bond.type]
 
-                if bond_type == 'single' and current_atom.aromatic and next_atom.aromatic:
+                if bond.type == 'single' and current_atom.aromatic and next_atom.aromatic:
                     bond_symbol = '-'
 
                 if cyclic:
@@ -210,6 +368,7 @@ class GraphToSmiles:
                         cyclic_label_idx_2 = self.atom_to_index[current_atom]
                         self.add_insert([bond_symbol, cyclic_label], cyclic_label_idx_2)
                         offset = 2
+                 #       self.bonds_to_index[bond] = cyclic_label_idx_1 + 1
                     else:
                         cyclic_label_idx_1 = self.atom_to_index[next_atom]
                         self.add_insert([cyclic_label], cyclic_label_idx_1)
@@ -483,6 +642,11 @@ if __name__ == "__main__":
     kekule_structure = structure.kekulise()
     GraphToSmiles(kekule_structure)
     GraphToSmiles(structure)
+
+    smiles = r'I\C(=C(/Cl)\F)\Br'
+    structure = read_smiles(smiles)
+    s = GraphToSmiles(structure)
+    print(s.smiles)
     
     
 

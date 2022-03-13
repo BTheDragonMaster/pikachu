@@ -179,20 +179,6 @@ class Smiles:
                     double_digits = False
                     component = ''
 
-
-      #          try:
-         #           next_character = self.smiles[i + 1]
-
-          #          if next_character not in {'0', '1', '2', '3', '4',
-           #                                   '5', '6', '7', '8', '9'}:
-          #              print(len(component))
-            #            double_digits = False
-           #             self.components.append(component + character)
-            #            component = ''
-            #        else:
-            #            component += character
-            #    except IndexError:
-            #        self.components.append(component + character)
             else:
 
                 if character in self.two_atom_dict:
@@ -356,7 +342,9 @@ class Smiles:
 
                     # This happens only if atom_2 is completely disconnected
                     # from any atoms already in the graph
-                    structure.add_disconnected_atom(atom_2)
+                    if hydrogens == 0:
+                        structure.add_disconnected_atom(atom_2)
+
                     if atom_2.chiral:
                         chiral_dict[atom_2] = []
                         if hydrogens == 1:
@@ -640,3 +628,4 @@ class Smiles:
             structure_graph[atom_2] += [atom_1]
         else:
             structure_graph[atom_2] = [atom_1]
+

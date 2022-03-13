@@ -200,13 +200,13 @@ class Atom:
 
             # Assigns a value to all bonds: 2 for double bond, 1 for single, ~1.5 for aromatic
             bond_weights = []
-            # bond_weights = [BOND_PROPERTIES.bond_type_to_weight[bond.type] for bond in self.bonds]
             aromatic_count = 0
+
             for bond in self.bonds:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
-                if not bond.has_neighbour('H'):
-                    bond_weights.append(BOND_PROPERTIES.bond_type_to_weight[bond.type])
+                #if not bond.has_neighbour('H'):
+                bond_weights.append(BOND_PROPERTIES.bond_type_to_weight[bond.type])
 
             # If odd number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
             # three outgoing aromatic bonds
@@ -409,6 +409,7 @@ class Atom:
     def promote_pi_bonds_to_d_orbitals(self):
 
         if self.is_promotable() and 'd' in self.hybridisation:
+            self.valence_shell.print_shell()
             
             donor_orbitals = []
             receiver_orbitals = []

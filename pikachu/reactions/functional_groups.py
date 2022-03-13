@@ -9,6 +9,7 @@ class IndexTracker:
         self.atoms = {}
         self.bonds = {}
 
+
 def find_bonds(bond_neighbourhood, structure):
     """
     Return list of bond occurrences in structure from a bond neighbourhood
