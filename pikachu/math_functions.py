@@ -151,7 +151,7 @@ class HalfLine:
             line = SimpleLine(point_1, point_2)
             lines.append(line)
 
-        if self.atom.type == 'C' and not self.atom.charge:
+        if self.atom.type == 'C' and not self.atom.charge and not self.atom.draw.draw_explicit:
             return lines[:3]
         else:
             return [lines[2]]
@@ -173,19 +173,19 @@ class HalfLine:
         new_point_1_y = self.point_1.y
 
         if self.point_1.x > self.point_2.x:
-            if self.atom.type != 'C' or self.atom.charge:
+            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
                 new_point_1_x = self.point_1.x - truncation_x
 
         else:
-            if self.atom.type != 'C' or self.atom.charge:
+            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
                 new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            if self.atom.type != 'C' or self.atom.charge:
+            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
                 new_point_1_y = self.point_1.y - truncation_y
 
         else:
-            if self.atom.type != 'C' or self.atom.charge:
+            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
                 new_point_1_y = self.point_1.y + truncation_y
 
         truncated_line = HalfLine(Vector(new_point_1_x, new_point_1_y), self.point_2, self.atom, self.angle)
@@ -532,27 +532,27 @@ class Line:
         new_point_2_y = self.point_2.y
 
         if self.point_1.x > self.point_2.x:
-            if self.atom_1.type != 'C' or self.atom_1.charge:
+            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
                 new_point_1_x = self.point_1.x - truncation_x
-            if self.atom_2.type != 'C' or self.atom_2.charge:
+            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
                 new_point_2_x = self.point_2.x + truncation_x
 
         else:
-            if self.atom_2.type != 'C' or self.atom_2.charge:
+            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
                 new_point_2_x = self.point_2.x - truncation_x
-            if self.atom_1.type != 'C' or self.atom_1.charge:
+            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
                 new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            if self.atom_1.type != 'C' or self.atom_1.charge:
+            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
                 new_point_1_y = self.point_1.y - truncation_y
-            if self.atom_2.type != 'C' or self.atom_2.charge:
+            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
                 new_point_2_y = self.point_2.y + truncation_y
 
         else:
-            if self.atom_2.type != 'C' or self.atom_2.charge:
+            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
                 new_point_2_y = self.point_2.y - truncation_y
-            if self.atom_1.type != 'C' or self.atom_1.charge:
+            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
                 new_point_1_y = self.point_1.y + truncation_y
 
         truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y), self.atom_1, self.atom_2)
@@ -642,6 +642,9 @@ class Vector:
     def get_squared_distance(self, vector):
         return (vector.x - self.x) ** 2 + (vector.y - self.y) ** 2
 
+    def get_distance(self, vector):
+        return math.sqrt(self.get_squared_distance(vector))
+
     def get_rotation_away_from_vector(self, vector, center, angle):
         tmp = self.copy()
 
@@ -726,10 +729,34 @@ class Vector:
         return [Vector(-delta.y, delta.x), Vector(delta.y, -delta.x)]
 
     @staticmethod
-    def get_angle_between_vectors(vector_1, vector_2):
-        difference = Vector.subtract_vectors(vector_2, vector_1)
+    def get_angle_between_vectors(vector_1, vector_2, origin):
+        return math.acos(((vector_1.x - origin.x) * (vector_2.x - origin.x) + (vector_1.y - origin.y) * (vector_2.y - origin.y)) /
+                         (math.sqrt((vector_1.x - origin.x)**2 + (vector_1.y - origin.y)**2) * math.sqrt((vector_2.x - origin.x)**2 + (vector_2.y - origin.y)**2)))
+        # difference = Vector.subtract_vectors(vector_2, vector_1)
 
-        return difference.angle()
+        # return difference.angle()
+
+
+class Triangle:
+    """
+    The Awesome Triangle Class, dedicated to Jay
+    """
+    def __init__(self, point_1, point_2, point_3):
+        self.point_1 = point_1
+        self.point_2 = point_2
+        self.point_3 = point_3
+
+        self.edge_length_1 = point_1.get_distance(point_2)
+        self.edge_length_2 = point_2.get_distance(point_3)
+        self.edge_length_3 = point_3.get_distance(point_1)
+
+        self.s = (self.edge_length_1 + self.edge_length_2 + self.edge_length_3) / 2.0
+
+    def get_squared_area(self):
+        return self.s * (self.s - self.edge_length_1) * (self.s - self.edge_length_2) * (self.s - self.edge_length_3)
+
+    def get_area(self):
+        return math.sqrt(self.get_squared_area())
 
 
 class Polygon:

@@ -3,7 +3,6 @@ import time
 import copy
 import math
 import matplotlib
-# matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
 from pikachu.drawing.sssr import SSSR
@@ -440,48 +439,71 @@ class Drawer:
                     self.chiral_bond_to_orientation[bond] = (wedge, atom)
 
     def draw(self):
-        start_time = time.time()
 
         if not self.options.draw_hydrogens:
             self.hide_hydrogens()
-      #  print("Hiding hydrogens..")
-        time_1 = time.time()
-      #  print(time_1 - start_time)
-        self.get_atom_nr_to_atom()
-      #  print("Making atom dictionary..")
-        time_2 = time.time()
-      #  print(time_2 - time_1)
-        self.define_rings()
-     #   print("Defining rings..")
-        time_3 = time.time()
-      #  print(time_3 - time_2)
-        self.process_structure()
-     #   print("Processing structure..")
-        time_4 = time.time()
-     #   print(time_4 - time_3)
-        self.set_chiral_bonds()
-     #   print("Setting chiral bonds..")
-        time_5 = time.time()
-      #  print(time_5 - time_4)
-        self.draw_structure()
-      #  print("Drawing structure..")
-        time_6 = time.time()
-     #   print(time_6 - time_5)
-        #self.draw_svg()
-      #  self.draw_png()
 
+        self.get_atom_nr_to_atom()
+        self.define_rings()
+        self.process_structure()
+        self.set_chiral_bonds()
+        self.draw_structure()
 
     def get_hydrogen_text_orientation(self, atom):
-        try:
-            neighbour = atom.drawn_neighbours[0]
-            if neighbour.draw.position.x > atom.draw.position.x + 3:
-                orientation = 'H_before_atom'
-            else:
-                orientation = 'H_after_atom'
+        four_positions = [Vector(atom.draw.position.x, atom.draw.position.y + 3),
+                          Vector(atom.draw.position.x, atom.draw.position.y - 3),
+                          Vector(atom.draw.position.x + 3, atom.draw.position.y),
+                          Vector(atom.draw.position.x - 3, atom.draw.position.y)]
 
-            return orientation
-        except IndexError:
-            return 'H_before_atom'
+        positions_to_angles = [[], [], [], []]
+
+        for neighbour in atom.drawn_neighbours:
+            for i, position in enumerate(four_positions):
+                angle = Vector.get_angle_between_vectors(position, neighbour.draw.position, atom.draw.position)
+                positions_to_angles[i].append(angle)
+
+        orientation = None
+
+        if not positions_to_angles[0]:
+            orientation = 'H_after_atom'
+        elif min(positions_to_angles[2]) > 1.57078 or min(positions_to_angles[3]) > 1.57078:
+            if positions_to_angles[2] >= positions_to_angles[3]:
+                orientation = 'H_after_atom'
+            else:
+                orientation = 'H_before_atom'
+        else:
+
+            smallest_angles = [min(angles) for angles in positions_to_angles]
+
+            angle = 0
+            position = None
+
+            for j, largest_angle in enumerate(smallest_angles):
+                if largest_angle > angle:
+                    angle = largest_angle
+                    position = j
+
+            if position == 0:
+                orientation = 'H_above_atom'
+            elif position == 1:
+                orientation = 'H_below_atom'
+            elif position == 2:
+                orientation = 'H_after_atom'
+            elif position == 3:
+                orientation = 'H_before_atom'
+
+        return orientation
+
+        # try:
+        #     neighbour = atom.drawn_neighbours[0]
+        #     if neighbour.draw.position.x > atom.draw.position.x + 3:
+        #         orientation = 'H_before_atom'
+        #     else:
+        #         orientation = 'H_after_atom'
+        #
+        #     return orientation
+        # except IndexError:
+        #     return 'H_before_atom'
 
     @staticmethod
     def in_same_ring(atom_1, atom_2):
@@ -584,14 +606,11 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-     #   print("Height:", height)
-      #  print("Width:", width)
-
        # font_size = 3500 / height
         self.line_width = 2
 
         fig, ax = plt.subplots(figsize=((width + 2 * self.options.padding) / 50.0, (height + 2 * self.options.padding) / 50.0), dpi=100)
-      #  fig, ax = plt.subplots()
+
         ax.set_aspect('equal', adjustable='box')
         ax.axis('off')
 
@@ -599,12 +618,7 @@ class Drawer:
         ax.set_ylim([min_y - self.options.padding, max_y + self.options.padding])
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
-      #  figure, ax = plt.subplots(figsize=(8, 8))
-       # ax.patch.set_face_color(self.options.background_color)
-      #  ax.set_aspect()('equal', adjustable='box')
-      #  plt.gca().set_aspect('equal', adjustable='box')
-
-        params = {'mathtext.default': 'regular',}
+        params = {'mathtext.default': 'regular'}
        #           'font.size': font_size}
         plt.rcParams.update(params)
 
@@ -616,8 +630,6 @@ class Drawer:
 
             ring_centers_x.append(ring.center.x)
             ring_centers_y.append(ring.center.y)
-
-     #   ax.scatter(ring_centers_x, ring_centers_y, color='blue')
 
         for bond_nr, bond in self.structure.bonds.items():
             if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
@@ -747,7 +759,9 @@ class Drawer:
 
         for atom in self.structure.graph:
             if atom.draw.positioned:
-                if atom.type != 'C':
+                text_h = ''
+                text_h_pos = None
+                if atom.type != 'C' or atom.draw.draw_explicit:
                     text = atom.type
                 else:
                     text = ''
@@ -755,11 +769,14 @@ class Drawer:
                 horizontal_alignment = 'center'
 
                 orientation = self.get_hydrogen_text_orientation(atom)
+                if orientation == 'H_above_atom':
+                    text_h_pos = Vector(atom.draw.position.x, atom.draw.position.y + 6)
+                if orientation == 'H_below_atom':
+                    text_h_pos = Vector(atom.draw.position.x, atom.draw.position.y - 6)
 
-                if not atom.charge and atom.type != 'C':
+                if not atom.charge and (atom.type != 'C' or atom.draw.draw_explicit):
 
                     if atom.draw.has_hydrogen:
-                   # if len(atom.drawn_neighbours) == 1 and atom.draw.has_hydrogen:
                         hydrogen_count = 0
                         for neighbour in atom.neighbours:
                             if neighbour.type == 'H' and not neighbour.draw.is_drawn:
@@ -773,6 +790,10 @@ class Drawer:
                                                                                 atom_type=atom.type)
                                     horizontal_alignment = 'right'
                                     atom.draw.position.x += 3
+                                elif orientation == 'H_below_atom' or orientation == 'H_above_atom':
+                                    text = atom.type
+                                    text_h = r'$H_{hydrogens}$'.format(hydrogens=hydrogen_count)
+
                                 else:
                                     text = r'${atom_type}H_{hydrogens}$'.format(hydrogens=hydrogen_count,
                                                                                 atom_type=atom.type)
@@ -783,6 +804,9 @@ class Drawer:
                                     text = f'H{atom.type}'
                                     horizontal_alignment = 'right'
                                     atom.draw.position.x += 3
+                                elif orientation == 'H_below_atom' or orientation == 'H_above_atom':
+                                    text = atom.type
+                                    text_h = 'H'
                                 else:
                                     text = f'{atom.type}H'
                                     horizontal_alignment = 'left'
@@ -828,7 +852,15 @@ class Drawer:
 
                                 horizontal_alignment = 'right'
                                 atom.draw.position.x += 3
-
+                            elif orientation == 'H_above_atom' or orientation == 'H_below_atom':
+                                text_h = r'$H_{hydrogens}$'.format(hydrogens=hydrogen_count)
+                                if abs(atom.charge) > 1:
+                                    text = r'${atom_type}^{charge}{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                           charge=atom.charge,
+                                                                                           charge_symbol=charge_symbol)
+                                elif abs(atom.charge) == 1:
+                                    text = r'${atom_type}^{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                   charge_symbol=charge_symbol)
                             else:
                                 if abs(atom.charge) > 1:
                                     text = r'${atom_type}H_{hydrogens}^{charge}{charge_symbol}$'.format(hydrogens=hydrogen_count,
@@ -854,6 +886,17 @@ class Drawer:
                                                                                     charge_symbol=charge_symbol)
                                 horizontal_alignment = 'right'
                                 atom.draw.position.x += 3
+                            elif orientation == 'H_above_atom' or orientation == 'H_below_atom':
+                                text_h = 'H'
+                                if abs(atom.charge) > 1:
+
+                                    text = r'${atom_type}^{charge}{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                           charge=atom.charge,
+                                                                                           charge_symbol=charge_symbol)
+                                elif abs(atom.charge) == 1:
+                                    text = r'${atom_type}^{charge_symbol}$'.format(atom_type=atom.type,
+                                                                                   charge_symbol=charge_symbol)
+
                             else:
                                 if abs(atom.charge) > 1:
                                     text = r'${atom_type}H^{charge}{charge_symbol}$'.format(atom_type=atom.type,
@@ -872,6 +915,12 @@ class Drawer:
                              horizontalalignment=horizontal_alignment,
                              verticalalignment='center',
                              color=atom.draw.colour)
+                if text_h:
+                    plt.text(text_h_pos.x, text_h_pos.y,
+                             text_h,
+                             horizontalalignment='center',
+                             verticalalignment='center',
+                             color=atom.draw.colour)
 
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
@@ -880,15 +929,8 @@ class Drawer:
         return False
 
     def process_structure(self):
-        a_time = time.time()
         self.position()
-        pos_time_1 = time.time()
-       # print("Positioning...")
-       # print(pos_time_1 - a_time)
         self.structure.refresh_structure()
-        pos_time_2 = time.time()
-      #  print("Refreshing...")
-      #  print(pos_time_2 - pos_time_1)
         self.restore_ring_information()
 
         self.resolve_primary_overlaps()
@@ -958,10 +1000,6 @@ class Drawer:
 
         self.resolve_secondary_overlaps(sorted_overlap_scores)
 
-        pos_time_3 = time.time()
-      #  print("Overlap resolution...")
-      #  print(pos_time_3 - pos_time_2)
-
     def position(self):
         start_atom = None
 
@@ -986,8 +1024,6 @@ class Drawer:
 
     def create_next_bond(self, atom, previous_atom=None, angle=0.0,
                          previous_branch_shortest=False, skip_positioning=False):
-
-     #   print(atom)
 
         if atom.draw.positioned and not skip_positioning:
             return
@@ -1100,7 +1136,9 @@ class Drawer:
                          previous_atom and len(previous_atom.draw.rings) == 0 and
                          len(atom.neighbours) == 2):
 
-                    atom.draw.draw_explicit = False
+                    if current_bond.type == 'double' and previous_bond.type == 'double':
+
+                        atom.draw.draw_explicit = True
 
                     if previous_atom:
                         previous_bond.draw.center = True
@@ -1112,7 +1150,7 @@ class Drawer:
 
                     #TODO: if bond type is double, make sure that the carbon in the middle is drawn
 
-                    next_atom.draw.draw_explicit = True
+                    # next_atom.draw.draw_explicit = True
 
                     self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
 
@@ -1353,8 +1391,6 @@ class Drawer:
         if bond.type != 'single':
             return False
 
-        #todo: If bond type IS single, make sure you can't rotate it if the adjacent bond is chiral
-
         # If bond is terminal, don't bother rotating.
 
         if len(bond.atom_1.drawn_neighbours) == 1 or len(bond.atom_2.drawn_neighbours) == 1:
@@ -1547,7 +1583,6 @@ class Drawer:
         yield atom
         visited.add(atom)
         for neighbour in atom.drawn_neighbours:
-           # if neighbour in self.structure.get_drawn_atoms():
             if neighbour not in visited:
                 yield from self.traverse_substructure(neighbour, visited)
 
@@ -1722,7 +1757,6 @@ class Drawer:
 
     def define_rings(self):
         rings = SSSR(self.structure).get_rings()
-        print(rings)
         if not rings:
             return None
 
@@ -1776,11 +1810,9 @@ class Drawer:
     def hide_hydrogens(self):
         hidden = []
         exposed = []
-        sometime = time.time()
+
         self.structure.refresh_structure()
-      #  print('refreshing structure')
-        newtime = time.time()
-      #  print(newtime - sometime)
+
         for atom in self.structure.graph:
             if atom.type != 'H':
                 continue

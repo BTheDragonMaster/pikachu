@@ -18,8 +18,6 @@ class SSSR(structure.Structure):
         connected_components = self.get_graph_components(adjacency_matrix)
         rings = []
 
-        print("Connected components:", connected_components)
-
         for component in connected_components:
             cc_adjacency_matrix = self.get_subgraph_adjacency_matrix(component)
             bond_counts = {}
@@ -55,13 +53,9 @@ class SSSR(structure.Structure):
                 continue
 
             d, pe, pe_prime = self.get_path_included_distance_matrices(cc_adjacency_matrix)
-            print("d", d)
-            print("pe", pe)
-            print("pe_prime", pe_prime)
+
             ring_candidates = self.get_ring_candidates(d, pe, pe_prime)
             c_sssr = self.get_sssr(ring_candidates, cc_adjacency_matrix, bond_counts, ring_counts, sssr_nr)
-            print("Ring counts:", ring_counts)
-            print("c_sssr", c_sssr)
 
             for ring in c_sssr:
                 original_ring = self.get_original_ring_order(list(ring))
@@ -227,11 +221,11 @@ class SSSR(structure.Structure):
                 # For neighbours: set the pe
 
                 if d[atom_1][atom_2] == 1:
-                    pe[atom_1][atom_2] = [[[atom_1, atom_2]]]
+                    pe[atom_1][atom_2] = [[self.bond_lookup[atom_1][atom_2]]]
                 else:
                     pe[atom_1][atom_2] = []
 
-                pe_prime[atom_1][atom_2] = []
+                pe_prime[atom_1][atom_2] = set()
 
         # For each atom triplet, check if the sum of the distances between two of the three
         # atom pairs is smaller than the current distance recorded between the remaining atom
@@ -240,42 +234,51 @@ class SSSR(structure.Structure):
         for atom_k in atoms:
             for atom_i in atoms:
                 for atom_j in atoms:
+
                     previous_path_length = d[atom_i][atom_j]
                     new_path_length = d[atom_i][atom_k] + d[atom_k][atom_j]
 
+                    # The path from atom_i to atom_j through atom_k is shorter than the current path
+                    # from atom_i to atom_j
+
                     if previous_path_length > new_path_length:
-                        if previous_path_length == new_path_length + 1:
-                            path_nr = len(pe[atom_i][atom_j])
-                            pe_prime[atom_i][atom_j] = [None] * path_nr
-                            for l in range(path_nr - 1, -1, -1):
-                                edge_nr = len(pe[atom_i][atom_j][l])
-                                pe_prime[atom_i][atom_j][l] = [None] * edge_nr
-                                for m in range(edge_nr - 1, -1, -1):
-                                    length_n = len(pe[atom_i][atom_j][l][m])
-                                    if length_n != 2:
-                                        print("Something")
-                                    else:
-                                        print("It's two")
-                                    pe_prime[atom_i][atom_j][l][m] = [None] * length_n
-                                    for n in range(length_n - 1, -1, -1):
-                                        pe_prime[atom_i][atom_j][l][m][n] = [pe[atom_i][atom_j][l][m][0],
-                                                                             pe[atom_i][atom_j][l][m][1]]
-                        else:
-                            pe_prime[atom_i][atom_j] = []
+                        # pe_prime[atom_i][atom_j] = []
+                        # If it is exactly one shorter, we need to store the old path in the pe_prime matrix
+                        # if previous_path_length == new_path_length + 1:
+                        #     for path in pe[atom_i][atom_j]:
+                        #         pe_prime[atom_i][atom_j].append(path[:])
 
                         d[atom_i][atom_j] = new_path_length
-                        pe[atom_i][atom_j] = [[]]
+                        pe[atom_i][atom_j] = []
 
-                        pe[atom_i][atom_j][0] = list(reversed(pe[atom_i][atom_k][0])) + list(reversed(pe[atom_k][atom_j][0]))
+                        for path_1 in pe[atom_i][atom_k]:
+                            for path_2 in pe[atom_k][atom_j]:
+                                new_path = path_1[:] + path_2[:]
+                                pe[atom_i][atom_j].append(new_path)
 
                     elif previous_path_length == new_path_length:
                         if len(pe[atom_i][atom_k]) and len(pe[atom_k][atom_j]):
-                            tmp = list(reversed(pe[atom_i][atom_k][0])) + list(reversed(pe[atom_k][atom_j][0]))
-                            pe[atom_i][atom_j].append(tmp)
+                            for path_1 in pe[atom_i][atom_k]:
+                                for path_2 in pe[atom_k][atom_j]:
+                                    new_path = path_1[:] + path_2[:]
+                                    pe[atom_i][atom_j].append(new_path)
 
-                    elif previous_path_length == new_path_length - 1:
-                        tmp = list(reversed(pe[atom_i][atom_k][0])) + list(reversed(pe[atom_k][atom_j][0]))
-                        pe_prime[atom_i][atom_j].append(tmp)
+                    # elif previous_path_length == new_path_length - 1:
+                    #     for path_1 in pe[atom_i][atom_k]:
+                    #         for path_2 in pe[atom_k][atom_j]:
+                    #             new_path = path_1[:] + path_2[:]
+                    #             pe_prime[atom_i][atom_j].append(new_path)
+
+        for atom_k in atoms:
+            for atom_i in atoms:
+                for atom_j in atoms:
+                    shortest_path_length = d[atom_i][atom_j]
+                    new_path_length = d[atom_i][atom_k] + d[atom_k][atom_j]
+                    if new_path_length - 1 == shortest_path_length:
+                        for path_1 in pe[atom_i][atom_k]:
+                            for path_2 in pe[atom_k][atom_j]:
+                                new_path = tuple(path_1[:] + path_2[:])
+                                pe_prime[atom_i][atom_j].add(new_path)
 
         return d, pe, pe_prime
 
@@ -291,39 +294,38 @@ class SSSR(structure.Structure):
                 if d[atom_1][atom_2] == 0 or (len(pe[atom_1][atom_2]) == 1 and len(pe_prime[atom_1][atom_2]) == 0):
                     continue
                 else:
-                    if len(pe_prime[atom_1][atom_2]) != 0:
-                        vertices_in_cycle = 2 * (d[atom_1][atom_2]) + 1
-                    else:
+                    if len(pe[atom_1][atom_2]) > 1:
                         vertices_in_cycle = 2 * (d[atom_1][atom_2])
+                    elif len(pe_prime[atom_1][atom_2]) != 0:
+                        vertices_in_cycle = 2 * (d[atom_1][atom_2]) + 1
+                    # else:
+                    #     vertices_in_cycle = 2 * (d[atom_1][atom_2])
 
                     if vertices_in_cycle != float('inf'):
                         candidates.append([vertices_in_cycle, pe[atom_1][atom_2], pe_prime[atom_1][atom_2]])
 
         candidates = sorted(candidates, key=lambda x: x[0])
-        print("Candidates", candidates)
 
         return candidates
 
     def get_sssr(self, ring_candidates, cc_adjacency_matrix, bond_counts, ring_counts, sssr_nr):
         c_sssr = []
-        all_bonds = []
+        all_bonds = set()
 
         for candidate in ring_candidates:
 
-            ring_size, paths, path_and_vertices = candidate
+            ring_size, paths, extended_paths = candidate
             if ring_size % 2 != 0:
-                for path_and_vertex in path_and_vertices:
-                    bonds = paths[0] + path_and_vertex
-                    for i in range(len(bonds)):
-                        if type(bonds[i][0]) == list:
-                            bonds[i] = bonds[i][0]
+                for extended_path in extended_paths:
+                    bonds = paths[0] + list(extended_path)
 
                     atoms = self.bonds_to_atoms(bonds)
                     bond_count = self.get_bond_count(atoms, cc_adjacency_matrix)
 
                     if bond_count == len(atoms) and not self.path_sets_contain(c_sssr, atoms, bonds, all_bonds, bond_counts, ring_counts):
                         c_sssr.append(atoms)
-                        all_bonds += bonds
+                        for bond in bonds:
+                            all_bonds.add(bond)
 
                     if len(c_sssr) > sssr_nr:
                         return c_sssr
@@ -331,9 +333,6 @@ class SSSR(structure.Structure):
             else:
                 for i in range(len(paths) - 1):
                     bonds = paths[i] + paths[i + 1]
-                    for i in range(len(bonds)):
-                        if type(bonds[i][0]) == list:
-                            bonds[i] = bonds[i][0]
 
                     atoms = self.bonds_to_atoms(bonds)
                     bond_count = self.get_bond_count(atoms, cc_adjacency_matrix)
@@ -341,19 +340,19 @@ class SSSR(structure.Structure):
                     if bond_count == len(atoms) and not self.path_sets_contain(c_sssr, atoms, bonds, all_bonds,
                                                                           bond_counts, ring_counts):
                         c_sssr.append(atoms)
-                        all_bonds += bonds
+                        for bond in bonds:
+                            all_bonds.add(bond)
 
                     if len(c_sssr) > sssr_nr:
                         return c_sssr
 
         return c_sssr
 
-
     def bonds_to_atoms(self, bonds):
         atoms = set()
-        for atom_1, atom_2 in bonds:
-            atoms.add(atom_1)
-            atoms.add(atom_2)
+        for bond in bonds:
+            atoms.add(bond.atom_1)
+            atoms.add(bond.atom_2)
 
         return atoms
 
@@ -383,29 +382,21 @@ class SSSR(structure.Structure):
 
         return True
 
-
     def path_sets_contain(self, c_sssr, atoms, bonds, all_bonds, bond_counts, ring_counts):
-        for i in range(len(c_sssr) - 1, -1, -1):
-            if self.is_superset(atoms, c_sssr[i]):
+        for candidate_ring in c_sssr:
+            if self.is_superset(atoms, candidate_ring):
                 return True
 
-            if len(c_sssr[i]) != len(atoms):
+            if len(candidate_ring) != len(atoms):
                 continue
 
-            if self.sets_equal(atoms, c_sssr[i]):
+            if self.sets_equal(atoms, candidate_ring):
                 return True
 
-        count = 0
         all_contained = False
 
-        for i in range(len(bonds) - 1, -1, -1):
-            for j in range(len(all_bonds) - 1, -1, -1):
-                if (bonds[i][0] == all_bonds[j][0] and bonds[i][1] == all_bonds[j][1]) or\
-                        (bonds[i][1] == all_bonds[j][0] and bonds[i][0] == all_bonds[j][1]):
-                    count += 1
-
-                if count == len(bonds):
-                    all_contained = True
+        if self.is_superset(all_bonds, bonds):
+            all_contained = True
 
         #special_case - see smiles drawer code
         special_case = False
@@ -423,8 +414,3 @@ class SSSR(structure.Structure):
             ring_counts[atom] += 1
 
         return False
-
-
-
-
-
