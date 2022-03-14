@@ -343,7 +343,10 @@ class Drawer:
         options_h = []
         options = []
         backup_options_rings = []
-        backup_options_chiral = []
+        backup_options_chiral_noring = []
+        backup_options_chiral_ring = []
+        backup_options_chiral_neighbour = []
+        backup_options_chiral_neighbour_ring = []
 
         for neighbour in [size_and_atom[1] for size_and_atom in sizes_and_atoms]:
             if neighbour.type == 'H':
@@ -360,12 +363,24 @@ class Drawer:
 
                 if not other_chiral_centre and not in_ring and not neighbour.chiral:
                     options.append(neighbour)
+
+                elif other_chiral_centre and not neighbour.chiral and not in_ring:
+                    backup_options_chiral_noring.append(neighbour)
+
                 elif in_ring and not other_chiral_centre and not neighbour.chiral:
                     backup_options_rings.append(neighbour)
-                else:
-                    backup_options_chiral.append(neighbour)
 
-        priority = options_h + options + backup_options_rings + backup_options_chiral
+                elif in_ring and other_chiral_centre and not neighbour.chiral:
+                    backup_options_chiral_ring.append(neighbour)
+
+                elif not in_ring and neighbour.chiral:
+                    backup_options_chiral_neighbour.append(neighbour)
+
+                else:
+                    backup_options_chiral_neighbour_ring.append(neighbour)
+
+        priority = options_h + options + backup_options_chiral_noring + backup_options_rings + backup_options_chiral_ring + backup_options_chiral_neighbour + backup_options_chiral_neighbour_ring
+        print("Priority", chiral_center, options_h, options, backup_options_chiral_noring, backup_options_rings, backup_options_chiral_ring, backup_options_chiral_neighbour, backup_options_chiral_neighbour_ring)
         assert len(priority) == 4
 
         return priority
