@@ -120,6 +120,13 @@ def svg_from_structure(structure, svg_out):
     drawer.save_svg(svg_out)
 
 
+def svg_string_from_structure(structure):
+    structure = structure.kekulise()
+    drawer = Drawer(structure)
+    svg_string = drawer.save_svg_string()
+    return svg_string
+
+
 def png_from_structure(structure, png_out):
     """
     Save structure drawing of Structure object to .png

@@ -4,55 +4,14 @@ import copy
 import math
 import matplotlib
 from matplotlib import pyplot as plt
+from pprint import pprint
+from io import StringIO
 
 from pikachu.drawing.sssr import SSSR
 from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
 from pikachu.math_functions import Vector, Polygon, Line, Permutations
 from pikachu.chem.chirality import find_chirality_from_nonh, get_chiral_permutations
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
-
-
-class SpanningTree:
-    def __init__(self, structure):
-        self.spanning_tree = {}
-        atom = list(structure.graph.keys())[0]
-        self.visited = set()
-
-        self.make_spanning_tree(atom)
-
-    def make_spanning_tree(self, atom, parent=None):
-
-        if parent:
-            if parent not in self.spanning_tree:
-                self.spanning_tree[parent] = []
-
-            self.spanning_tree[parent].append(atom)
-
-        self.visited.add(atom)
-        for neighbour in atom.neighbours:
-            if neighbour not in self.visited:
-                self.make_spanning_tree(neighbour, atom)
-
-
-class Vertex:
-    def __init__(self, atom, parent):
-        self.atom = atom
-        self.parent = parent
-        self.children = []
-        if parent:
-            self.parent.children.append(self)
-
-    def __hash__(self):
-        return self.atom.__hash__()
-
-    def __repr__(self):
-        return self.atom.__repr__()
-
-    def __eq__(self, vertex):
-        if self.atom == vertex.atom:
-            return True
-        else:
-            return False
 
 
 class KKLayout:
@@ -303,7 +262,8 @@ class KKLayout:
 
 
 class Drawer:
-    def __init__(self, structure, options=None, save_png=None):
+    def __init__(self, structure, options=None):
+
         if options == None:
             self.options = Options()
 
@@ -325,6 +285,76 @@ class Drawer:
         self.ring_overlap_id_tracker = 0
 
         self.draw()
+
+    def find_shortest_path(self, atom_1, atom_2):
+        distances = {}
+        previous_hop = {}
+        unvisited = set()
+
+        for atom in self.structure.graph:
+            distances[atom] = float('inf')
+            previous_hop[atom] = None
+            unvisited.add(atom)
+
+        distances[atom_1] = 0
+
+        while unvisited:
+
+            current_atom = None
+            minimum = float('inf')
+            for atom in unvisited:
+                dist = distances[atom]
+                if dist < minimum:
+                    current_atom = atom
+
+            unvisited.remove(current_atom)
+            if current_atom == atom_2:
+                break
+            for neighbour in self.structure.graph[current_atom]:
+                if neighbour in unvisited:
+                    alternative_distance = distances[current_atom] + 1.0
+
+                    if alternative_distance < distances[neighbour]:
+                        distances[neighbour] = alternative_distance
+                        previous_hop[neighbour] = current_atom
+
+        path_atoms = []
+        current_atom = atom_2
+        if previous_hop[current_atom] or current_atom == atom_1:
+            while current_atom:
+                path_atoms.insert(0, current_atom)
+                current_atom = previous_hop[current_atom]
+
+        path = []
+
+        for i in range(1, len(path_atoms)):
+            atom_1 = path_atoms[i - 1]
+            atom_2 = path_atoms[i]
+            bond = self.structure.bond_lookup[atom_1][atom_2]
+            path.append(bond)
+
+        return path
+
+    def finetune_overlap_resolution(self):
+        clashing_atoms = self.find_clashing_atoms()
+        print(clashing_atoms)
+        for atom_1, atom_2 in clashing_atoms:
+            shortest_path = self.find_shortest_path(atom_1, atom_2)
+            for bond in shortest_path:
+                if self.bond_is_rotatable(bond):
+                    print(atom_1, atom_2, bond)
+
+    def find_clashing_atoms(self):
+        clashing_atoms = []
+        for i, atom_1 in enumerate(self.drawn_atoms):
+            for j in range(i + 1, len(self.drawn_atoms)):
+                atom_2 = self.drawn_atoms[j]
+                if not self.structure.bond_exists(atom_1, atom_2):
+                    distance = Vector.subtract_vectors(atom_1.draw.position, atom_2.draw.position).get_squared_length()
+                    if distance < self.options.bond_length_squared:
+                        clashing_atoms.append((atom_1, atom_2))
+
+        return clashing_atoms
 
     def prioritise_chiral_bonds(self, chiral_center):
 
@@ -380,7 +410,6 @@ class Drawer:
                     backup_options_chiral_neighbour_ring.append(neighbour)
 
         priority = options_h + options + backup_options_chiral_noring + backup_options_rings + backup_options_chiral_ring + backup_options_chiral_neighbour + backup_options_chiral_neighbour_ring
-        print("Priority", chiral_center, options_h, options, backup_options_chiral_noring, backup_options_rings, backup_options_chiral_ring, backup_options_chiral_neighbour, backup_options_chiral_neighbour_ring)
         assert len(priority) == 4
 
         return priority
@@ -464,7 +493,8 @@ class Drawer:
         self.set_chiral_bonds()
         self.draw_structure()
 
-    def get_hydrogen_text_orientation(self, atom):
+    @staticmethod
+    def get_hydrogen_text_orientation(atom):
         four_positions = [Vector(atom.draw.position.x, atom.draw.position.y + 3),
                           Vector(atom.draw.position.x, atom.draw.position.y - 3),
                           Vector(atom.draw.position.x + 3, atom.draw.position.y),
@@ -509,17 +539,6 @@ class Drawer:
 
         return orientation
 
-        # try:
-        #     neighbour = atom.drawn_neighbours[0]
-        #     if neighbour.draw.position.x > atom.draw.position.x + 3:
-        #         orientation = 'H_before_atom'
-        #     else:
-        #         orientation = 'H_after_atom'
-        #
-        #     return orientation
-        # except IndexError:
-        #     return 'H_before_atom'
-
     @staticmethod
     def in_same_ring(atom_1, atom_2):
         if atom_1.draw.rings and atom_2.draw.rings:
@@ -537,7 +556,8 @@ class Drawer:
 
         return None
 
-    def plot_chiral_bond_front(self, polygon, ax, color='black'):
+    @staticmethod
+    def plot_chiral_bond_front(polygon, ax, color='black'):
         x = []
         y = []
         for point in polygon:
@@ -574,9 +594,10 @@ class Drawer:
 
     def plot_line(self, line, ax, color='black'):
         ax.plot([line.point_1.x, line.point_2.x],
-                 [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
+                [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
 
-    def save_svg(self, out_file):
+    @staticmethod
+    def save_svg(out_file):
         if out_file.endswith('.svg'):
             pass
         else:
@@ -586,7 +607,20 @@ class Drawer:
         plt.close(plt.gcf())
         plt.close('all')
 
-    def save_png(self, out_file):
+    @staticmethod
+    def save_svg_string():
+        svg_string = StringIO()
+        plt.savefig(svg_string, format='svg')
+        svg = svg_string.getvalue()
+
+        plt.clf()
+        plt.close(plt.gcf())
+        plt.close('all')
+        
+        return svg
+
+    @staticmethod
+    def save_png(out_file):
         if out_file.endswith('.png'):
             pass
         else:
@@ -595,12 +629,15 @@ class Drawer:
         plt.clf()
         plt.close()
 
-    def show_molecule(self):
+    @staticmethod
+    def show_molecule():
         plt.show()
         plt.clf()
         plt.close()
 
     def draw_structure(self):
+
+        # Find the plotting dimensions of the molecule such that the canvas can be scaled to fit the molecule
 
         min_x = 100000000
         max_x = -100000000
@@ -621,7 +658,6 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-       # font_size = 3500 / height
         self.line_width = 2
 
         fig, ax = plt.subplots(figsize=((width + 2 * self.options.padding) / 50.0, (height + 2 * self.options.padding) / 50.0), dpi=100)
@@ -634,7 +670,6 @@ class Drawer:
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
         params = {'mathtext.default': 'regular'}
-       #           'font.size': font_size}
         plt.rcParams.update(params)
 
         ring_centers_x = []
@@ -650,7 +685,7 @@ class Drawer:
             if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
                 line = Line(bond.atom_1.draw.position, bond.atom_2.draw.position, bond.atom_1, bond.atom_2)
                 midpoint = line.get_midpoint()
-                truncated_line = line.get_truncated_line(self.options.short_bond_length)
+
                 if bond.type == 'single':
                     if bond in self.chiral_bonds:
                         orientation, chiral_center = self.chiral_bond_to_orientation[bond]
@@ -1013,7 +1048,10 @@ class Drawer:
 
                         self.total_overlap_score, sorted_overlap_scores, atom_to_scores = self.get_overlap_score()
 
-        self.resolve_secondary_overlaps(sorted_overlap_scores)
+        #for i in range(self.options.overlap_resolution_iterations):
+            self.resolve_secondary_overlaps(sorted_overlap_scores)
+
+        self.finetune_overlap_resolution()
 
     def position(self):
         start_atom = None
@@ -1162,8 +1200,6 @@ class Drawer:
 
                     if current_bond.type == 'double' or current_bond.type == 'triple' or (previous_atom and previous_bond.type == 'triple'):
                         next_atom.draw.angle = 0.0
-
-                    #TODO: if bond type is double, make sure that the carbon in the middle is drawn
 
                     # next_atom.draw.draw_explicit = True
 
