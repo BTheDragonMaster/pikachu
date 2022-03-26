@@ -39,6 +39,7 @@ class Structure:
             self.set_atoms()
         else:
             self.graph = {}
+            self.atoms = {}
         if bonds:
             self.bonds = bonds
             self.make_bond_lookup()
@@ -92,13 +93,21 @@ class Structure:
             new_atom_1 = new_atoms[bond.atom_1.nr]
             new_atom_2 = new_atoms[bond.atom_2.nr]
             new_bond = Bond(new_atom_1, new_atom_2, bond.type, bond.nr)
+            new_bond.chiral = bond.chiral
+            new_bond.chiral_symbol = bond.chiral_symbol
 
             for atom_1 in bond.chiral_dict:
-                new_1 = new_atoms[atom_1.nr]
+                if type(atom_1) == Atom:
+                    new_1 = new_atoms[atom_1.nr]
+                else:
+                    pass
                 new_bond.chiral_dict[new_1] = {}
                 for atom_2 in bond.chiral_dict[atom_1]:
-                    new_2 = new_atoms[atom_2.nr]
-                    new_bond.chiral_dict[new_1][new_2] = bond.chiral_dict[atom_1][atom_2]
+                    if type(atom_2) == Atom:
+                        new_2 = new_atoms[atom_2.nr]
+                        new_bond.chiral_dict[new_1][new_2] = bond.chiral_dict[atom_1][atom_2]
+                    else:
+                        pass
 
             new_bonds[bond_nr] = new_bond
             if new_bond not in new_atom_1.bonds:
@@ -256,9 +265,11 @@ class Structure:
 
             if bond.type == 'double' or bond.type == 'triple':
 
-                # double bonds can only be chiral if they have exactly three bonds
+                # double bonds neighboured by three bonds on each atom, e.g. a C=C bond
 
-                if len(bond.atom_1.bonds) == 3 and len(bond.atom_2.bonds) == 3:
+                if len(bond.atom_1.bonds) + len(bond.atom_1.lone_pairs) == 3 and \
+                        len(bond.atom_2.bonds) + len(bond.atom_2.lone_pairs) == 3 and \
+                        len(bond.atom_1.lone_pairs) < 2 and len(bond.atom_2.lone_pairs) < 2:
 
                     # define atoms adjacent to the atoms involved in the double bond
                     # also keep track of the chiral symbol that defines these bonds
@@ -273,9 +284,18 @@ class Structure:
                     chiral_2_1 = None
                     chiral_2_2 = None
 
+                    if bond.atom_1.lone_pairs:
+                        atom_1_1 = bond.atom_1.lone_pairs[0]
+                    if bond.atom_2.lone_pairs:
+                        atom_2_1 = bond.atom_2.lone_pairs[0]
+
+                    # Check bonds adjacent to the first atom
+
                     for bond_1 in bond.atom_1.bonds:
 
                         if bond_1.type == 'single':
+
+                            # Looks at the bonds between the atom adjacent to the stereobond and its neighbours
                             if bond.atom_1 == bond_1.atom_1:
                                 if bond_1.chiral_symbol == '/':
                                     direction = 'up'
@@ -284,9 +304,13 @@ class Structure:
                                 else:
                                     direction = None
 
+                                # First time it runs through this it will define atom_1_1
+
                                 if not atom_1_1:
                                     atom_1_1 = bond_1.atom_2
                                     chiral_1_1 = direction
+
+                                # Second time it runs through this, it will define atom_1_2
                                 else:
                                     atom_1_2 = bond_1.atom_2
                                     chiral_1_2 = direction
@@ -360,50 +384,129 @@ class Structure:
                             first_other_atom = atom_1_2
                             first_chiral_symbol = chiral_1_1
 
+                            if not chiral_1_2 and type(atom_1_2) == Atom:
+                                # Make sure where chiral symbols are not defined, they are added
+
+                                if (atom_1_1.nr > bond.atom_1.nr and atom_1_2.nr > bond.atom_1.nr) or \
+                                        (atom_1_1.nr < bond.atom_1.nr and atom_1_2.nr < bond.atom_1.nr):
+                                    if self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '\\'
+                                    else:
+                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '/'
+
+                                else:
+                                    if self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '/'
+                                    else:
+                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '\\'
+
                         else:
                             first_atom = atom_1_2
                             first_other_atom = atom_1_1
                             first_chiral_symbol = chiral_1_2
 
+                            # Make sure where chiral symbols are not defined, they are added
+
+                            if type(atom_1_1) == Atom:
+
+                                if (atom_1_1.nr > bond.atom_1.nr and atom_1_2.nr > bond.atom_1.nr) or \
+                                   (atom_1_1.nr < bond.atom_1.nr and atom_1_2.nr < bond.atom_1.nr):
+                                    if self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '\\'
+                                    else:
+                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '/'
+
+                                else:
+                                    if self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '/'
+                                    else:
+                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '\\'
+
                         if chiral_2_1:
                             second_atom = atom_2_1
                             second_other_atom = atom_2_2
                             second_chiral_symbol = chiral_2_1
+
+                            if not chiral_2_2 and type(atom_2_2) == Atom:
+
+                                # Make sure where chiral symbols are not defined, they are added
+
+                                if (atom_2_1.nr > bond.atom_2.nr and atom_2_2.nr > bond.atom_2.nr) or \
+                                        (atom_2_1.nr < bond.atom_2.nr and atom_2_2.nr < bond.atom_2.nr):
+                                    if self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '\\'
+                                    else:
+                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '/'
+
+                                else:
+                                    if self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '/'
+                                    else:
+                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '\\'
+
                         else:
                             second_atom = atom_2_2
                             second_other_atom = atom_2_1
                             second_chiral_symbol = chiral_2_2
 
-                        bond.chiral_dict[first_atom] = {}
-                        bond.chiral_dict[first_other_atom] = {}
-                        bond.chiral_dict[second_atom] = {}
-                        bond.chiral_dict[second_other_atom] = {}
+                            # Make sure where chiral symbols are not defined, they are added
+
+                            if type(atom_2_1) == Atom:
+                                if (atom_2_1.nr > bond.atom_2.nr and atom_2_2.nr > bond.atom_2.nr) or \
+                                        (atom_2_1.nr < bond.atom_2.nr and atom_2_2.nr < bond.atom_2.nr):
+                                    if self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '\\'
+                                    else:
+                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '/'
+
+                                else:
+                                    if self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol == '/':
+                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '/'
+                                    else:
+                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '\\'
+
+                        if type(first_atom) == Atom:
+                            bond.chiral_dict[first_atom] = {}
+                        if type(first_other_atom) == Atom:
+                            bond.chiral_dict[first_other_atom] = {}
+                        if type(second_atom) == Atom:
+                            bond.chiral_dict[second_atom] = {}
+                        if type(second_other_atom) == Atom:
+                            bond.chiral_dict[second_other_atom] = {}
 
                         if first_chiral_symbol == second_chiral_symbol:
-                            bond.chiral_dict[first_atom][second_atom] = 'cis'
-                            bond.chiral_dict[second_atom][first_atom] = 'cis'
+                            if type(first_atom) == Atom and type(second_atom) == Atom:
+                                bond.chiral_dict[first_atom][second_atom] = 'cis'
+                                bond.chiral_dict[second_atom][first_atom] = 'cis'
 
-                            bond.chiral_dict[first_other_atom][second_other_atom] = 'cis'
-                            bond.chiral_dict[second_other_atom][first_other_atom] = 'cis'
+                            if type(first_other_atom) == Atom and type(second_other_atom) == Atom:
+                                bond.chiral_dict[first_other_atom][second_other_atom] = 'cis'
+                                bond.chiral_dict[second_other_atom][first_other_atom] = 'cis'
 
-                            bond.chiral_dict[first_atom][second_other_atom] = 'trans'
-                            bond.chiral_dict[second_other_atom][first_atom] = 'trans'
+                            if type(first_atom) == Atom and type(second_other_atom) == Atom:
+                                bond.chiral_dict[first_atom][second_other_atom] = 'trans'
+                                bond.chiral_dict[second_other_atom][first_atom] = 'trans'
 
-                            bond.chiral_dict[first_other_atom][second_atom] = 'trans'
-                            bond.chiral_dict[second_atom][first_other_atom] = 'trans'
+                            if type(first_other_atom) == Atom and type(second_atom) == Atom:
+                                bond.chiral_dict[first_other_atom][second_atom] = 'trans'
+                                bond.chiral_dict[second_atom][first_other_atom] = 'trans'
 
                         else:
-                            bond.chiral_dict[first_atom][second_atom] = 'trans'
-                            bond.chiral_dict[second_atom][first_atom] = 'trans'
+                            if type(first_atom) == Atom and type(second_atom) == Atom:
+                                bond.chiral_dict[first_atom][second_atom] = 'trans'
+                                bond.chiral_dict[second_atom][first_atom] = 'trans'
 
-                            bond.chiral_dict[first_other_atom][second_other_atom] = 'trans'
-                            bond.chiral_dict[second_other_atom][first_other_atom] = 'trans'
+                            if type(first_other_atom) == Atom and type(second_other_atom) == Atom:
+                                bond.chiral_dict[first_other_atom][second_other_atom] = 'trans'
+                                bond.chiral_dict[second_other_atom][first_other_atom] = 'trans'
 
-                            bond.chiral_dict[first_atom][second_other_atom] = 'cis'
-                            bond.chiral_dict[second_other_atom][first_atom] = 'cis'
+                            if type(first_atom) == Atom and type(second_other_atom) == Atom:
+                                bond.chiral_dict[first_atom][second_other_atom] = 'cis'
+                                bond.chiral_dict[second_other_atom][first_atom] = 'cis'
 
-                            bond.chiral_dict[first_other_atom][second_atom] = 'cis'
-                            bond.chiral_dict[second_atom][first_other_atom] = 'cis'
+                            if type(first_other_atom) == Atom and type(second_atom) == Atom:
+                                bond.chiral_dict[first_other_atom][second_atom] = 'cis'
+                                bond.chiral_dict[second_atom][first_other_atom] = 'cis'
 
                         bond.chiral = True
 
@@ -1265,6 +1368,7 @@ class Structure:
 
     def add_disconnected_atom(self, atom):
         self.graph[atom] = []
+        self.atoms[atom.nr] = atom
 
     def sort_by_nr(self):
         for atom in self.graph:

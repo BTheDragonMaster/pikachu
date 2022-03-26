@@ -63,7 +63,8 @@ class SubstructureMatch:
                 self.active = False
 
     def traceback(self):
-        # Iterate over the current attempted path in reverse,
+        # Iterate over the current attempted path in reverse
+
         for i in range(len(self.current_attempted_path) - 1, 0, -1):
 
             current_parent_atom = self.current_attempted_path[i]
@@ -125,8 +126,16 @@ class SubstructureMatch:
         self.current_attempted_path.append(next_parent_atom)
 
     def remove_match(self, child_atom, child_bond):
-        self.atoms[child_atom] = None
+
         self.bonds[child_bond] = None
+        remove_atom_from_match = True
+        for child_bond, parent_bond in self.bonds.items():
+            if parent_bond:
+                if child_bond.atom_1 == child_atom or child_bond.atom_2 == child_atom:
+                    remove_atom_from_match = False
+
+        if remove_atom_from_match:
+            self.atoms[child_atom] = None
 
     def find_next_matching_atoms(self, child_bond):
         candidate_parent_bonds = self.get_candidate_parent_bonds()

@@ -16,6 +16,9 @@ def check_aromatic(atom_set):
                     for electron in orbital.electrons:
                         if electron.atom == atom:
                             pi_electron_nr += 1
+                        # This should ensure that pi-electrons are only counted if they are part of the ring system
+                        elif electron.atom not in atom_set:
+                            aromatic = False
 
         if not pi_electron_nr % 4 == 2:
             aromatic = False

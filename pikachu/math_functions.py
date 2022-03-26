@@ -681,6 +681,16 @@ class Vector:
             return 'counterclockwise'
 
     @staticmethod
+    def get_position_relative_to_line(vector_start, vector_end, vector):
+        d = (vector.x - vector_start.x) * (vector_end.y - vector_start.y) - (vector.y - vector_start.y) * (vector_end.x - vector_start.x)
+        if d > 0:
+            return 1
+        elif d < 0:
+            return -1
+        else:
+            return 0
+
+    @staticmethod
     def get_directionality_triangle(vector_a, vector_b, vector_c):
 
         determinant = (vector_b.x - vector_a.x) * (vector_c.y - vector_a.y) - \
@@ -692,6 +702,19 @@ class Vector:
             return None
         else:
             return 'counterclockwise'
+
+    @staticmethod
+    def mirror_about_line(line_point_1, line_point_2, point):
+        dx = line_point_2.x - line_point_1.x
+        dy = line_point_2.y - line_point_1.y
+
+        a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
+        b = 2 * dx * dy / (dx * dx + dy * dy)
+
+        x_new = a * (point.x - line_point_1.x) + b * (point.y - line_point_1.y) + line_point_1.x
+        y_new = b * (point.x - line_point_1.x) - a * (point.y - line_point_1.y) + line_point_1.y
+
+        return Vector(x_new, y_new)
 
     @staticmethod
     def subtract_vectors(vector_1, vector_2):
@@ -784,16 +807,16 @@ class Polygon:
 if __name__ == "__main__":
     vector_1 = Vector(1, 0)
     vector_2 = Vector(0, 5)
+    vector_3 = Vector(4, -3)
 
-    print(Vector.subtract_vectors(vector_1, vector_2))
-    print(vector_1)
+    vector_4 = Vector.mirror_about_line(vector_1, vector_2, vector_3)
+    labels = ['1', '2', '3', '4']
+    vectors = [vector_1, vector_2, vector_3, vector_4]
+    plt.gca().set_aspect('equal')
+    plt.scatter([vector.x for vector in vectors], [vector.y for vector in vectors], label=labels)
 
-
-    vector_1 = Vector(1, 0)
-    vector_2 = Vector(0, 5)
-
-    print(vector_1.subtract(vector_2))
-    print(vector_1)
+    print(vectors)
+    plt.show()
 
 
 

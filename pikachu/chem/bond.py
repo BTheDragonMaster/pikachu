@@ -223,7 +223,7 @@ class Bond:
         s_bonding_orbital_2.set_bond(self, 'sigma')
 
     def make_single(self):
-        print(self.type)
+
         assert self.type == 'double'
 
         double_bond_electrons = []
@@ -336,7 +336,6 @@ class Bond:
 
                 p_bonding_orbitals_1[0].set_bond(self, 'pi')
                 p_bonding_orbitals_2[0].set_bond(self, 'pi')
-
 
             else:
 

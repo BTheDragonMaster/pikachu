@@ -5,6 +5,7 @@ from sys import argv
 from pikachu.general import read_smiles, svg_from_smiles
 import timeout_decorator
 
+
 def parse_npatlas_smiles(npatlas_file):
     smiles = []
     with open(npatlas_file, 'r') as npatlas:

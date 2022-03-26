@@ -15,6 +15,14 @@ def get_chiral_permutations(order):
     return permutations
 
 
+def get_chiral_permutations_lonepair(order):
+    permutations = [tuple(order),
+                    (order[1], order[2], order[0]),
+                    (order[2], order[0], order[1])]
+
+    return permutations
+
+
 def find_chirality_from_nonh(neighbours, order, chirality):
     permutations = get_chiral_permutations(neighbours)
     for permutation in permutations:

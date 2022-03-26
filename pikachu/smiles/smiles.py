@@ -229,6 +229,7 @@ class Smiles:
 
         # Keeps track of chiral centres
         chiral_dict = {}
+        cycle_to_chiral_symbol = {}
 
         explicit = False
         pyrrole = False
@@ -392,6 +393,9 @@ class Smiles:
                     if atom in chiral_dict:
                         self.add_cycle_placeholder(chiral_dict, atom, cycle_nr)
 
+                    if bond_type == 'single_chiral':
+                        cycle_to_chiral_symbol[cycle_nr] = bond_chiral_symbol
+
                 # Otherwise look up the atom that the cycle closes on
 
                 else:
@@ -407,6 +411,9 @@ class Smiles:
 
                     if bond_type == 'single_chiral':
                         bond_type = 'single'
+
+                        # We have to flip the symbol here, as the previous atom occurred before the double bond
+
                         if bond_chiral_symbol == '/':
                             bond_chiral_symbol = '\\'
                         elif bond_chiral_symbol == '\\':
@@ -418,10 +425,13 @@ class Smiles:
                     else:
                         if old_bond_type != 'single':
                             if old_bond_type == 'single_chiral':
-                                if bond_chiral_symbol == '/':
-                                    bond_chiral_symbol = '\\'
-                                elif bond_chiral_symbol == '\\':
-                                    bond_chiral_symbol = '/'
+
+                                bond_chiral_symbol = cycle_to_chiral_symbol[cycle_nr]
+
+                                # if bond_chiral_symbol == '/':
+                                #     bond_chiral_symbol = '\\'
+                                # elif bond_chiral_symbol == '\\':
+                                #     bond_chiral_symbol = '/'
 
                                 structure.add_bond(atom_1, atom_2, 'single', bond_nr, bond_chiral_symbol)
                                 bond_chiral_symbol = None

@@ -99,12 +99,11 @@ class Atom:
 
         return atom_copy
 
-
     def make_lone_pairs(self):
 
         lone_pair_nr = self.valence_shell.get_lone_pair_nr()
         for i in range(lone_pair_nr):
-            self.lone_pairs.append(LonePair(self, i + 10000))
+            self.lone_pairs.append(LonePair(self, self.nr * (i + 10000)))
 
     def get_bonds(self):
         return self.bonds[:]
@@ -249,6 +248,13 @@ class Atom:
 
         return False
 
+    def adjacent_to_stereobond(self):
+        for bond in self.bonds:
+            if bond.chiral:
+                return True
+
+        return False
+
     def fill_shells(self):
         electrons_assigned = 0
 
@@ -356,8 +362,13 @@ class Atom:
                 bond_nr += 3
             else:
                 bond_nr += 2
-        elif aromatic_bond_nr == 3:
+        elif aromatic_bond_nr == 3 and self.type == 'C':
             bond_nr += 4
+        elif aromatic_bond_nr == 3 and self.type == 'N':
+            if self.charge == 1:
+                bond_nr += 4
+            else:
+                bond_nr += 3
 
         return bond_nr
 

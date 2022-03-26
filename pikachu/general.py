@@ -6,7 +6,7 @@ import os
 from pikachu.smiles.smiles import Smiles
 from pikachu.errors import SmilesError, ColourError
 from pikachu.smiles.graph_to_smiles import GraphToSmiles
-from pikachu.drawing.drawing import Drawer
+from pikachu.drawing.drawing import Drawer, Options
 from pikachu.drawing.colours import *
 
 
@@ -56,7 +56,7 @@ def structure_to_smiles(structure, kekule=False):
     return GraphToSmiles(structure).smiles
 
 
-def draw_structure(structure):
+def draw_structure(structure, finetune=True):
     """
     Display structure from structure object
 
@@ -64,12 +64,36 @@ def draw_structure(structure):
     structure: Structure object
 
     """
-    structure = structure.kekulise()
-    drawer = Drawer(structure)
+
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
+
     drawer.show_molecule()
 
 
-def draw_smiles(smiles):
+def position_smiles(smiles):
+    """
+    Return structure with stored atom coordinates
+
+    Input
+    ----------
+    smiles: str, SMILES string
+
+    Output
+    ----------
+    structure: Structure object
+
+
+    """
+    structure = read_smiles(smiles)
+    structure = structure.kekulise()
+    drawer = Drawer(structure, coords_only=True)
+
+    return drawer.structure
+
+
+def draw_smiles(smiles, finetune=True):
     """
     Display structure from SMILES string
 
@@ -80,8 +104,13 @@ def draw_smiles(smiles):
 
     structure = read_smiles(smiles)
     structure = structure.kekulise()
-    drawer = Drawer(structure)
+
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
+
     drawer.show_molecule()
+
 
 def svg_from_smiles_timed(smiles, svg_out):
     start_time = time.time()
@@ -106,7 +135,7 @@ def svg_from_smiles_timed(smiles, svg_out):
     print(time_5 - time_4)
 
 
-def svg_from_structure(structure, svg_out):
+def svg_from_structure(structure, svg_out, finetune=True):
     """
     Save structure drawing of Structure object to .svg
 
@@ -115,19 +144,22 @@ def svg_from_structure(structure, svg_out):
     svg_out: str, output file name, should end in .svg
 
     """
-    structure = structure.kekulise()
-    drawer = Drawer(structure)
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
     drawer.save_svg(svg_out)
 
 
-def svg_string_from_structure(structure):
-    structure = structure.kekulise()
-    drawer = Drawer(structure)
+def svg_string_from_structure(structure, finetune=True):
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
     svg_string = drawer.save_svg_string()
+
     return svg_string
 
 
-def png_from_structure(structure, png_out):
+def png_from_structure(structure, png_out, finetune=True):
     """
     Save structure drawing of Structure object to .png
 
@@ -136,12 +168,13 @@ def png_from_structure(structure, png_out):
     png_out: str, output file name, should end in .png
 
     """
-    structure = structure.kekulise()
-    drawer = Drawer(structure)
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
     drawer.save_png(png_out)
 
 
-def svg_from_smiles(smiles, svg_out):
+def svg_from_smiles(smiles, svg_out, finetune=True):
     """
     Save structure drawing of SMILES string to .svg
 
@@ -151,12 +184,13 @@ def svg_from_smiles(smiles, svg_out):
 
     """
     structure = read_smiles(smiles)
-    structure = structure.kekulise()
-    drawer = Drawer(structure)
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
     drawer.save_svg(svg_out)
 
 
-def png_from_smiles(smiles, png_out):
+def png_from_smiles(smiles, png_out, finetune=True):
     """
     Save structure drawing of SMILES string to .png
 
@@ -166,8 +200,9 @@ def png_from_smiles(smiles, png_out):
 
     """
     structure = read_smiles(smiles)
-    structure = structure.kekulise()
-    drawer = Drawer(structure)
+    options = Options()
+    options.finetune = finetune
+    drawer = Drawer(structure, options=options)
     drawer.save_png(png_out)
 
 
@@ -365,7 +400,6 @@ def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colour
         raise ColourError('too few colours')
 
     for i, smiles in enumerate(substructure_smiles_list):
-        print("Smiles:", smiles)
         child_structure = read_smiles(smiles)
         colour = colour_list[i]
         parent_structure.colour_substructure_all(child_structure, colour=colour,

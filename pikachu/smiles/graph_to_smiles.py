@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-from pikachu.chem.chirality import get_chiral_permutations
+from pikachu.chem.chirality import get_chiral_permutations, get_chiral_permutations_lonepair
 from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.chem.rings import find_cycles
 from pikachu.smiles.smiles import read_smiles
+from pikachu.chem.atom import Atom
 import copy
 from pprint import pprint
 
@@ -28,7 +29,10 @@ def get_cyclic_label(cycle_nr):
 
 def determine_chirality(order, chirality):
     original_order = tuple(order)
-    chiral_permutations = get_chiral_permutations(original_order)
+    if len(original_order) == 4:
+        chiral_permutations = get_chiral_permutations(original_order)
+    else:
+        chiral_permutations = get_chiral_permutations_lonepair(original_order)
     order.sort(key=lambda x: x.nr)
     new_order = tuple(order)
     if new_order in chiral_permutations:
@@ -64,17 +68,11 @@ class GraphToSmiles:
         self.find_terminal_nodes()
         self.find_cycles()
 
-       # print('branch points', self.branch_points)
-      #  print('terminal nodes', self.terminal_nodes)
-      #  print('cycles', self.cycles)
-
         self.make_smiles_components()
         self.find_original_atom_indices()
         self.resolve_chiral_centres()
         self.add_bond_chirality()
         self.smiles = ''.join(self.components)
-        # print(''.join(self.components))
-
 
     def is_numerical_component(self, component):
         """
@@ -120,7 +118,7 @@ class GraphToSmiles:
                 cis_trans_atoms = []
                 options = bond.chiral_dict.keys()
                 for atom in options:
-                    if atom.type != 'H':
+                    if type(atom) == Atom and atom.type != 'H':
                         cis_trans_atoms.append(atom)
 
                 neighbours = []
@@ -147,12 +145,12 @@ class GraphToSmiles:
                     atom_1_index = self.atom_to_index[atom_1]
 
                     bond_1 = self.original_structure.bond_lookup[atom_1][attaching_atom]
-                    print(bond_to_direction)
+                    
                     if bond_1 not in bond_to_direction:
                         place_bond_1 = True
                         for atom_2 in bond.chiral_dict[atom_1]:
-                            print(atom_2)
-                            if atom_2.type != 'H':
+                            
+                            if type(atom_2) == Atom and atom_2.type != 'H':
 
                                 bond_2 = self.original_structure.bond_lookup[atom_2][other_atom]
 
@@ -213,7 +211,7 @@ class GraphToSmiles:
                                         symbol_1 = '\\'
 
                                     self.add_insert([symbol_1], insertion_point_1)
-                                    print(1, atom_1, attaching_atom, self.components)
+
                                     place_bond_1 = False
 
                                 if place_bond_2:
@@ -233,7 +231,7 @@ class GraphToSmiles:
                                         symbol_2 = "\\"
 
                                     self.add_insert([symbol_2], insertion_point_2)
-                                    print(2, atom_2, other_atom, self.components)
+
 
 
 
@@ -280,8 +278,6 @@ class GraphToSmiles:
                                     break
 
                     indices_and_atoms.append((index, neighbour))
-                print(atom.neighbours)
-                print(indices_and_atoms)
 
                 atom_order = [atom for _,atom in sorted(indices_and_atoms)]
                 chirality = determine_chirality(atom_order, atom.chiral)
