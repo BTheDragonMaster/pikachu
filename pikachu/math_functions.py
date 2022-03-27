@@ -680,6 +680,20 @@ class Vector:
         else:
             return 'counterclockwise'
 
+    def mirror_about_line(self, line_point_1, line_point_2):
+
+        dx = line_point_2.x - line_point_1.x
+        dy = line_point_2.y - line_point_1.y
+
+        a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
+        b = 2 * dx * dy / (dx * dx + dy * dy)
+
+        new_x = a * (self.x - line_point_1.x) + b * (self.y - line_point_1.y) + line_point_1.x
+        new_y = b * (self.x - line_point_1.x) - a * (self.y - line_point_1.y) + line_point_1.y
+
+        self.x = new_x
+        self.y = new_y
+
     @staticmethod
     def get_position_relative_to_line(vector_start, vector_end, vector):
         d = (vector.x - vector_start.x) * (vector_end.y - vector_start.y) - (vector.y - vector_start.y) * (vector_end.x - vector_start.x)
@@ -704,7 +718,7 @@ class Vector:
             return 'counterclockwise'
 
     @staticmethod
-    def mirror_about_line(line_point_1, line_point_2, point):
+    def mirror_vector_about_line(line_point_1, line_point_2, point):
         dx = line_point_2.x - line_point_1.x
         dy = line_point_2.y - line_point_1.y
 
@@ -715,6 +729,13 @@ class Vector:
         y_new = b * (point.x - line_point_1.x) - a * (point.y - line_point_1.y) + line_point_1.y
 
         return Vector(x_new, y_new)
+
+    @staticmethod
+    def get_line_angle(point_1, point_2):
+
+        difference = Vector.subtract_vectors(point_2, point_1)
+
+        return difference.angle()
 
     @staticmethod
     def subtract_vectors(vector_1, vector_2):
@@ -805,17 +826,17 @@ class Polygon:
 
 
 if __name__ == "__main__":
-    vector_1 = Vector(1, 0)
-    vector_2 = Vector(0, 5)
-    vector_3 = Vector(4, -3)
+    vector_1 = Vector(16.927447373757524, 38.41235497102897)
+    vector_2 = Vector(28.074619755918448, 48.44931406641183)
+    vector_3 = Vector(82.01933537136128, 44.58050841492202)
+    vector_4 = Vector(82.01933537136128, 44.58050841492202)
 
-    vector_4 = Vector.mirror_about_line(vector_1, vector_2, vector_3)
+    vector_4.mirror_about_line(vector_1, vector_2)
     labels = ['1', '2', '3', '4']
     vectors = [vector_1, vector_2, vector_3, vector_4]
     plt.gca().set_aspect('equal')
     plt.scatter([vector.x for vector in vectors], [vector.y for vector in vectors], label=labels)
 
-    print(vectors)
     plt.show()
 
 

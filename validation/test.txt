@@ -1,2 +1,1 @@
 Original SMILES	Canonical RDKit SMILES original	Canonical RDKit SMILES PIKAChU
-CC(C)C[C@H]1C(=O)O[C@@H](C(=O)N([C@H](C(=O)O[C@@H](C(=O)N([C@H](C(=O)O[C@@H](C(=O)N1)C(C)C)CC2=CC=CC=C2)C)C(C)C)CC3=CC=CC=C3)C)C(C)C	CC(C)C[C@@H]1NC(=O)[C@@H](C(C)C)OC(=O)[C@H](Cc2ccccc2)N(C)C(=O)[C@@H](C(C)C)OC(=O)[C@H](Cc2ccccc2)N(C)C(=O)[C@@H](C(C)C)OC1=O	CC(C)C[C@@H]1NC(=O)[C@@H](C(C)C)OC(=O)[C@@H](Cc2ccccc2)N(C)C(=O)[C@@H](C(C)C)OC(=O)[C@H](Cc2ccccc2)N(C)C(=O)[C@@H](C(C)C)OC1=O

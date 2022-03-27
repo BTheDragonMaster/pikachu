@@ -519,14 +519,14 @@ class Smiles:
             except AssertionError:
                 raise SmilesError('chiral centre')
 
-            original_order = tuple(order + lone_pairs)
+            original_order = order + lone_pairs
 
         else:
-            original_order = tuple(order)
+            original_order = order[:]
 
         chiral_permutations = self.get_chiral_permutations(original_order)
-        order.sort(key=lambda x: x.nr)
-        new_order = tuple(order)
+        original_order.sort(key=lambda x: x.nr)
+        new_order = tuple(original_order)
         if new_order in chiral_permutations:
             if chirality == 'counterclockwise':
                 new_chirality = 'counterclockwise'
