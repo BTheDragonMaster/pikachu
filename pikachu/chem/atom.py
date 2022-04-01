@@ -48,7 +48,7 @@ class Atom:
         self.connectivity = ()
         self.neighbours = []
         self.drawn_neighbours = []
-
+        self.aromatic_system = None
 
     def __eq__(self, atom):
         if type(atom) == Atom:
@@ -212,7 +212,7 @@ class Atom:
 
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
-            if self.pyrrole or self.furan or self.thiophene:
+            if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
                 nr_of_nonH_bonds -= 1
 
             # Does this work for all atoms? Doesn't for carbon. Should this be made general?
@@ -223,6 +223,7 @@ class Atom:
                 if self.excitable:
                     self.excite()
                 else:
+                    print(self, self.bonds)
                     raise SmilesError('violated_bonding_laws')
 
     def get_bonding_electrons(self):
@@ -358,10 +359,23 @@ class Atom:
                 aromatic_bond_nr += 1
 
         if aromatic_bond_nr == 2:
-            if not self.pyrrole and not self.furan and not self.thiophene:
-                bond_nr += 3
-            else:
+            if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
                 bond_nr += 2
+            elif self.aromatic:
+                oxygen = None
+                for bond in self.bonds:
+                    connected_atom = bond.get_connected_atom(self)
+
+                    if bond.type == 'double' and connected_atom.type == 'O':
+                        oxygen = connected_atom
+
+                if oxygen and oxygen.resonance_possible(self):
+                    bond_nr += 2
+                else:
+                    bond_nr += 3
+
+            else:
+                bond_nr += 3
         elif aromatic_bond_nr == 3 and self.type == 'C':
             bond_nr += 4
         elif aromatic_bond_nr == 3 and self.type == 'N':
@@ -379,6 +393,16 @@ class Atom:
                 promotable = True
 
         return promotable
+
+    def is_aromatic_nitrogen(self):
+        if self.type == 'N' and len(self.bonds) == 3 and self.aromatic:
+            return True
+        return False
+
+    def resonance_possible(self, neighbour):
+        if self.type == 'O' and len(self.bonds) == 1 and self.bonds[0].type == 'double' and neighbour.aromatic:
+            return True
+        return False
 
     def promote_lone_pair_to_p_orbital(self):
         assert self.calc_electron_pair_nr() > 0
@@ -420,7 +444,7 @@ class Atom:
     def promote_pi_bonds_to_d_orbitals(self):
 
         if self.is_promotable() and 'd' in self.hybridisation:
-            self.valence_shell.print_shell()
+            # self.valence_shell.print_shell()
             
             donor_orbitals = []
             receiver_orbitals = []

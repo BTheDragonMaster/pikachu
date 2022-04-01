@@ -79,7 +79,6 @@ class SSSR(structure.Structure):
 
         return ordered_ring
 
-
     def get_graph_components(self, adjacency_matrix):
         visited = {}
         components = []
@@ -110,7 +109,6 @@ class SSSR(structure.Structure):
             visited[neighbour] = True
             component.append(neighbour)
             self.dfs_components(neighbour, visited, adjacency_matrix, component)
-
 
     def get_component_adjacency_matrix(self):
         adjacency_matrix = {}
@@ -148,7 +146,6 @@ class SSSR(structure.Structure):
                         adjacency_matrix[atom_1][atom_2] = 1
 
         return adjacency_matrix
-
 
     def get_bridges(self):
         visited = {}
@@ -322,7 +319,8 @@ class SSSR(structure.Structure):
                     atoms = self.bonds_to_atoms(bonds)
                     bond_count = self.get_bond_count(atoms, cc_adjacency_matrix)
 
-                    if bond_count == len(atoms) and not self.path_sets_contain(c_sssr, atoms, bonds, all_bonds, bond_counts, ring_counts):
+                    if bond_count == len(atoms) and not self.path_sets_contain(c_sssr, atoms, bonds, all_bonds,
+                                                                               bond_counts, ring_counts):
                         c_sssr.append(atoms)
                         for bond in bonds:
                             all_bonds.add(bond)

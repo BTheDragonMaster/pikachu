@@ -711,6 +711,65 @@ class Structure:
 
         return aromatic_ring_systems
 
+    def find_double_bond_sequences(self):
+        double_bond_fragments = []
+        for bond in self.bonds.values():
+            if bond.type == 'single':
+                stereobond_1 = None
+                stereobond_2 = None
+                for bond_1 in bond.atom_1.bonds:
+                    if bond_1.chiral:
+                        stereobond_1 = bond_1
+                        break
+
+                for bond_2 in bond.atom_2.bonds:
+                    if bond_2.chiral:
+                        stereobond_2 = bond_2
+                        break
+
+                if stereobond_1 and stereobond_2:
+                    double_bond_fragments.append([stereobond_1, stereobond_2])
+
+        previous_fragment_nr = -1
+        fragment_nr = len(double_bond_fragments)
+
+        while fragment_nr != previous_fragment_nr:
+            previous_fragment_nr = fragment_nr
+
+            indices_to_remove = None
+            new_fragment = None
+
+            for i, fragment_1 in enumerate(double_bond_fragments):
+                found_fragment = False
+                for j, fragment_2 in enumerate(double_bond_fragments):
+                    if i != j:
+                        if fragment_1[-1] == fragment_2[0]:
+                            new_fragment = fragment_1[:] + fragment_2[1:]
+                        elif fragment_1[-1] == fragment_2[-1]:
+                            new_fragment = fragment_1[:] + list(reversed(fragment_2[:-1]))
+                        elif fragment_1[0] == fragment_2[0]:
+                            new_fragment = list(reversed(fragment_2[1:])) + fragment_1[:]
+                        elif fragment_1[0] == fragment_2[-1]:
+                            new_fragment = fragment_2[:-1] + fragment_1[:]
+
+                        if new_fragment:
+                            indices_to_remove = [i, j]
+                            found_fragment = True
+                            break
+                if found_fragment:
+                    break
+
+            if indices_to_remove:
+                assert new_fragment
+                # sort indices from large to small to make sure you first remove the last index
+                indices_to_remove.sort(reverse=True)
+                double_bond_fragments.pop(indices_to_remove[0])
+                double_bond_fragments.pop(indices_to_remove[1])
+                double_bond_fragments.append(new_fragment)
+                fragment_nr = len(double_bond_fragments)
+
+        return double_bond_fragments
+
     def set_bonds_to_aromatic(self, aromatic_systems):
         for aromatic_system in aromatic_systems:
             for atom_1 in aromatic_system:

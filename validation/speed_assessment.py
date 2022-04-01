@@ -5,7 +5,7 @@ from random import shuffle, seed
 
 from pikachu.general import read_smiles, position_smiles
 
-from rdkit.Chem import MolFromSmiles
+# from rdkit.Chem import MolFromSmiles
 
 import timeout_decorator
 
@@ -38,10 +38,26 @@ def drawing_speed_pikachu(smiles):
 
 def reading_speed_pikachu(smiles):
     start_time = time.time()
-    for s in smiles:
-        x = read_smiles(s)
+    in_between_time = start_time
+    failed_smiles = 0
     time_1 = time.time()
+
+    for i, s in enumerate(smiles):
+        try:
+             _ = read_smiles(s)
+             if not _:
+                 failed_smiles += 1
+        except Exception as e:
+            failed_smiles += 1
+            print(s, e)
+        if i % 500 == 0:
+            time_1 = time.time()
+            print(f'Time spent by PIKAChU reading {i + 1} SMILES: {time_1 - start_time}')
+            print(f"Failed smiles: {failed_smiles}")
+
     print(f'Time spent by PIKAChU reading {len(smiles)} SMILES: {time_1 - start_time}')
+    print(f"Failed smiles: {failed_smiles}")
+
 
 
 def substructure_matching_speed_rdkit(smiles, subsmiles):
@@ -109,23 +125,23 @@ def read_smiles_file(smiles_file):
 
 if __name__ == "__main__":
     smiles_file = argv[1]
-    supersmiles_file = argv[2]
-    subsmiles_file = argv[3]
+    # supersmiles_file = argv[2]
+    # subsmiles_file = argv[3]
 
     smiles_strings = read_smiles_file(smiles_file)
-    supersmiles_strings = read_smiles_file(supersmiles_file)
-    subsmiles_strings = read_smiles_file(subsmiles_file)
+    # supersmiles_strings = read_smiles_file(supersmiles_file)
+    # subsmiles_strings = read_smiles_file(subsmiles_file)
 
-    drawing_speed_pikachu(smiles_strings)
+    # drawing_speed_pikachu(smiles_strings)
     reading_speed_pikachu(smiles_strings)
 
-    drawing_speed_rdkit(smiles_strings)
-    reading_speed_rdkit(smiles_strings)
+    # drawing_speed_rdkit(smiles_strings)
+    # reading_speed_rdkit(smiles_strings)
 
-    pikachu_list = substructure_matching_speed_pikachu(supersmiles_strings, subsmiles_strings)
-    rdkit_list = substructure_matching_speed_pikachu(supersmiles_strings, subsmiles_strings)
-
-    correct, incorrect, mistake_indices = compare_substructure_matching_outcomes()
+    # pikachu_list = substructure_matching_speed_pikachu(supersmiles_strings, subsmiles_strings)
+    # rdkit_list = substructure_matching_speed_pikachu(supersmiles_strings, subsmiles_strings)
+    #
+    # correct, incorrect, mistake_indices = compare_substructure_matching_outcomes(pikachu_list, rdkit_list)
 
     
 

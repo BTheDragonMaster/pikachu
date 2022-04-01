@@ -283,6 +283,7 @@ class Drawer:
         self.atom_nr_to_atom = {}
         self.chiral_bonds = []
         self.chiral_bond_to_orientation = {}
+        self.fixed_chiral_bonds = set()
 
         self.ring_id_tracker = 0
         self.ring_overlap_id_tracker = 0
@@ -411,9 +412,127 @@ class Drawer:
 
                     self.rotate_subtree(rotating_atom, parent_atom, math.radians(30 * best_i + 1), parent_atom.draw.position)
 
+    def find_ring_neighbour(self, atom, bond):
+        rings = set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))
+
+        cyclic_neighbour = None
+
+        for neighbour in atom.neighbours:
+            if len(set(neighbour.draw.rings).intersection(rings)) > 0 and neighbour.draw.is_drawn and neighbour != bond.get_connected_atom(atom):
+                cyclic_neighbour = neighbour
+                break
+
+        assert cyclic_neighbour
+
+        return cyclic_neighbour
+
+    def find_ring_branch_to_flip(self, bond, neighbours_1, neighbours_2):
+
+        rings = set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))
+
+        resolvable = True
+
+        if len(neighbours_1) == 1:
+            central_atom = bond.atom_1
+            flanking_atoms = (neighbours_1[0], bond.atom_2)
+
+        elif len(neighbours_2) == 1:
+            central_atom = bond.atom_2
+            flanking_atoms = (neighbours_2[0], bond.atom_1)
+
+        else:
+
+            subtree_1_size = None
+            neighbour_1_in_cycle = False
+            neighbour_1 = None
+
+            subtree_2_size = None
+            neighbour_2_in_cycle = False
+            neighbour_2 = None
+
+            for neighbour in neighbours_1:
+                if len(set(neighbour.draw.rings).intersection(rings)) == 0:
+
+
+                    subtree_size = self.get_subgraph_size(neighbour, {bond.atom_1})
+                    if neighbour_1 and not neighbour_1_in_cycle:
+                        if subtree_size < subtree_1_size:
+                            subtree_1_size = subtree_size
+                            neighbour_1 = neighbour
+                    else:
+                        subtree_1_size = subtree_size
+                        neighbour_1 = neighbour
+
+                    # If a non-cyclic neighbour is selected, always choose that one
+                    neighbour_1_in_cycle = False
+
+                else:
+                    # Neighbour will only be set as a cyclic one if there is no previous neighbour set
+                    if not neighbour_1:
+                        neighbour_1 = neighbour
+                        neighbour_1_in_cycle = True
+
+            for neighbour in neighbours_2:
+
+                if len(set(neighbour.draw.rings).intersection(rings)) == 0:
+                    # If a non-cyclic neighbour is selected, always choose that one
+                    neighbour_2_in_cycle = False
+
+                    subtree_size = self.get_subgraph_size(neighbour, {bond.atom_2})
+                    if neighbour_2:
+                        if subtree_size < subtree_2_size:
+                            subtree_2_size = subtree_size
+                            neighbour_2 = neighbour
+                    else:
+                        subtree_2_size = subtree_size
+                        neighbour_2 = neighbour
+
+                else:
+                    # Neighbour will only be set as a cyclic one if there is no previous neighbour set
+                    if not neighbour_2:
+                        neighbour_2 = neighbour
+                        neighbour_2_in_cycle = True
+
+            assert neighbour_1 and neighbour_2
+
+            # If both atoms have a neighbour that is not in a shared cycle, let the subtree size decide which
+            # branch gets flipped
+
+            if not neighbour_1_in_cycle and not neighbour_2_in_cycle:
+                if subtree_2_size > subtree_1_size:
+                    central_atom = bond.atom_1
+                    ring_atom = self.find_ring_neighbour(bond.atom_1, bond)
+                    flanking_atoms = (bond.atom_2, ring_atom)
+
+                else:
+                    central_atom = bond.atom_2
+                    ring_atom = self.find_ring_neighbour(bond.atom_2, bond)
+                    flanking_atoms = (bond.atom_1, ring_atom)
+
+            elif neighbour_1_in_cycle and not neighbour_2_in_cycle:
+                central_atom = bond.atom_2
+                ring_atom = self.find_ring_neighbour(bond.atom_2, bond)
+                flanking_atoms = (bond.atom_1, ring_atom)
+
+            elif neighbour_2_in_cycle and not neighbour_1_in_cycle:
+                central_atom = bond.atom_1
+                ring_atom = self.find_ring_neighbour(bond.atom_1, bond)
+                flanking_atoms = (bond.atom_2, ring_atom)
+
+            else:
+                resolvable = False
+
+        if resolvable:
+            return central_atom, flanking_atoms
+        else:
+            return None, None
+
     def flip_stereobond_in_ring(self, bond):
-        neighbours_1 = bond.atom_1.get_drawn_neighbours()
-        neighbours_2 = bond.atom_2.get_drawn_neighbours()
+        neighbours_1 = bond.atom_1.get_drawn_neighbours()[:]
+        neighbours_2 = bond.atom_2.get_drawn_neighbours()[:]
+
+        neighbours_1.remove(bond.atom_2)
+        neighbours_2.remove(bond.atom_1)
 
         # get the rings that this bond is part of
 
@@ -427,52 +546,59 @@ class Drawer:
         resolvable = True
         flanking_atoms = []
 
-        if len(neighbours_1) == 2:
-            central_atom = bond.atom_1
-            flanking_atoms = tuple(neighbours_1)
-        elif len(neighbours_2) == 2:
+        # Check if the neighbouring atoms are adjacent to stereobonds, and if those
+        # stereobonds have already been fixed
+
+        neighbours_1_adjacent_to_stereobond = False
+        neighbours_2_adjacent_to_stereobond = False
+
+        neighbours_1_adjacent_to_fixed_stereobond = False
+        neighbours_2_adjacent_to_fixed_stereobond = False
+
+        for neighbour_1 in neighbours_1:
+            if neighbour_1.adjacent_to_stereobond():
+                neighbours_1_adjacent_to_stereobond = True
+                for bond_1 in neighbour_1.bonds:
+                    if bond_1.chiral and bond_1 in self.fixed_chiral_bonds:
+                        neighbours_1_adjacent_to_fixed_stereobond = True
+
+        for neighbour_2 in neighbours_2:
+            if neighbour_2.adjacent_to_stereobond():
+                neighbours_2_adjacent_to_stereobond = True
+                for bond_2 in neighbour_2.bonds:
+                    if bond_2.chiral and bond_2 in self.fixed_chiral_bonds:
+                        neighbours_2_adjacent_to_fixed_stereobond = True
+
+        if not neighbours_1_adjacent_to_stereobond and not neighbours_2_adjacent_to_stereobond:
+
+            central_atom, flanking_atoms = self.find_ring_branch_to_flip(bond, neighbours_1, neighbours_2)
+            if not central_atom:
+                resolvable = False
+
+        if neighbours_1_adjacent_to_stereobond and not neighbours_2_adjacent_to_stereobond:
             central_atom = bond.atom_2
-            flanking_atoms = tuple(neighbours_2)
-        else:
-            subtree_1_size = None
-            neighbour_1_in_cycle = False
-            neighbour_1 = None
+            ring_neighbour = self.find_ring_neighbour(bond.atom_2, bond)
+            flanking_atoms = (bond.atom_1, ring_neighbour)
 
-            subtree_2_size = None
-            neighbour_2_in_cycle = False
-            neighbour_2 = None
+        elif neighbours_2_adjacent_to_stereobond and not neighbours_1_adjacent_to_stereobond:
+            central_atom = bond.atom_1
+            ring_neighbour = self.find_ring_neighbour(bond.atom_1, bond)
+            flanking_atoms = (bond.atom_2, ring_neighbour)
 
-            for neighbour in neighbours_1:
-                if neighbour != bond.atom_2:
-                    neighbour_1 = neighbour
-                    subtree_1_size = self.get_subgraph_size(neighbour, {bond.atom_1})
-                    if len(set(neighbour.draw.rings).intersection(rings)) != 0:
-                        neighbour_1_in_cycle = True
-
-            for neighbour in neighbours_2:
-                if neighbour != bond.atom_1:
-                    neighbour_2 = neighbour
-                    subtree_2_size = self.get_subgraph_size(neighbour, {bond.atom_2})
-                    if len(set(neighbour.draw.rings).intersection(rings)) != 0:
-                        neighbour_2_in_cycle = True
-
-            if not neighbour_1_in_cycle and not neighbour_2_in_cycle:
-                if subtree_2_size > subtree_1_size:
-                    central_atom = bond.atom_1
-                    flanking_atoms = (bond.atom_2, neighbour_1)
-
-                else:
-                    central_atom = bond.atom_2
-                    flanking_atoms = (bond.atom_1, neighbour_2)
-
-            elif neighbour_1_in_cycle and not neighbour_2_in_cycle:
+        elif neighbours_1_adjacent_to_stereobond and neighbours_2_adjacent_to_stereobond:
+            if neighbours_1_adjacent_to_fixed_stereobond and not neighbours_2_adjacent_to_fixed_stereobond:
                 central_atom = bond.atom_2
-                flanking_atoms = (bond.atom_1, neighbour_2)
+                ring_neighbour = self.find_ring_neighbour(bond.atom_2, bond)
+                flanking_atoms = (bond.atom_1, ring_neighbour)
 
-            elif neighbour_2_in_cycle and not neighbour_1_in_cycle:
+            elif neighbours_2_adjacent_to_fixed_stereobond and not neighbours_1_adjacent_to_fixed_stereobond:
                 central_atom = bond.atom_1
-                flanking_atoms = (bond.atom_2, neighbour_1)
-
+                ring_neighbour = self.find_ring_neighbour(bond.atom_1, bond)
+                flanking_atoms = (bond.atom_2, ring_neighbour)
+            elif not neighbours_1_adjacent_to_fixed_stereobond and not neighbours_2_adjacent_to_fixed_stereobond:
+                central_atom, flanking_atoms = self.find_ring_branch_to_flip(bond, neighbours_1, neighbours_2)
+                if not central_atom:
+                    resolvable = False
             else:
                 resolvable = False
 
@@ -578,7 +704,7 @@ class Drawer:
     def place_eclipsed_bond(hydrogen, angles_between_lines, atom_order, wedge_atom):
         position = None
         for i, angle in enumerate(angles_between_lines):
-            if angle >= math.pi:
+            if round(angle, 3) >= round(math.pi, 3):
                 position = i
 
         if position != None:
@@ -925,70 +1051,164 @@ class Drawer:
         plt.clf()
         plt.close()
 
+    def chirality_correct(self, bond):
+        assert bond.chiral
+
+        must_be_fixed = False
+
+        for neighbour_1 in bond.atom_1.neighbours:
+            if neighbour_1 != bond.atom_2:
+                for neighbour_2 in bond.atom_2.neighbours:
+                    if neighbour_2 != bond.atom_1:
+                        if neighbour_1.draw.is_drawn and neighbour_2.draw.is_drawn:
+
+                            placement_1 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
+                                                                               bond.atom_2.draw.position,
+                                                                               neighbour_1.draw.position)
+                            placement_2 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
+                                                                               bond.atom_2.draw.position,
+                                                                               neighbour_2.draw.position)
+
+                            orientation = bond.chiral_dict[neighbour_1][neighbour_2]
+
+                            if orientation == 'cis':
+                                if placement_1 != placement_2:
+                                    must_be_fixed = True
+                            else:
+                                if placement_1 == placement_2:
+                                    must_be_fixed = True
+
+        if must_be_fixed:
+            return False
+
+        else:
+            return True
+
+    def fix_chiral_bond(self, double_bond):
+        if len(double_bond.atom_1.draw.rings) and len(double_bond.atom_2.draw.rings) and \
+                len(set(double_bond.atom_1.draw.rings).intersection(set(double_bond.atom_2.draw.rings))) >= 1:
+            self.flip_stereobond_in_ring(double_bond)
+
+        else:
+            if len(double_bond.atom_1.draw.rings) > 0:
+                parent_atom = double_bond.atom_2
+                root_atom = double_bond.atom_1
+
+            else:
+                parent_atom = double_bond.atom_1
+                root_atom = double_bond.atom_2
+
+            neighbours = parent_atom.drawn_neighbours[:]
+            neighbours.remove(root_atom)
+
+            if len(neighbours) == 1:
+                neighbour = neighbours[0]
+                self.flip_subtree(neighbour, root_atom, parent_atom)
+
+            # Only need to flip once if both neighbours are in the same ring
+
+            elif len(neighbours) == 2 and len(
+                    set(neighbours[0].draw.rings).intersection(set(neighbours[1].draw.rings))) >= 1:
+
+                self.flip_subtree(neighbours[0], root_atom, parent_atom)
+
+            elif len(neighbours) == 2:
+                neighbour_1 = neighbours[0]
+                neighbour_2 = neighbours[1]
+
+                self.flip_subtree(neighbour_1, root_atom, parent_atom)
+                self.flip_subtree(neighbour_2, root_atom, parent_atom)
+
+            self.fixed_chiral_bonds.add(double_bond)
+
     def fix_chiral_bonds_in_rings(self):
-        for bond_nr, bond in self.structure.bonds.items():
-            if bond.chiral:
-                must_be_fixed = False
+        double_bond_sequences = self.structure.find_double_bond_sequences()
 
-                for neighbour_1 in bond.atom_1.neighbours:
-                    if neighbour_1 != bond.atom_2:
-                        for neighbour_2 in bond.atom_2.neighbours:
-                            if neighbour_2 != bond.atom_1:
-                                if neighbour_1.draw.is_drawn and neighbour_2.draw.is_drawn:
-
-                                    placement_1 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
-                                                                                       bond.atom_2.draw.position,
-                                                                                       neighbour_1.draw.position)
-                                    placement_2 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
-                                                                                       bond.atom_2.draw.position,
-                                                                                       neighbour_2.draw.position)
-
-                                    orientation = bond.chiral_dict[neighbour_1][neighbour_2]
-
-                                    if orientation == 'cis':
-                                        if placement_1 != placement_2:
-                                            must_be_fixed = True
-                                    else:
-                                        if placement_1 == placement_2:
-                                            must_be_fixed = True
-
-                if len(bond.atom_1.draw.rings) and len(bond.atom_2.draw.rings) and \
-                        len(set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))) >= 1:
-
-                    if must_be_fixed:
-                        self.flip_stereobond_in_ring(bond)
-                        continue
-
+        for double_bond_sequence in double_bond_sequences:
+            for double_bond in double_bond_sequence:
+                chirality_correct = self.chirality_correct(double_bond)
+                if chirality_correct:
+                    self.fixed_chiral_bonds.add(double_bond)
                 else:
-                    if len(bond.atom_1.draw.rings) > 0:
-                        parent_atom = bond.atom_2
-                        root_atom = bond.atom_1
+                    self.fix_chiral_bond(double_bond)
 
-                    else:
-                        parent_atom = bond.atom_1
-                        root_atom = bond.atom_2
+        for bond in self.structure.bonds.values():
+            if bond.type == 'double' and bond.chiral and bond not in self.fixed_chiral_bonds:
+                chirality_correct = self.chirality_correct(bond)
+                if chirality_correct:
+                    self.fixed_chiral_bonds.add(bond)
+                else:
+                    self.fix_chiral_bond(bond)
 
-                    if must_be_fixed:
-
-                        neighbours = parent_atom.drawn_neighbours[:]
-                        neighbours.remove(root_atom)
-
-                        if len(neighbours) == 1:
-                            neighbour = neighbours[0]
-                            self.flip_subtree(neighbour, root_atom, parent_atom)
-
-                        # Only need to flip once if both neighbours are in the same ring
-
-                        elif len(neighbours) == 2 and len(set(neighbours[0].draw.rings).intersection(set(neighbours[1].draw.rings))) >= 1:
-                            print('here')
-                            self.flip_subtree(neighbours[0], root_atom, parent_atom)
-
-                        elif len(neighbours) == 2:
-                            neighbour_1 = neighbours[0]
-                            neighbour_2 = neighbours[1]
-
-                            self.flip_subtree(neighbour_1, root_atom, parent_atom)
-                            self.flip_subtree(neighbour_2, root_atom, parent_atom)
+        #
+        # for bond_nr, bond in self.structure.bonds.items():
+        #     if bond.chiral and bond not in self.fixed_chiral_bonds:
+        #         chirality_correct = self.chirality_correct(bond)
+                # must_be_fixed = False
+                #
+                # for neighbour_1 in bond.atom_1.neighbours:
+                #     if neighbour_1 != bond.atom_2:
+                #         for neighbour_2 in bond.atom_2.neighbours:
+                #             if neighbour_2 != bond.atom_1:
+                #                 if neighbour_1.draw.is_drawn and neighbour_2.draw.is_drawn:
+                #
+                #                     placement_1 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
+                #                                                                        bond.atom_2.draw.position,
+                #                                                                        neighbour_1.draw.position)
+                #                     placement_2 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
+                #                                                                        bond.atom_2.draw.position,
+                #                                                                        neighbour_2.draw.position)
+                #
+                #                     orientation = bond.chiral_dict[neighbour_1][neighbour_2]
+                #
+                #                     if orientation == 'cis':
+                #                         if placement_1 != placement_2:
+                #                             must_be_fixed = True
+                #                     else:
+                #                         if placement_1 == placement_2:
+                #                             must_be_fixed = True
+                #
+                # if len(bond.atom_1.draw.rings) and len(bond.atom_2.draw.rings) and \
+                #         len(set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))) >= 1:
+                #
+                #     #if must_be_fixed:
+                #     if not chirality_correct:
+                #         self.flip_stereobond_in_ring(bond)
+                #         continue
+                #
+                # else:
+                #     if len(bond.atom_1.draw.rings) > 0:
+                #         parent_atom = bond.atom_2
+                #         root_atom = bond.atom_1
+                #
+                #     else:
+                #         parent_atom = bond.atom_1
+                #         root_atom = bond.atom_2
+                #
+                #     #if must_be_fixed:
+                #     if not chirality_correct:
+                #
+                #         neighbours = parent_atom.drawn_neighbours[:]
+                #         neighbours.remove(root_atom)
+                #
+                #         if len(neighbours) == 1:
+                #             neighbour = neighbours[0]
+                #             self.flip_subtree(neighbour, root_atom, parent_atom)
+                #
+                #         # Only need to flip once if both neighbours are in the same ring
+                #
+                #         elif len(neighbours) == 2 and len(set(neighbours[0].draw.rings).intersection(set(neighbours[1].draw.rings))) >= 1:
+                #
+                #             self.flip_subtree(neighbours[0], root_atom, parent_atom)
+                #
+                #         elif len(neighbours) == 2:
+                #             neighbour_1 = neighbours[0]
+                #             neighbour_2 = neighbours[1]
+                #
+                #             self.flip_subtree(neighbour_1, root_atom, parent_atom)
+                #             self.flip_subtree(neighbour_2, root_atom, parent_atom)
+                #
+                # self.fixed_chiral_bonds.add(bond)
 
     def draw_structure(self):
 
@@ -2251,7 +2471,9 @@ class Drawer:
         return False
 
     def define_rings(self):
-        rings = SSSR(self.structure).get_rings()
+
+        rings = self.structure.cycles.find_sssr()
+
         if not rings:
             return None
 

@@ -239,8 +239,26 @@ class Cycles:
             if not already_covered:
                 minimal_cycles.append(cycle)
 
-
         return minimal_cycles
+
+    def find_sssr(self):
+        sorted_cycles = sorted(self.all_cycles, key=lambda x: len(x))
+        sssr = []
+        atoms = set()
+        for cycle in sorted_cycles:
+            add_cycle = False
+            for atom in cycle:
+
+                if atom not in atoms:
+                    add_cycle = True
+                    break
+            if add_cycle:
+                sssr.append(cycle)
+                
+            for atom in cycle:
+                atoms.add(atom)
+
+        return sssr
 
     def find_unique_cycles(self, structure):
         all_cycles = simple_cycles(structure.graph)
