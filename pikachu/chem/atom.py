@@ -49,6 +49,7 @@ class Atom:
         self.neighbours = []
         self.drawn_neighbours = []
         self.aromatic_system = None
+        self.shell_nr = ATOM_PROPERTIES.element_to_shell_nr[self.type]
 
     def __eq__(self, atom):
         if type(atom) == Atom:
@@ -75,7 +76,6 @@ class Atom:
 
         return f'{self.type}{charge_string}_{self.nr}'
 
-
     def copy(self):
         atom_copy = Atom(self.type, self.nr, self.chiral, self.charge, self.aromatic)
         atom_copy.hybridisation = self.hybridisation
@@ -100,10 +100,22 @@ class Atom:
         return atom_copy
 
     def make_lone_pairs(self):
+        lone_pairs = self.valence_shell.get_lone_pairs()
 
-        lone_pair_nr = self.valence_shell.get_lone_pair_nr()
-        for i in range(lone_pair_nr):
-            self.lone_pairs.append(LonePair(self, self.nr * (i + 10000)))
+        # self.valence_shell.get_lone_pair_nr()
+        for i, electrons in enumerate(lone_pairs):
+            lone_pair = LonePair(self, self.nr * (i + 10000))
+            for electron in electrons:
+                lone_pair.add_electron(electron)
+
+            self.lone_pairs.append(lone_pair)
+
+    def get_bond(self, atom):
+        for bond in self.bonds:
+            if bond.atom_1 == atom or bond.atom_2 == atom:
+                return bond
+
+        return None
 
     def get_bonds(self):
         return self.bonds[:]
@@ -119,6 +131,21 @@ class Atom:
 
     def remove_neighbour(self, neighbour):
         self.neighbours.remove(neighbour)
+
+    def get_drawn_neighbours(self):
+        drawn_neighbours = []
+        for neighbour in self.neighbours:
+            if neighbour.draw.is_drawn:
+                drawn_neighbours.append(neighbour)
+
+        return drawn_neighbours
+
+    def has_neighbour(self, atom_type):
+        for neighbour in self.neighbours:
+            if neighbour.type == atom_type:
+                return True
+
+        return False
 
     def set_connectivity(self):
         self.connectivity = self.get_connectivity()
@@ -169,35 +196,24 @@ class Atom:
             if neighbour.type != 'H':
                 self.order += 1
 
-    def get_drawn_neighbours(self):
-        drawn_neighbours = []
-        for neighbour in self.neighbours:
-            if neighbour.draw.is_drawn:
-                drawn_neighbours.append(neighbour)
+    def add_electron_shells(self):
 
-        return drawn_neighbours
-    
-    def has_neighbour(self, atom_type):
-        for neighbour in self.neighbours:
-            if neighbour.type == atom_type:
-                return True
-        
-        return False
-
-    def add_shell_layout(self):
-        self.shell_nr = ATOM_PROPERTIES.element_to_shell_nr[self.type]
+        # Generate empty shells depending on atom type
         self.make_shells()
+
+        # Fill them with electrons
         self.fill_shells()
 
+        # Check if the total number of electrons can be distributed such that each orbital contains one electron each
         self.excitable = self.valence_shell.is_excitable()
 
         # Can't excite carbon if it has more than 4 electrons
 
-        if (self.type == 'C' or self.type == 'B') and self.charge >= 0:
+        if (self.type == 'C' or self.type == 'B') and self.excitable:
             self.excite()
         else:
 
-            # Assigns a value to all bonds: 2 for double bond, 1 for single, ~1.5 for aromatic
+            # Assigns a value to all bonds: 2 for double bond, 1 for single. The aromatic value depends on the atom
             bond_weights = []
             aromatic_count = 0
 
@@ -215,6 +231,8 @@ class Atom:
             if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
                 nr_of_nonH_bonds -= 1
 
+            print(self, nr_of_nonH_bonds)
+
             # Does this work for all atoms? Doesn't for carbon. Should this be made general?
 
             bonding_electrons = self.get_bonding_electrons()
@@ -228,7 +246,7 @@ class Atom:
 
     def get_bonding_electrons(self):
         counter = 0
-        for orbital_name, orbital in self.valence_shell.orbitals.items():
+        for orbital in self.valence_shell.orbitals.values():
             if len(orbital.electrons) == 1:
                 counter += 1
         return counter
@@ -257,7 +275,6 @@ class Atom:
         return False
 
     def fill_shells(self):
-        electrons_assigned = 0
 
         electrons_remaining = ATOM_PROPERTIES.element_to_atomic_nr[self.type] - self.charge
 
@@ -265,12 +282,18 @@ class Atom:
 
         for orbital in ATOM_PROPERTIES.orbital_order:
             if electrons_remaining > 0:
+                # Find the correct set of orbitals
                 shell = int(orbital[0])
                 orbital_set = self.shells[shell].orbital_sets[orbital]
+
+                # Place either the maximum number of electrons or the number of electrons remaining in the orbital set
+
                 electrons_to_dump = min([electrons_remaining, orbital_set.capacity])
                 orbital_set.fill_orbitals(electrons_to_dump)
+
                 electrons_remaining -= electrons_to_dump
             else:
+                # All electrons have been placed and we can break out of the loop
                 break
                 
     def get_neighbour(self, atom_type):
@@ -307,9 +330,8 @@ class Atom:
         bonds_accounted_for = 0
 
         electron_nr = 0
-        orbital_nr = len(list(self.valence_shell.orbitals.keys()))
 
-        for orbital_name, orbital in self.valence_shell.orbitals.items():
+        for orbital in self.valence_shell.orbitals.values():
 
             if orbital.electron_nr == 1:
                 electron_nr += 1
@@ -409,17 +431,20 @@ class Atom:
         assert self.hybridisation == 'sp3'
 
         self.valence_shell.dehybridise()
-        # self.valence_shell.hybridise('sp2')
 
         p_orbitals = []
         sp2_orbitals = []
 
-        for orbital_name, orbital in self.valence_shell.orbitals.items():
+        for orbital in self.valence_shell.orbitals.values():
             if orbital.electron_nr == 2:
+                # Any orbitals that are already bonded will become sp2 orbitals
                 if orbital.electrons[0].atom != orbital.electrons[1].atom:
                     sp2_orbitals.append(orbital)
+                # Any orbitals that are not bonded yet will become p orbitals
                 elif orbital.electrons[0].atom == orbital.electrons[1].atom == self:
                     p_orbitals.append(orbital)
+                    
+        # Should more than one p-orbital be found, make sure we only use 1.
 
         if len(p_orbitals) > 1:
             for i in range(1, len(p_orbitals)):
@@ -434,7 +459,7 @@ class Atom:
 
         self.hybridisation = 'sp2'
 
-        for orbital_name, orbital in self.valence_shell.orbitals.items():
+        for orbital in self.valence_shell.orbitals.values():
             for electron in orbital.electrons:
                 if electron.atom == self:
                     electron.set_orbital(orbital)
@@ -448,8 +473,7 @@ class Atom:
             
             donor_orbitals = []
             receiver_orbitals = []
-            for orbital_name in self.valence_shell.orbitals:
-                orbital = self.valence_shell.orbitals[orbital_name]
+            for orbital in self.valence_shell.orbitals.values():
                 if 'p' in orbital.orbital_type and orbital.orbital_type != 'p' and orbital.electron_nr == 2:
                     if orbital.electrons[0].atom != orbital.electrons[1].atom:
                         donor_orbitals.append(orbital)
@@ -473,14 +497,12 @@ class Atom:
                 receiver_orbital.set_bond(donor_orbital.bond, 'pi')
                 donor_orbital.remove_bond()
 
-
     def promote_pi_bond_to_d_orbital(self):
         assert self.is_promotable()
 
         donor_orbitals = []
         receiver_orbitals = []
-        for orbital_name in self.valence_shell.orbitals:
-            orbital = self.valence_shell.orbitals[orbital_name]
+        for orbital in self.valence_shell.orbitals.values():
             if orbital.orbital_type == 'p' and orbital.electron_nr == 2:
                 if orbital.electrons[0].atom != orbital.electrons[1].atom:
                     donor_orbitals.append(orbital)
@@ -534,8 +556,7 @@ class Atom:
 
     def set_hybridisation(self):
         self.hybridisation = 's'
-        for orbital_name in self.valence_shell.orbitals:
-            orbital = self.valence_shell.orbitals[orbital_name]
+        for orbital in self.valence_shell.orbitals.values():
             if orbital.orbital_type in {'sp', 'sp2', 'sp3', 'sp3d', 'sp3d2'}:
                 self.hybridisation = orbital.orbital_type
                 break
@@ -567,13 +588,16 @@ class Atom:
         return self.calc_electron_pair_nr() + len(self.bonds)
 
     def get_valence(self):
-        try:
-            valence = ATOM_PROPERTIES.element_to_valences[self.type][0]
-            return valence
-
-        except KeyError:
-            print("Unknown atom: %s" % self.type)
-            return "Unknown atom: %s" % self.type
+        
+        if self.type in ATOM_PROPERTIES.element_to_valences[self.type]:
+            return ATOM_PROPERTIES.element_to_valences[self.type][0]
+        else:
+            if self.type in ATOM_PROPERTIES.element_to_group:
+                group = ATOM_PROPERTIES.element_to_group[self.type]
+                valence = ATOM_PROPERTIES.group_to_valence[group]
+                return valence
+            else:
+                return None
 
     def get_coords(self):
         return [self.x, self.y, self.z]

@@ -8,7 +8,7 @@ from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
 from pikachu.chem.substructure_matching import check_same_chirality, compare_all_matches, SubstructureMatch, find_substructures
-from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic
+from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic, is_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
 
 sys.setrecursionlimit(1000000)
@@ -642,7 +642,7 @@ class Structure:
 
         next_atom_nr = self.find_next_atom_nr()
         atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
-        atom.add_shell_layout()
+        atom.add_electron_shells()
 
         for i, neighbour in enumerate(neighbours):
             next_bond_nr = self.find_next_bond_nr()
@@ -660,11 +660,16 @@ class Structure:
         """
         self.cycles = find_cycles.Cycles(self)
 
+    def promote_electrons_in_six_rings(self):
+        six_rings = self.cycles.find_x_membered(6)
+        for six_ring in six_rings:
+            pass
+
     def promote_electrons_in_five_rings(self):
         """
         Promote electrons in aromatic five rings to p-orbitals
         """
-        five_rings = self.cycles.find_five_membered()
+        five_rings = self.cycles.find_x_membered(5)
         for five_ring in five_rings:
             aromatic, heteroatom = check_five_ring(five_ring)
             if aromatic:
@@ -688,6 +693,7 @@ class Structure:
         """
         aromatic_cycles = []
         for cycle in self.cycles.unique_cycles:
+            print(cycle, is_aromatic(cycle))
             if check_aromatic(cycle):
                 aromatic_cycles.append(cycle)
 
@@ -792,7 +798,14 @@ class Structure:
 
         self.refine_p_bonds()
         self.hybridise_atoms()
+
         self.check_d_orbitals()
+
+        #Temporary code block
+
+        self.make_lone_pairs()
+        self.find_cycles()
+        self.find_aromatic_cycles()
 
         self.refine_s_bonds()
         self.drop_electrons()
@@ -1364,12 +1377,12 @@ class Structure:
     def add_shells_non_hydrogens(self):
         for atom in self.graph:
             if atom.type != 'H':
-                atom.add_shell_layout()
+                atom.add_electron_shells()
 
     def add_shells(self):
         for atom in self.graph:
             if not atom.shells:
-                atom.add_shell_layout()
+                atom.add_electron_shells()
 
     def hybridise_atoms(self, atoms=None):
 
@@ -1957,70 +1970,6 @@ class Structure:
     # ========================================================================
     # Auxillary functions
     # ========================================================================
-
-    # def make_H_string(self, atom, valence_dict):
-    #     H_nr = valence_dict[atom]['max'] - valence_dict[atom]['current']
-    #     if H_nr > 1:
-    #         H_string = "[%sH%d]" % (atom.type, H_nr)
-    #     elif H_nr == 1:
-    #         H_string = "[%sH]" % (atom.type)
-    #     else:
-    #         H_string = "[%s]" % (atom.type)
-    #
-    #     return H_string
-    #
-    # def make_nr_string(self, bond):
-    #     bond_nr, bond_type = bond
-    #     if bond_type == 1:
-    #         string = ''
-    #     elif bond_type == 2:
-    #         string = '='
-    #     elif bond_type == 3:
-    #         string = '#'
-    #
-    #     if bond_nr > 9:
-    #         bond_string = '%%%d' % bond_nr
-    #     else:
-    #         bond_string = str(bond_nr)
-    #
-    #     return ''.join([string, bond_string])
-    #
-    # def make_valence_dict(self):
-    #     valence_dict = {}
-    #     for atom in self.structure:
-    #         valence_dict[atom] = {}
-    #         valence_dict[atom]['current'] = len(self.structure[atom])
-    #         valence_dict[atom]['max'] = atom.get_valence(len(self.structure[atom]))
-    #
-    #     return valence_dict
-
-    # def record_bonds(self):
-    #     bond_record = {}
-    #
-    #     counter = 1
-    #
-    #     self.bond_record = {}
-    #     for atom_1 in self.structure:
-    #         self.bond_record[atom_1] = []
-    #
-    #         for atom_2 in self.structure[atom_1]:
-    #             bond_type = self.structure[atom_1].count(atom_2)
-    #
-    #             if atom_1.nr > atom_2.nr:
-    #                 pair = (atom_2, atom_1)
-    #             else:
-    #                 pair = (atom_1, atom_2)
-    #
-    #             if not pair in bond_record:
-    #                 bond_nr = counter
-    #                 bond_record[pair] = bond_nr
-    #                 counter += 1
-    #             else:
-    #                 bond_nr = bond_record[pair]
-    #
-    #             if not (bond_nr, bond_type) in self.bond_record[atom_1]:
-    #                 self.bond_record[atom_1] += [(bond_nr, bond_type)]
-    #         self.bond_record[atom_1].sort()
 
     def put_paths_in_graph(self, paths):
         """Return single structure from bond paths

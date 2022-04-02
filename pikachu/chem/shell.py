@@ -159,6 +159,15 @@ class Shell:
                         orbital.fill_orbital()
                         electron_nr -= 1
 
+    def get_lone_pairs(self):
+        lone_pairs = []
+        for orbital in self.orbitals.values():
+            if orbital.electron_nr == 2:
+                if orbital.electrons[0].atom == orbital.electrons[1].atom:
+                    lone_pairs.append(orbital.electrons)
+
+        return lone_pairs
+
     def get_lone_pair_nr(self):
         lone_pair_nr = 0
         for orbital_name in self.orbitals:

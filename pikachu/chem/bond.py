@@ -57,6 +57,18 @@ class Bond:
             if neighbour != atom:
                 return neighbour
 
+    def bond_is_neighbour(self, bond):
+        if bond.atom_1 == self.atom_1:
+            return True
+        if bond.atom_2 == self.atom_1:
+            return True
+        if bond.atom_1 == self.atom_2:
+            return True
+        if bond.atom_2 == self.atom_2:
+            return True
+        
+        return False
+
     def has_neighbour(self, atom_type):
         if self.atom_1.type == atom_type:
             return True

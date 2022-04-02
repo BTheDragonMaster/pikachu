@@ -215,10 +215,10 @@ class Cycles:
         self.find_unique_cycles(structure)
         self.make_microcycle_graph()
 
-    def find_five_membered(self):
+    def find_x_membered(self, x):
         five_membered = []
         for cycle in self.unique_cycles:
-            if len(cycle) == 5:
+            if len(cycle) == x:
                 five_membered.append(cycle)
 
         return five_membered
