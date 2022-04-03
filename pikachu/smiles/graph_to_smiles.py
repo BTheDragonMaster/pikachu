@@ -57,8 +57,7 @@ def structure_to_smiles(structure):
 class GraphToSmiles:
     def __init__(self, structure):
         self.original_structure = structure
-        self.structure = copy.deepcopy(structure)
-
+        self.structure = structure.deepcopy()
 
         self.remove_hydrogens()
 
@@ -334,7 +333,7 @@ class GraphToSmiles:
         current_atom = first_atom
         self.components.append(self.representations[current_atom])
 
-        working_graph = copy.deepcopy(self.structure)
+        working_graph = self.structure.copy()
         atoms_left = set(working_graph.graph.keys())
         atoms_added = set()
         atoms_added.add(current_atom)

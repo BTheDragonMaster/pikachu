@@ -8,7 +8,7 @@ from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
 from pikachu.chem.substructure_matching import check_same_chirality, compare_all_matches, SubstructureMatch, find_substructures
-from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic, is_aromatic
+from pikachu.chem.rings.ring_identification import is_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
 from pikachu.chem.aromatic_system import AromaticSystem
 
@@ -128,13 +128,14 @@ class Structure:
         new_structure.hybridise_atoms()
         new_structure.promote_pi_bonds()
 
-        new_structure.make_lone_pairs()
         new_structure.find_cycles()
         new_structure.aromatic_cycles = new_structure.find_aromatic_cycles()
         new_structure.aromatic_systems = new_structure.find_aromatic_systems()
 
         new_structure.form_sigma_bonds()
         new_structure.drop_electrons()
+        new_structure.make_lone_pairs()
+
         new_structure.set_atom_neighbours()
         new_structure.make_bond_lookup()
         new_structure.set_connectivities()
@@ -677,22 +678,6 @@ class Structure:
                     elif atom.type == 'O':
                         atom.furan = True
 
-    def promote_electrons_in_five_rings(self):
-        """
-        Promote electrons in aromatic five rings to p-orbitals
-        """
-        five_rings = self.cycles.find_x_membered(5)
-        for five_ring in five_rings:
-            aromatic, heteroatom = check_five_ring(five_ring)
-            if aromatic:
-                heteroatom.promote_lone_pair_to_p_orbital()
-                if heteroatom.type == 'N':
-                    heteroatom.pyrrole = True
-                elif heteroatom.type == 'O':
-                    heteroatom.furan = True
-                elif heteroatom.type == 'S':
-                    heteroatom.thiophene = True
-
     def find_aromatic_cycles(self):
         """
         Returns cycles that are aromatic
@@ -706,12 +691,15 @@ class Structure:
         aromatic_cycles = set()
         previous_nr_aromatic_cycles = -1
         current_nr_aromatic_cycles = 0
+
         while previous_nr_aromatic_cycles != current_nr_aromatic_cycles:
             previous_nr_aromatic_cycles = current_nr_aromatic_cycles
             for cycle in self.sssr:
                 if tuple(cycle) not in aromatic_cycles and is_aromatic(cycle):
                     self.make_cycle_aromatic(cycle)
                     aromatic_cycles.add(tuple(cycle))
+
+            first_round = False
 
             current_nr_aromatic_cycles = len(aromatic_cycles)
 
@@ -848,16 +836,16 @@ class Structure:
         self.hybridise_atoms()
         self.promote_pi_bonds()
 
-        self.make_lone_pairs()
         self.find_cycles()
         self.aromatic_cycles = self.find_aromatic_cycles()
         self.aromatic_systems = self.find_aromatic_systems()
 
         self.form_sigma_bonds()
         self.drop_electrons()
+        self.make_lone_pairs()
+
         self.set_atom_neighbours()
 
-        self.make_lone_pairs()
         self.make_bond_lookup()
 
         self.set_connectivities()

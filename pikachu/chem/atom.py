@@ -381,6 +381,7 @@ class Atom:
 
         if aromatic_bond_nr == 2:
             if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
+
                 bond_nr += 2
             elif self.aromatic:
                 oxygen = None
@@ -416,7 +417,7 @@ class Atom:
         return promotable
 
     def is_aromatic_nitrogen(self):
-        if self.type == 'N' and len(self.bonds) == 3 and self.aromatic:
+        if self.type == 'N' and len(self.bonds) == 3 and self.aromatic and self.charge == 0:
             return True
         return False
 
@@ -426,7 +427,7 @@ class Atom:
         return False
 
     def promote_lone_pair_to_p_orbital(self):
-        assert len(self.lone_pairs) > 0
+
         assert self.hybridisation == 'sp3'
 
         self.valence_shell.dehybridise()

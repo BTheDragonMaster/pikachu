@@ -2,53 +2,6 @@ import math
 from pikachu.errors import StructureError
 
 
-def check_aromatic(atom_set):
-    aromatic = True
-    for atom in atom_set:
-        if atom.hybridisation == 'sp2':
-            pass
-        else:
-            aromatic = False
-            break
-
-    if aromatic:
-        pi_electron_nr = 0
-        for atom in atom_set:
-            for orbital in atom.valence_shell.orbitals:
-                if orbital.orbital_type == 'p':
-                    for electron in orbital.electrons:
-                        if electron.atom == atom:
-                            pi_electron_nr += 1
-                        # This should ensure that pi-electrons are only counted if they are part of the ring system
-                            
-                        elif electron.atom not in atom_set:
-                            aromatic = False
-
-        if not pi_electron_nr % 4 == 2:
-            aromatic = False
-
-    return aromatic
-
-def electrons_can_delocalise(resonance_atoms, sp3):
-    matches = []
-    used_resonance_atoms = set()
-    if len(resonance_atoms) != len(sp3):
-        return False
-
-    for sp3_atom in sp3:
-        for resonance_atom in resonance_atoms:
-            if not resonance_atom in used_resonance_atoms and \
-                    set(sp3_atom.neighbours).intersection(sp3_atom.neighbours):
-                matches.append((sp3_atom, resonance_atom))
-                used_resonance_atoms.add(resonance_atom)
-                break
-
-    if len(matches) == len(sp3) == len(resonance_atoms):
-        return True
-    else:
-        return False
-
-
 def get_permissible_double_bond_number(aromatic_bonds):
     non_doubleable = set()
     for aromatic_bond in aromatic_bonds:
@@ -80,9 +33,21 @@ def is_aromatic(atom_set):
 
     for atom_1 in atom_set:
         if atom_1.hybridisation == 'sp3':
-            if len(atom_1.lone_pairs) > 0:
+            has_lone_pair = False
+
+            for orbital in atom_1.valence_shell.orbitals:
+                if len(orbital.electrons) == 2:
+                    has_lone_pair = True
+                    break
+            if has_lone_pair:
                 sp3.append(atom_1)
             else:
+                return False
+
+        for bond in atom_1.bonds:
+            connected_atom = bond.get_connected_atom(atom_1)
+
+            if bond.type == 'double' and connected_atom not in atom_set and connected_atom.type != 'O' and connected_atom.charge <= 0:
                 return False
 
         for atom_2 in atom_set:
@@ -96,29 +61,68 @@ def is_aromatic(atom_set):
 
     if len(aromatic_bonds) == len(atom_set):
         permissible_nr = get_permissible_double_bond_number(aromatic_bonds)
+
         pi_electrons = (permissible_nr + len(sp3)) * 2
+        print(atom_set, permissible_nr, pi_electrons)
+
+        # Make exception for heme
+        if pi_electrons == 16:
+            pyrroles = []
+            nitrogens = []
+            for atom in atom_set:
+                if atom.pyrrole:
+                    pyrroles.append(atom)
+                elif atom.type == 'N':
+                    nitrogens.append(atom)
+            if len(pyrroles) == 2 and len(nitrogens) == 2:
+                pi_electrons = 18
         
         if pi_electrons % 4 != 2:
             raise StructureError('aromaticity')
     elif not aromatic_bonds:
         pi_electrons = (len(sp3) + len(double_bonds)) * 2
     else:
+
         # This happens when parts of the aromatic system are not defined
         neighbouring_aromatic_bonds = get_neighbouring_bonds(aromatic_bonds)
         if len(neighbouring_aromatic_bonds) == 2:
+
             if len(neighbouring_aromatic_bonds[0]) == 1 and len(neighbouring_aromatic_bonds[1]) == 1:
-                pi_electrons = (2 + len(sp3) + len(double_bonds)) * 2
+                aromatic_bond_1 = neighbouring_aromatic_bonds[0][0]
+                aromatic_bond_2 = neighbouring_aromatic_bonds[1][0]
+
+                print(aromatic_bond_1, aromatic_bond_2)
+
+                if aromatic_bond_1.atom_1.hybridisation == aromatic_bond_1.atom_2.hybridisation == aromatic_bond_2.atom_1.hybridisation == aromatic_bond_2.atom_2.hybridisation == 'sp2':
+                    pi_electrons = (2 + len(sp3) + len(double_bonds)) * 2
+                    print("squeezed between", atom_set, pi_electrons)
+                else:
+                    return False
 
             else:
                 return False
         elif len(neighbouring_aromatic_bonds) == 1:
+            inaccessible_aromatic_bonds = []
+            for aromatic_bond in neighbouring_aromatic_bonds[0]:
+                if aromatic_bond.atom_1.hybridisation != 'sp2' or aromatic_bond.atom_2.hybridisation != 'sp2':
+                    inaccessible_aromatic_bonds.append(aromatic_bond)
 
-            pi_electrons = (int(math.ceil(len(neighbouring_aromatic_bonds[0]) / 2)) + len(double_bonds) + len(sp3)) * 2
+            print(inaccessible_aromatic_bonds)
+
+            bond_nr = len(neighbouring_aromatic_bonds[0]) - len(inaccessible_aromatic_bonds)
+
+            pi_electrons = (int(math.ceil(bond_nr / 2)) + len(double_bonds) + len(sp3)) * 2
+            print("squeezed between 2", atom_set, pi_electrons)
         else:
             return False
 
     if pi_electrons % 4 == 2:
-        return True
+        if pi_electrons > 2:
+            return True
+
+        if len(atom_set) == 3:
+            return True
+
     else:
         return False
 
@@ -167,34 +171,3 @@ def get_neighbouring_bonds(bonds):
         bond_group_nr = len(bond_groups)
 
     return bond_groups
-
-def check_five_ring(atom_set):
-    assert len(atom_set) == 5
-
-    sp2_hybridised = []
-    sp3_hybridised_lone_pair = []
-
-    aromatic = False
-    heteroatom = None
-
-    for atom in atom_set:
-        if atom.hybridisation == 'sp2':
-            sp2_hybridised.append(atom)
-        elif atom.hybridisation == 'sp3':
-            if atom.calc_electron_pair_nr() > 0:
-                sp3_hybridised_lone_pair.append(atom)
-
-    if len(sp2_hybridised) == 4 and len(sp3_hybridised_lone_pair) == 1:
-
-        pi_electron_nr = 0
-        for atom in sp2_hybridised:
-            for orbital in atom.valence_shell.orbitals:
-                if orbital.orbital_type == 'p':
-                    for electron in orbital.electrons:
-                        if electron.atom == atom:
-                            pi_electron_nr += 1
-        if pi_electron_nr % 4 == 0:
-            aromatic = True
-            heteroatom = sp3_hybridised_lone_pair[0]
-
-    return aromatic, heteroatom

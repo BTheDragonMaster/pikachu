@@ -22,12 +22,13 @@ def validate_pikachu(smiles_file, finetune=True, strict_mode=False):
     with open(smiles_file, 'r') as smiles_f:
         for line in smiles_f:
             smiles = line.strip()
-            total += 1
 
-            if total % 500 == 0:
+            if total % 100 == 0:
                 print(f"Correct SMILES: {correct}")
                 print(f"Incorrect SMILES: {incorrect}")
                 print(f"Total SMILES: {total}")
+
+            total += 1
 
             try:
                 pikachu_structure = read_smiles(smiles)
