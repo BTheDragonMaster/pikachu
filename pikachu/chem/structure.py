@@ -3,13 +3,14 @@ from pprint import pprint
 import sys
 
 from pikachu.chem.bond_properties import BOND_PROPERTIES
-from pikachu.errors import SmilesError
+from pikachu.errors import StructureError, KekulisationError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
 from pikachu.chem.substructure_matching import check_same_chirality, compare_all_matches, SubstructureMatch, find_substructures
 from pikachu.chem.rings.ring_identification import check_five_ring, check_aromatic, is_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
+from pikachu.chem.aromatic_system import AromaticSystem
 
 sys.setrecursionlimit(1000000)
 
@@ -50,6 +51,9 @@ class Structure:
             self.bond_lookup = bond_lookup
         else:
             self.make_bond_lookup()
+            
+        self.aromatic_cycles = []
+        self.aromatic_systems = []
 
     def get_atoms(self):
         atoms = []
@@ -120,24 +124,19 @@ class Structure:
         new_structure.add_shells_non_hydrogens()
         new_structure.add_shells()
 
-        new_structure.refine_p_bonds()
-
+        new_structure.form_pi_bonds()
         new_structure.hybridise_atoms()
-
-        new_structure.check_d_orbitals()
-
-        new_structure.refine_s_bonds()
-        new_structure.drop_electrons()
-        new_structure.set_atom_neighbours()
+        new_structure.promote_pi_bonds()
 
         new_structure.make_lone_pairs()
-        new_structure.make_bond_lookup()
         new_structure.find_cycles()
-        new_structure.promote_electrons_in_five_rings()
-        aromatic_systems = new_structure.find_aromatic_systems()
-        aromatic_cycles = new_structure.find_aromatic_cycles()
-        new_structure.set_bonds_to_aromatic(aromatic_systems)
-        new_structure.set_bonds_to_aromatic(aromatic_cycles)
+        new_structure.aromatic_cycles = new_structure.find_aromatic_cycles()
+        new_structure.aromatic_systems = new_structure.find_aromatic_systems()
+
+        new_structure.form_sigma_bonds()
+        new_structure.drop_electrons()
+        new_structure.set_atom_neighbours()
+        new_structure.make_bond_lookup()
         new_structure.set_connectivities()
 
         return new_structure
@@ -375,9 +374,9 @@ class Structure:
 
                     if chiral_1 and chiral_2:
                         if chiral_1_1 == chiral_1_2:
-                            raise SmilesError('chiral double bond')
+                            raise StructureError('chiral double bond')
                         if chiral_2_2 == chiral_2_1:
-                            raise SmilesError('chiral double bond')
+                            raise StructureError('chiral double bond')
 
                         if chiral_1_1:
                             first_atom = atom_1_1
@@ -659,11 +658,24 @@ class Structure:
         Find all cycles in a structure and store them
         """
         self.cycles = find_cycles.Cycles(self)
+        self.sssr = self.cycles.find_sssr()
 
     def promote_electrons_in_six_rings(self):
         six_rings = self.cycles.find_x_membered(6)
         for six_ring in six_rings:
             pass
+
+    def promote_lone_pairs_in_aromatic_cycles(self, cycles):
+        for cycle in cycles:
+            for atom in cycle:
+                if atom.hybridisation == 'sp3':
+                    atom.promote_lone_pair_to_p_orbital()
+                    if atom.type == 'N':
+                        atom.pyrrole = True
+                    elif atom.type == 'S':
+                        atom.thiophene = True
+                    elif atom.type == 'O':
+                        atom.furan = True
 
     def promote_electrons_in_five_rings(self):
         """
@@ -691,11 +703,19 @@ class Structure:
             atoms the atoms that comprise an aromatic cycle
 
         """
-        aromatic_cycles = []
-        for cycle in self.cycles.unique_cycles:
-            print(cycle, is_aromatic(cycle))
-            if check_aromatic(cycle):
-                aromatic_cycles.append(cycle)
+        aromatic_cycles = set()
+        previous_nr_aromatic_cycles = -1
+        current_nr_aromatic_cycles = 0
+        while previous_nr_aromatic_cycles != current_nr_aromatic_cycles:
+            previous_nr_aromatic_cycles = current_nr_aromatic_cycles
+            for cycle in self.sssr:
+                if tuple(cycle) not in aromatic_cycles and is_aromatic(cycle):
+                    self.make_cycle_aromatic(cycle)
+                    aromatic_cycles.add(tuple(cycle))
+
+            current_nr_aromatic_cycles = len(aromatic_cycles)
+
+        self.promote_lone_pairs_in_aromatic_cycles(aromatic_cycles)
 
         return aromatic_cycles
 
@@ -708,12 +728,41 @@ class Structure:
         aromatic_ring_systems: list of [[Atom, ->], ->], with each list of
             atoms the atoms that comprise an aromatic ring system
         """
+        previous_system_nr = -1
+        current_system_nr = 1
 
-        ring_systems = self.cycles.find_cyclic_systems()
+        aromatic_systems = [list(aromatic_cycle) for aromatic_cycle in self.aromatic_cycles]
+
+        while current_system_nr != previous_system_nr:
+            previous_system_nr = current_system_nr
+            indices_to_remove = None
+            new_system = None
+            for i, system_1 in enumerate(aromatic_systems):
+                system_found = False
+                for j, system_2 in enumerate(aromatic_systems):
+                    if i != j:
+                        if len(set(system_1).intersection(set(system_2))) >= 2:
+                            indices_to_remove = [i, j]
+                            new_system = list(set(system_1[:] + system_2[:]))
+                            system_found = True
+                            break
+                if system_found:
+                    break
+
+            if new_system:
+                indices_to_remove.sort(reverse=True)
+                for index in indices_to_remove:
+                    aromatic_systems.pop(index)
+
+                aromatic_systems.append(new_system)
+                
+            current_system_nr = len(aromatic_systems)
+
         aromatic_ring_systems = []
-        for ring_system in ring_systems:
-            if check_aromatic(ring_system):
-                aromatic_ring_systems.append(ring_system)
+
+        for i, aromatic_system in enumerate(aromatic_systems):
+            system = AromaticSystem(i, aromatic_system)
+            aromatic_ring_systems.append(system)
 
         return aromatic_ring_systems
 
@@ -776,15 +825,14 @@ class Structure:
 
         return double_bond_fragments
 
-    def set_bonds_to_aromatic(self, aromatic_systems):
-        for aromatic_system in aromatic_systems:
-            for atom_1 in aromatic_system:
-                atom_1.aromatic = True
-                for atom_2 in aromatic_system:
-                    if atom_1 in self.graph[atom_2]:
-                        bond = self.bond_lookup[atom_1][atom_2]
-                        if bond.type != 'aromatic':
-                            bond.make_aromatic()
+    def make_cycle_aromatic(self, cycle):
+        for atom_1 in cycle:
+            atom_1.aromatic = True
+            for atom_2 in cycle:
+                if atom_1 != atom_2:
+                    bond = atom_1.get_bond(atom_2)
+                    if bond and bond.type != 'aromatic':
+                        bond.make_aromatic()
 
     def refine_structure(self):
         """
@@ -796,29 +844,22 @@ class Structure:
 
         self.sort_by_nr()
 
-        self.refine_p_bonds()
+        self.form_pi_bonds()
         self.hybridise_atoms()
-
-        self.check_d_orbitals()
-
-        #Temporary code block
+        self.promote_pi_bonds()
 
         self.make_lone_pairs()
         self.find_cycles()
-        self.find_aromatic_cycles()
+        self.aromatic_cycles = self.find_aromatic_cycles()
+        self.aromatic_systems = self.find_aromatic_systems()
 
-        self.refine_s_bonds()
+        self.form_sigma_bonds()
         self.drop_electrons()
         self.set_atom_neighbours()
 
         self.make_lone_pairs()
         self.make_bond_lookup()
-        self.find_cycles()
-        self.promote_electrons_in_five_rings()
-        aromatic_systems = self.find_aromatic_systems()
-        aromatic_cycles = self.find_aromatic_cycles()
-        self.set_bonds_to_aromatic(aromatic_systems)
-        self.set_bonds_to_aromatic(aromatic_cycles)
+
         self.set_connectivities()
         self.set_atoms()
 
@@ -826,7 +867,7 @@ class Structure:
         for atom in self.graph:
             atom.make_lone_pairs()
 
-    def check_d_orbitals(self):
+    def promote_pi_bonds(self):
         for atom in self.graph:
             atom.promote_pi_bonds_to_d_orbitals()
 
@@ -1418,13 +1459,13 @@ class Structure:
                 hydrogen = Atom('H', max_atom_nr, None, 0, False)
                 self.add_bond(atom, hydrogen, 'single', max_bond_nr)
 
-    def refine_p_bonds(self):
+    def form_pi_bonds(self):
         for bond_nr in self.bonds:
             bond = self.bonds[bond_nr]
             if bond.type != 'single':
                 bond.combine_p_orbitals()
 
-    def refine_s_bonds(self):
+    def form_sigma_bonds(self):
         for bond_nr, bond in self.bonds.items():
             bond.combine_hybrid_orbitals()
 
@@ -1628,7 +1669,7 @@ class Structure:
     def find_pi_subgraph(self, prune=True):
         pi_subgraph = {}
 
-        for bond_nr, bond in self.bonds.items():
+        for bond in self.bonds.values():
             if bond.type == 'aromatic':
 
                 # prune the subgraph as kekulisation can only occur in atoms
@@ -1637,19 +1678,17 @@ class Structure:
                 unpaired_electrons_1 = 0
                 unpaired_electrons_2 = 0
 
-                for orbital_name, orbital in bond.atom_1.valence_shell.orbitals.items():
-                    if len(orbital.electrons) == 1:
-                        unpaired_electrons_1 += 1
+                if len(bond.aromatic_system.get_contributed_electrons(bond.atom_1)) == 1:
+                    unpaired_electrons_1 += 1
 
-                for orbital_name, orbital in bond.atom_2.valence_shell.orbitals.items():
-                    if len(orbital.electrons) == 1:
-                        unpaired_electrons_2 += 1
+                if len(bond.aromatic_system.get_contributed_electrons(bond.atom_2)) == 1:
+                    unpaired_electrons_2 += 1
 
                 if unpaired_electrons_1 and unpaired_electrons_2:
 
-                    if not bond.atom_1 in pi_subgraph:
+                    if bond.atom_1 not in pi_subgraph:
                         pi_subgraph[bond.atom_1] = []
-                    if not bond.atom_2 in pi_subgraph:
+                    if bond.atom_2 not in pi_subgraph:
                         pi_subgraph[bond.atom_2] = []
 
                     pi_subgraph[bond.atom_1].append(bond.atom_2)
@@ -1657,9 +1696,9 @@ class Structure:
 
                 elif not prune:
 
-                    if not bond.atom_1 in pi_subgraph:
+                    if bond.atom_1 not in pi_subgraph:
                         pi_subgraph[bond.atom_1] = []
-                    if not bond.atom_2 in pi_subgraph:
+                    if bond.atom_2 not in pi_subgraph:
                         pi_subgraph[bond.atom_2] = []
 
                     pi_subgraph[bond.atom_1].append(bond.atom_2)
@@ -1686,75 +1725,74 @@ class Structure:
 
             for node in matching.nodes:
                 double_bond_pair = tuple(sorted([node.atom, node.mate.atom], key=lambda x: x.nr))
-                if not double_bond_pair in double_bond_pairs:
+                if double_bond_pair not in double_bond_pairs:
                     double_bond_pairs.add(double_bond_pair)
 
                 for neighbour in node.neighbors:
                     if neighbour.index != node.mate.index:
                         single_bond_pair = tuple(sorted([node.atom, neighbour.atom], key=lambda x: x.nr))
-                        if not single_bond_pair in single_bond_pairs:
+                        if single_bond_pair not in single_bond_pairs:
                             single_bond_pairs.add(single_bond_pair)
+
+            # heteroatoms containing lone pairs, sp2-hybridised carbons
 
             for atom in aromatic_unmatched:
                 for neighbour in atom.neighbours:
-                    if neighbour in pruned:
+                    if neighbour in atom.aromatic_system.atoms:
                         single_bond_pair = tuple(sorted([atom, neighbour], key=lambda x: x.nr))
-                        if not single_bond_pair in single_bond_pairs:
+                        if single_bond_pair not in single_bond_pairs:
                             single_bond_pairs.add(single_bond_pair)
 
         # kekule_structure = copy.deepcopy(self)
 
         # kekule_structure = self.copy()
 
+        for aromatic_system in kekule_structure.aromatic_systems:
+            aromatic_system.relocalise_electrons()
+
         for pair in double_bond_pairs:
+
             new_atom_1 = kekule_structure.atoms[pair[0].nr]
             new_atom_2 = kekule_structure.atoms[pair[1].nr]
+            
             bond = kekule_structure.bond_lookup[new_atom_1][new_atom_2]
             bond.type = 'double'
             bond.aromatic = False
+            
             bond.atom_1.aromatic = False
             bond.atom_2.aromatic = False
-            aromatic_electron_1 = None
-            aromatic_electron_2 = None
-            aromatic_orbital_1 = None
-            aromatic_orbital_2 = None
+
             bond.set_bond_summary()
+            
+            orbitals_1 = new_atom_1.get_orbitals('p')
+            orbitals_2 = new_atom_2.get_orbitals('p')
+            
+            if orbitals_1 and orbitals_2:
+                orbital_1 = orbitals_1[0]
+                orbital_2 = orbitals_2[0]
+                
+                if not len(orbital_1.electrons) == 1 or not len(orbital_2.electrons) == 1:
+                    raise KekulisationError(bond.aromatic_system.__repr__())
 
-            # THIS IS NEW! REMOVE IF THINGS BREAK!!
-            for orbital_name, orbital in new_atom_1.valence_shell.orbitals.items():
-                if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
-                    electron = orbital.electrons[0]
-                    if electron.aromatic:
-                        aromatic_orbital_1 = orbital
-                        aromatic_electron_1 = electron
+                orbital_1.add_electron(orbital_2.electrons[0])
+                orbital_2.add_electron(orbital_1.electrons[0])
 
-            for orbital_name, orbital in new_atom_2.valence_shell.orbitals.items():
-                if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
-                    electron = orbital.electrons[0]
-                    if electron.aromatic:
-                        aromatic_orbital_2 = orbital
-                        aromatic_electron_2 = electron
+                orbital_1.set_bond(bond, 'pi')
+                orbital_2.set_bond(bond, 'pi')
 
-            if aromatic_electron_1 and aromatic_electron_2:
-
-                aromatic_electron_1.set_unaromatic()
-                aromatic_electron_2.set_unaromatic()
-
-                aromatic_orbital_1.add_electron(aromatic_electron_2)
-                aromatic_orbital_2.add_electron(aromatic_electron_1)
-
-                aromatic_orbital_1.set_bond(bond, 'pi')
-                aromatic_orbital_2.set_bond(bond, 'pi')
+                bond.electrons.append(orbital_1.electrons[0])
+                bond.electrons.append(orbital_2.electrons[0])
 
                 bond.set_bond_summary()
-            else:
-                print("WARNING: Something might have gone wrong with kekulisation.")
+                bond.aromatic_system = None
 
         for pair in single_bond_pairs:
             new_atom_1 = kekule_structure.atoms[pair[0].nr]
             new_atom_2 = kekule_structure.atoms[pair[1].nr]
+
             bond = kekule_structure.bond_lookup[new_atom_1][new_atom_2]
             bond.type = 'single'
+
             bond.aromatic = False
             bond.atom_1.aromatic = False
             bond.atom_2.aromatic = False
@@ -1765,29 +1803,22 @@ class Structure:
             bond.atom_1.thiophene = False
             bond.atom_2.thiophene = False
 
+            bond.aromatic_system = None
+
             bond.set_bond_summary()
 
             # THIS IS NEW! REMOVE IF SOMETHING BREAKS!!!
 
-            if 'double' not in [b.type for b in bond.atom_1.bonds]:
-                for orbital_name, orbital in bond.atom_1.valence_shell.orbitals.items():
-                    if orbital.orbital_type == 'p':
-                        for electron in orbital.electrons:
-                            electron.set_unaromatic()
+            # electrons_to_remove = []
+            # for electron in bond.electrons:
+            #     if electron.orbital_type == 'p':
+            #         electrons_to_remove.append(electron)
+            #
+            # for electron in electrons_to_remove:
+            #     bond.electrons.remove(electron)
 
-            if 'double' not in [b.type for b in bond.atom_2.bonds]:
-                for orbital_name, orbital in bond.atom_2.valence_shell.orbitals.items():
-                    if orbital.orbital_type == 'p':
-                        for electron in orbital.electrons:
-                            electron.set_unaromatic()
-
-            electrons_to_remove = []
-            for electron in bond.electrons:
-                if electron.orbital_type == 'p':
-                    electrons_to_remove.append(electron)
-
-            for electron in electrons_to_remove:
-                bond.electrons.remove(electron)
+        kekule_structure.aromatic_systems = []
+        kekule_structure.aromatic_cycles = []
 
         return kekule_structure
 

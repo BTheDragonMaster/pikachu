@@ -48,12 +48,13 @@ class OrbitalSet:
         self.orbitals.append(Orbital(self.atom, self.shell_nr, 'f', 6))
         self.orbitals.append(Orbital(self.atom, self.shell_nr, 'f', 7))
 
-    def fill_orbitals(self, electrons):
+    def fill_orbitals(self, electrons, electron_nr):
         while electrons > 0:
             for orbital in self.orbitals:
                 if electrons > 0:
-                    orbital.fill_orbital()
+                    orbital.fill_orbital(electron_nr)
                     electrons -= 1
+                    electron_nr += 1
                 else:
                     break
 
@@ -113,12 +114,12 @@ class Orbital:
         self.bond = None
         self.bonding_orbital = None
 
-    def fill_orbital(self):
+    def fill_orbital(self, electron_id):
         """
         """
         assert self.electron_nr < 2
 
-        self.electrons.append(Electron(self.shell_nr, self.orbital_type,
+        self.electrons.append(Electron(electron_id, self.shell_nr, self.orbital_type,
                                        self.orbital_nr, 0.5, self.atom))
         self.set_electron_nr()
 
@@ -130,11 +131,15 @@ class Orbital:
         """
         assert self.electron_nr > 0
 
+        electron_id = self.electrons[-1].id
+
         del self.electrons[-1]
         self.set_electron_nr()
 
         if self.electron_nr == 1:
             self.electrons[0].unpair()
+            
+        return electron_id
 
     def add_electron(self, electron):
         assert self.electron_nr < 2

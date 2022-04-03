@@ -3,7 +3,7 @@ import copy
 from pikachu.chem.lone_pair import LonePair
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.chem.bond_properties import BOND_PROPERTIES
-from pikachu.errors import SmilesError
+from pikachu.errors import StructureError
 from pikachu.chem.shell import Shell
 from pikachu.math_functions import Vector
 
@@ -231,8 +231,6 @@ class Atom:
             if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
                 nr_of_nonH_bonds -= 1
 
-            print(self, nr_of_nonH_bonds)
-
             # Does this work for all atoms? Doesn't for carbon. Should this be made general?
 
             bonding_electrons = self.get_bonding_electrons()
@@ -241,12 +239,11 @@ class Atom:
                 if self.excitable:
                     self.excite()
                 else:
-                    print(self, self.bonds)
-                    raise SmilesError('violated_bonding_laws')
+                    raise StructureError('violated_bonding_laws')
 
     def get_bonding_electrons(self):
         counter = 0
-        for orbital in self.valence_shell.orbitals.values():
+        for orbital in self.valence_shell.orbitals:
             if len(orbital.electrons) == 1:
                 counter += 1
         return counter
@@ -277,6 +274,7 @@ class Atom:
     def fill_shells(self):
 
         electrons_remaining = ATOM_PROPERTIES.element_to_atomic_nr[self.type] - self.charge
+        electron_nr = 1
 
         # Iterate over the orbitals in order of them being filled
 
@@ -289,7 +287,8 @@ class Atom:
                 # Place either the maximum number of electrons or the number of electrons remaining in the orbital set
 
                 electrons_to_dump = min([electrons_remaining, orbital_set.capacity])
-                orbital_set.fill_orbitals(electrons_to_dump)
+                orbital_set.fill_orbitals(electrons_to_dump, electron_nr)
+                electron_nr += electrons_to_dump
 
                 electrons_remaining -= electrons_to_dump
             else:
@@ -331,7 +330,7 @@ class Atom:
 
         electron_nr = 0
 
-        for orbital in self.valence_shell.orbitals.values():
+        for orbital in self.valence_shell.orbitals:
 
             if orbital.electron_nr == 1:
                 electron_nr += 1
@@ -427,7 +426,7 @@ class Atom:
         return False
 
     def promote_lone_pair_to_p_orbital(self):
-        assert self.calc_electron_pair_nr() > 0
+        assert len(self.lone_pairs) > 0
         assert self.hybridisation == 'sp3'
 
         self.valence_shell.dehybridise()
@@ -435,45 +434,64 @@ class Atom:
         p_orbitals = []
         sp2_orbitals = []
 
-        for orbital in self.valence_shell.orbitals.values():
+        for orbital in self.valence_shell.orbitals:
             if orbital.electron_nr == 2:
                 # Any orbitals that are already bonded will become sp2 orbitals
-                if orbital.electrons[0].atom != orbital.electrons[1].atom:
+                if orbital.electrons[0].atom != orbital.electrons[1].atom and (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
                     sp2_orbitals.append(orbital)
                 # Any orbitals that are not bonded yet will become p orbitals
-                elif orbital.electrons[0].atom == orbital.electrons[1].atom == self:
+                elif orbital.electrons[0].atom == orbital.electrons[1].atom == self and (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
                     p_orbitals.append(orbital)
+            else:
+                if orbital.orbital_type == 's' or orbital.orbital_type == 'p':
+                    sp2_orbitals.append(orbital)
+
                     
         # Should more than one p-orbital be found, make sure we only use 1.
 
         if len(p_orbitals) > 1:
-            for i in range(1, len(p_orbitals)):
+            for i in range(0, len(p_orbitals) - 1):
                 sp2_orbitals.append(p_orbitals[i])
 
-        p_orbital = p_orbitals[0]
+        p_orbital = p_orbitals[-1]
 
         p_orbital.orbital_type = 'p'
+        p_orbital.orbital_nr = 1
 
-        for orbital in sp2_orbitals:
+        for i, orbital in enumerate(sp2_orbitals):
             orbital.orbital_type = 'sp2'
+            orbital.orbital_nr = i + 1
 
         self.hybridisation = 'sp2'
 
-        for orbital in self.valence_shell.orbitals.values():
+        for orbital in self.valence_shell.orbitals:
             for electron in orbital.electrons:
                 if electron.atom == self:
                     electron.set_orbital(orbital)
-                    if orbital.orbital_type == 'p':
-                        electron.set_aromatic()
+                        
+    def get_orbitals(self, orbital_type):
+        orbitals = []
+        for orbital in self.valence_shell.orbitals:
+            if orbital.orbital_type == orbital_type:
+                orbitals.append(orbital)
+
+        return orbitals
+
+    def get_hybrid_orbitals(self, orbital_type):
+        orbitals = []
+        for orbital in self.valence_shell.orbitals:
+            if orbital_type in orbital.orbital_type:
+                orbitals.append(orbital)
+
+        return orbitals
                         
     def promote_pi_bonds_to_d_orbitals(self):
 
         if self.is_promotable() and 'd' in self.hybridisation:
-            # self.valence_shell.print_shell()
             
             donor_orbitals = []
             receiver_orbitals = []
-            for orbital in self.valence_shell.orbitals.values():
+            for orbital in self.valence_shell.orbitals:
                 if 'p' in orbital.orbital_type and orbital.orbital_type != 'p' and orbital.electron_nr == 2:
                     if orbital.electrons[0].atom != orbital.electrons[1].atom:
                         donor_orbitals.append(orbital)
@@ -502,7 +520,7 @@ class Atom:
 
         donor_orbitals = []
         receiver_orbitals = []
-        for orbital in self.valence_shell.orbitals.values():
+        for orbital in self.valence_shell.orbitals:
             if orbital.orbital_type == 'p' and orbital.electron_nr == 2:
                 if orbital.electrons[0].atom != orbital.electrons[1].atom:
                     donor_orbitals.append(orbital)
@@ -550,13 +568,14 @@ class Atom:
         self.bonds.append(bond)
 
     def hybridise(self):
+
         hybridisation = self.get_hybridisation()
         self.valence_shell.hybridise(hybridisation)
         self.set_hybridisation()
 
     def set_hybridisation(self):
         self.hybridisation = 's'
-        for orbital in self.valence_shell.orbitals.values():
+        for orbital in self.valence_shell.orbitals:
             if orbital.orbital_type in {'sp', 'sp2', 'sp3', 'sp3d', 'sp3d2'}:
                 self.hybridisation = orbital.orbital_type
                 break

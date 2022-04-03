@@ -1,8 +1,8 @@
 from typing import *
 from pikachu.chem.structure import Structure
-from pikachu.errors import SmilesError
+from pikachu.errors import StructureError
 from pikachu.chem.atom import Atom
-from pikachu.chem.aromatic_system import AromaticSystem
+# from pikachu.chem.aromatic_system import AromaticSystem
 
 
 def read_smiles(smiles_string):
@@ -11,7 +11,7 @@ def read_smiles(smiles_string):
             smiles = Smiles(smiles_string)
             structure = smiles.smiles_to_structure()
             return structure
-        except SmilesError as e:
+        except StructureError as e:
             print(f'Error parsing "{smiles_string}": {e.message}')
             return
 
@@ -235,7 +235,7 @@ class Smiles:
         explicit = False
         pyrrole = False
         furan = False
-        thiopene = False
+        thiophene = False
 
         atom_nr = -1
         bond_nr = -1
@@ -258,9 +258,9 @@ class Smiles:
                         next_label = self.character_dict[next_component]
 
                     if next_label != 'atom' and next_label != 'cyclic':
-                        raise SmilesError('bond')
+                        raise StructureError('bond')
                 except IndexError:
-                    raise SmilesError('bond')
+                    raise StructureError('bond')
 
             if label == 'split':
                 # Starts disconnected structure; set everything back to default
@@ -290,7 +290,7 @@ class Smiles:
                     if element == 'O':
                         furan = True
                     elif element == 'S':
-                        thiopene = True
+                        thiophene = True
                 else:
                     aromatic = False
 
@@ -308,9 +308,9 @@ class Smiles:
                     atom_2.furan = True
                     furan = False
 
-                if thiopene:
-                    atom_2.thiopene = True
-                    thiopene = False
+                if thiophene:
+                    atom_2.thiophene = True
+                    thiophene = False
 
                 for i in range(hydrogens):
                     atom_nr += 1
@@ -334,18 +334,18 @@ class Smiles:
 
                     if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
-                            atom_1.aromatic_system.add_atom(atom_2)
+                            # atom_1.aromatic_system.add_atom(atom_2)
                             bond_type = 'aromatic'
                         else:
-                            aromatic_system = AromaticSystem(aromatic_system_id)
-                            aromatic_system.add_atom(atom_2)
-                            aromatic_system_id += 1
+                            # aromatic_system = AromaticSystem(aromatic_system_id)
+                            # aromatic_system.add_atom(atom_2)
+                            # aromatic_system_id += 1
                             bond_type = 'single'
 
-                    elif atom_2.aromatic:
-                        aromatic_system = AromaticSystem(aromatic_system_id)
-                        aromatic_system.add_atom(atom_2)
-                        aromatic_system_id += 1
+                    # elif atom_2.aromatic:
+                        # aromatic_system = AromaticSystem(aromatic_system_id)
+                        # aromatic_system.add_atom(atom_2)
+                        # aromatic_system_id += 1
 
                     if bond_type == 'single_chiral':
                         bond_type = 'single'
@@ -377,10 +377,10 @@ class Smiles:
                         if hydrogens == 1:
                             chiral_dict[atom_2].append(hydrogen)
 
-                    if atom_2.aromatic:
-                        aromatic_system = AromaticSystem(aromatic_system_id)
-                        aromatic_system.add_atom(atom_2)
-                        aromatic_system_id += 1
+                    # if atom_2.aromatic:
+                    #     aromatic_system = AromaticSystem(aromatic_system_id)
+                    #     aromatic_system.add_atom(atom_2)
+                    #     aromatic_system_id += 1
 
                 # Set atom_2 as the last atom in the current branch level
                 self.track_last_atoms_per_branch(atom_2, branch_level,
@@ -437,17 +437,17 @@ class Smiles:
                     if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
                             bond_type = 'aromatic'
-                            atom_1.aromatic_system.add_atom(atom_2)
+                            # atom_1.aromatic_system.add_atom(atom_2)
                         else:
                             bond_type = 'single'
-                            aromatic_system = AromaticSystem(aromatic_system_id)
-                            aromatic_system.add_atom(atom_2)
-                            aromatic_system_id += 1
-
-                    elif atom_2.aromatic:
-                        aromatic_system = AromaticSystem(aromatic_system_id)
-                        aromatic_system.add_atom(atom_2)
-                        aromatic_system_id += 1
+                            # aromatic_system = AromaticSystem(aromatic_system_id)
+                            # aromatic_system.add_atom(atom_2)
+                            # aromatic_system_id += 1
+                    #
+                    # elif atom_2.aromatic:
+                    #     aromatic_system = AromaticSystem(aromatic_system_id)
+                    #     aromatic_system.add_atom(atom_2)
+                    #     aromatic_system_id += 1
 
                     if bond_type == 'single_chiral':
                         bond_type = 'single'
@@ -557,7 +557,7 @@ class Smiles:
             try:
                 assert len(order) + len(lone_pairs) == 4
             except AssertionError:
-                raise SmilesError('chiral centre')
+                raise StructureError('chiral centre')
 
             original_order = order + lone_pairs
 

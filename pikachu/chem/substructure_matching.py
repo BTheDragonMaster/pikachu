@@ -1,4 +1,4 @@
-from pikachu.errors import SmilesError
+from pikachu.errors import StructureError
 from pikachu.chem.chirality import get_chiral_permutations
 
 
@@ -313,7 +313,7 @@ def check_same_chirality(atom_1, atom_2, match):
         try:
             assert len(equivalent_atom_list) + len(lone_pairs) == 4
         except AssertionError:
-            raise SmilesError('chiral centre')
+            raise StructureError('chiral centre')
 
         permutation += lone_pairs
 

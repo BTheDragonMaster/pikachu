@@ -1,4 +1,5 @@
 import math
+from pikachu.errors import StructureError
 
 
 def check_aromatic(atom_set):
@@ -13,7 +14,7 @@ def check_aromatic(atom_set):
     if aromatic:
         pi_electron_nr = 0
         for atom in atom_set:
-            for orbital in atom.valence_shell.orbitals.values():
+            for orbital in atom.valence_shell.orbitals:
                 if orbital.orbital_type == 'p':
                     for electron in orbital.electrons:
                         if electron.atom == atom:
@@ -22,7 +23,6 @@ def check_aromatic(atom_set):
                             
                         elif electron.atom not in atom_set:
                             aromatic = False
-                        
 
         if not pi_electron_nr % 4 == 2:
             aromatic = False
@@ -94,11 +94,12 @@ def is_aromatic(atom_set):
                     elif bond.type == 'aromatic':
                         aromatic_bonds.add(bond)
 
-    pi_electrons = None
-
     if len(aromatic_bonds) == len(atom_set):
         permissible_nr = get_permissible_double_bond_number(aromatic_bonds)
         pi_electrons = (permissible_nr + len(sp3)) * 2
+        
+        if pi_electrons % 4 != 2:
+            raise StructureError('aromaticity')
     elif not aromatic_bonds:
         pi_electrons = (len(sp3) + len(double_bonds)) * 2
     else:
@@ -116,8 +117,6 @@ def is_aromatic(atom_set):
         else:
             return False
 
-    print(pi_electrons)
-    
     if pi_electrons % 4 == 2:
         return True
     else:
@@ -189,7 +188,7 @@ def check_five_ring(atom_set):
 
         pi_electron_nr = 0
         for atom in sp2_hybridised:
-            for orbital in atom.valence_shell.orbitals.values():
+            for orbital in atom.valence_shell.orbitals:
                 if orbital.orbital_type == 'p':
                     for electron in orbital.electrons:
                         if electron.atom == atom:

@@ -1,5 +1,5 @@
 from pikachu.chem.orbital import OrbitalSet
-from pikachu.errors import SmilesError
+from pikachu.errors import StructureError
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 
 
@@ -17,7 +17,7 @@ class Shell:
         self.find_bonding_orbitals()
 
     def define_orbitals(self):
-        self.orbitals = {}
+        self.orbitals = []
         self.orbital_sets[f'{self.shell_nr}s'] = OrbitalSet(self.atom, self.shell_nr, 's')
         if self.shell_nr >= 2:
             self.orbital_sets[f'{self.shell_nr}p'] = OrbitalSet(self.atom, self.shell_nr, 'p')
@@ -28,7 +28,7 @@ class Shell:
 
         for orbital_set in self.orbital_sets:
             for orbital in self.orbital_sets[orbital_set].orbitals:
-                self.orbitals[orbital.__hash__()] = orbital
+                self.orbitals.append(orbital)
 
     def __hash__(self):
         return f'{self.atom.nr}_{self.shell_nr}'
@@ -50,15 +50,14 @@ class Shell:
         elif hybridisation == None:
             pass
 
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             for electron in orbital.electrons:
                 if self.atom == electron.atom:
                     electron.set_orbital(orbital)
 
     def count_p_orbitals(self):
         count = 0
-        for orbital_name, orbital in self.orbitals.items():
+        for orbital in self.orbitals:
             if orbital.orbital_type == 'p':
                 count += 1
 
@@ -66,7 +65,7 @@ class Shell:
 
     def count_d_orbitals(self):
         count = 0
-        for orbital_name, orbital in self.orbitals.items():
+        for orbital in self.orbitals:
             if orbital.orbital_type == 'd':
                 count += 1
 
@@ -85,8 +84,7 @@ class Shell:
                     orbital.orbital_type = new_orbital_type
                     orbital.orbital_nr = new_orbital_nr
 
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             for electron in orbital.electrons:
                 if self.atom == electron.atom:
                     electron.set_orbital(orbital)
@@ -100,8 +98,7 @@ class Shell:
 
         orbital_nr = 1
 
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             if orbital.orbital_type == 's':
                 orbital.orbital_nr = orbital_nr
                 orbital.orbital_type = orbital_type
@@ -124,8 +121,7 @@ class Shell:
         else:
             orbital_type = f'sp3d{d_nr}'
 
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             if orbital.orbital_type == 's':
                 orbital.orbital_type = orbital_type
                 orbital.orbital_nr = orbital_nr
@@ -146,22 +142,24 @@ class Shell:
         try:
             assert self.is_excitable()
         except AssertionError:
-            raise SmilesError('violated_bonding_laws')
+            raise StructureError('violated_bonding_laws')
         electron_nr = self.count_electrons()
+        electron_ids = []
 
         for orbital_set in ATOM_PROPERTIES.orbital_order:
             if orbital_set in self.orbital_sets:
                 for orbital in self.orbital_sets[orbital_set].orbitals:
                     for i in range(orbital.electron_nr):
-                        orbital.empty_orbital()
+                        electron_id = orbital.empty_orbital()
+                        electron_ids.append(electron_id)
 
                     if electron_nr > 0:
-                        orbital.fill_orbital()
+                        orbital.fill_orbital(electron_ids.pop())
                         electron_nr -= 1
 
     def get_lone_pairs(self):
         lone_pairs = []
-        for orbital in self.orbitals.values():
+        for orbital in self.orbitals:
             if orbital.electron_nr == 2:
                 if orbital.electrons[0].atom == orbital.electrons[1].atom:
                     lone_pairs.append(orbital.electrons)
@@ -170,8 +168,7 @@ class Shell:
 
     def get_lone_pair_nr(self):
         lone_pair_nr = 0
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             if orbital.electron_nr == 2:
                 if orbital.electrons[0].atom == orbital.electrons[1].atom:
                     lone_pair_nr += 1
@@ -179,8 +176,7 @@ class Shell:
 
     def get_lone_electrons(self):
         lone_electrons = 0
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             if orbital.electron_nr == 1:
                 lone_electrons += 1
 
@@ -190,19 +186,18 @@ class Shell:
         self.bonding_orbitals = []
 
         for orbital in self.orbitals:
-            if self.orbitals[orbital].electron_nr == 1:
+            if orbital.electron_nr == 1:
                 self.bonding_orbitals.append(orbital)
 
     def count_electrons(self):
         electron_nr = 0
-        for orbital_name in self.orbitals:
-            orbital = self.orbitals[orbital_name]
+        for orbital in self.orbitals:
             electron_nr += orbital.electron_nr
 
         return electron_nr
 
     def count_orbitals(self):
-        orbital_nr = len(list(self.orbitals.keys()))
+        orbital_nr = len(self.orbitals)
 
         return orbital_nr
 
@@ -242,5 +237,5 @@ class Shell:
 
     def print_shell(self):
         for orbital in self.orbitals:
-            print(self.orbitals[orbital])
-            print(self.orbitals[orbital].electrons)
+            print(orbital)
+            print(orbital.electrons)

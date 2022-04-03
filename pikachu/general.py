@@ -4,7 +4,7 @@ import time
 import os
 
 from pikachu.smiles.smiles import Smiles
-from pikachu.errors import SmilesError, ColourError
+from pikachu.errors import StructureError, ColourError
 from pikachu.smiles.graph_to_smiles import GraphToSmiles
 from pikachu.drawing.drawing import Drawer, Options
 from pikachu.drawing.colours import *
@@ -32,7 +32,7 @@ def read_smiles(smiles_string):
             smiles = Smiles(smiles_string)
             structure = smiles.smiles_to_structure()
             return structure
-        except SmilesError as e:
+        except StructureError as e:
             print(f'Error parsing "{smiles_string}": {e.message}')
             return
 

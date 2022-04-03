@@ -1,5 +1,6 @@
 class Electron:
-    def __init__(self, shell_nr, orbital_type, orbital_nr, spin, atom):
+    def __init__(self, electron_id, shell_nr, orbital_type, orbital_nr, spin, atom):
+        self.id = electron_id
         self.shell_nr = shell_nr
         self.orbital_type = orbital_type
         self.orbital_nr = orbital_nr
@@ -16,15 +17,22 @@ class Electron:
         else:
             aromatic_string = ''
         if self.orbital_nr:
-            return f'{self.atom}_{self.shell_nr}{self.orbital_type}{self.orbital_nr}_{self.spin}{aromatic_string}'
+            return f'{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}{self.orbital_nr}_{self.spin}{aromatic_string}'
         else:
-            return f'{self.atom}_{self.shell_nr}{self.orbital_type}_{self.spin}{aromatic_string}'
+            return f'{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}_{self.spin}{aromatic_string}'
+
+    def __eq__(self, other):
+        if type(self) == type(other) and self.id == other.id:
+            return True
+
+        return False
 
     def __hash__(self):
-        if self.orbital_nr:
-            return f'{self.atom}_{self.shell_nr}{self.orbital_type}{self.orbital_nr}_{self.spin}'
-        else:
-            return f'{self.atom}_{self.shell_nr}{self.orbital_type}_{self.spin}'
+        return hash((self.id, self.atom.nr))
+        # if self.orbital_nr:
+        #     return hash(f'{self.atom}_{self.shell_nr}{self.orbital_type}{self.orbital_nr}_{self.spin}')
+        # else:
+        #     return hash(f'{self.atom}_{self.shell_nr}{self.orbital_type}_{self.spin}')
 
     def set_orbital(self, orbital):
         self.orbital_type = orbital.orbital_type
