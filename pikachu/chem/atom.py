@@ -85,6 +85,7 @@ class Atom:
         atom_copy.thiophene = self.thiophene
         atom_copy.draw = AtomDrawProperties()
         atom_copy.draw.colour = self.draw.colour
+        atom_copy.annotations = self.annotations.copy()
         connectivity = []
 
         for connection in self.connectivity:
@@ -677,6 +678,13 @@ class AtomAnnotations:
     def __init__(self):
 
         self.annotations = set()
+
+    def copy(self):
+        annotation_copy = AtomAnnotations()
+        for annotation in self.annotations:
+            annotation_copy.add_annotation(annotation, self.get_annotation(annotation))
+
+        return annotation_copy
 
     def add_annotation(self, name, default):
         assert not getattr(self, name, None)

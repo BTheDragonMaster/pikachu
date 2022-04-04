@@ -1560,9 +1560,9 @@ class Structure:
 
         self.bonds[bond_nr] = bond
 
-        if not atom_1 in self.bond_lookup:
+        if atom_1 not in self.bond_lookup:
             self.bond_lookup[atom_1] = {}
-        if not atom_2 in self.bond_lookup:
+        if atom_2 not in self.bond_lookup:
             self.bond_lookup[atom_2] = {}
 
         if atom_1 in self.graph:
@@ -1583,7 +1583,6 @@ class Structure:
 
         atom_1.set_neighbours(self)
         atom_2.set_neighbours(self)
-
 
     def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:
