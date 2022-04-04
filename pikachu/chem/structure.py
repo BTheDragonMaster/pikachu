@@ -1538,16 +1538,14 @@ class Structure:
         orbital_2 = None
 
         for orbital in atom_1.valence_shell.orbitals:
-            if atom_1.valence_shell.orbitals[orbital].electron_nr == 1 and not \
-            atom_1.valence_shell.orbitals[orbital].electrons[0].aromatic:
-                orbital_1 = atom_1.valence_shell.orbitals[orbital]
+            if orbital.electron_nr == 1 and not orbital.electrons[0].aromatic:
+                orbital_1 = orbital
                 electron_1 = orbital_1.electrons[0]
                 break
 
         for orbital in atom_2.valence_shell.orbitals:
-            if atom_2.valence_shell.orbitals[orbital].electron_nr == 1 and not \
-            atom_2.valence_shell.orbitals[orbital].electrons[0].aromatic:
-                orbital_2 = atom_2.valence_shell.orbitals[orbital]
+            if orbital.electron_nr == 1 and not orbital.electrons[0].aromatic:
+                orbital_2 = orbital
                 electron_2 = orbital_2.electrons[0]
                 break
 

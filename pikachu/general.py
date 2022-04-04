@@ -95,7 +95,7 @@ def position_smiles(smiles):
     else:
         drawer = Drawer(structure, coords_only=True)
 
-    return drawer.structure
+    return drawer
 
 
 def draw_smiles(smiles, finetune=True):
@@ -130,7 +130,6 @@ def smiles_to_molfile(smiles, molfile, options=None):
         MolFileWriter(structure, molfile, drawing_options=options, multiple=True).write_mol_file()
     else:
         MolFileWriter(structure, molfile, drawing_options=options).write_mol_file()
-
 
 
 def svg_from_smiles_timed(smiles, svg_out):

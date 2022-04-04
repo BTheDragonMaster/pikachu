@@ -1,6 +1,6 @@
 from sys import argv
 
-from pikachu.general import read_smiles
+from pikachu.general import read_smiles, position_smiles
 from pikachu.drawing.drawing import Drawer
 from pikachu.math_functions import Vector
 
@@ -42,7 +42,7 @@ def get_rdkit_coords(smiles):
 
 def get_pikachu_coords(smiles):
     structure = read_smiles(smiles)
-    drawing = Drawer(structure, coords_only=True)
+    drawing = position_smiles(smiles)
     atom_positions = []
     atoms = []
     for atom in drawing.structure.graph:
@@ -91,7 +91,8 @@ def find_clashes_rdkit(smiles):
     atoms, atom_positions, bond_lookup = get_rdkit_coords(smiles)
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
     clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
-    # print(f"Handling smiles: {smiles}, found {clashes} clashes (RDKit).")
+    if clashes:
+        print(f"Handling smiles: {smiles}, found {clashes} clashes (RDKit).")
     return clashes
 
 
@@ -100,7 +101,8 @@ def find_clashes_pikachu(smiles):
     atoms, atom_positions, bond_lookup = get_pikachu_coords(smiles)
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
     clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
-    # print(f"Handling smiles: {smiles}, found {clashes} clashes (PIKAChU).")
+    if clashes:
+        print(f"Handling smiles: {smiles}, found {clashes} clashes (PIKAChU).")
     return clashes
 
 
