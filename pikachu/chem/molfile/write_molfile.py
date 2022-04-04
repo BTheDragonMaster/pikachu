@@ -1,5 +1,5 @@
 import pkg_resources
-from pikachu.drawing.drawing import Drawer, Options
+from pikachu.drawing.drawing import Drawer, Options, draw_multiple
 from pikachu.math_functions import Vector
 import datetime
 
@@ -27,12 +27,18 @@ class MolFileWriter:
                               '/': 1,
                               '\\': 6}
 
-    def __init__(self, structure, filename, drawing_options=None):
+    def __init__(self, structure, filename, drawing_options=None, multiple=False):
         self.original_structure = structure
         if not drawing_options:
-            self.drawing = Drawer(structure, coords_only=True)
+            if multiple:
+                self.drawing = draw_multiple(structure, coords_only=True)
+            else:
+                self.drawing = Drawer(structure, coords_only=True)
         else:
-            self.drawing = Drawer(structure, coords_only=True, options=drawing_options)
+            if multiple:
+                self.drawing = draw_multiple(structure, coords_only=True, options=drawing_options)
+            else:
+                self.drawing = Drawer(structure, coords_only=True, options=drawing_options)
         self.drawn_structure = self.drawing.structure
         self.filename = filename
         self.title = filename.split('.')[0]

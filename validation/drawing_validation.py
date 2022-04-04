@@ -1,7 +1,7 @@
 from sys import argv
 
 from pikachu.general import read_smiles
-from pikachu.chem.molfile.write_molfile import MolFileWriter
+from pikachu.general import smiles_to_molfile
 from pikachu.drawing.drawing import Options
 
 from rdkit.Chem.rdmolfiles import MolFromMolFile, MolToMolFile
@@ -20,39 +20,47 @@ def validate_pikachu(smiles_file, finetune=True, strict_mode=False):
     options.strict_mode = strict_mode
 
     with open(smiles_file, 'r') as smiles_f:
-        for line in smiles_f:
-            smiles = line.strip()
+        with open('failed_smiles.smi', 'w') as failed_smiles:
+            for line in smiles_f:
+                smiles = line.strip()
 
-            if total % 100 == 0:
-                print(f"Correct SMILES: {correct}")
-                print(f"Incorrect SMILES: {incorrect}")
-                print(f"Total SMILES: {total}")
+                if total % 100 == 0:
+                    print(f"Correct SMILES: {correct}")
+                    print(f"Incorrect SMILES: {incorrect}")
+                    print(f"Total SMILES: {total}")
 
-            total += 1
+                total += 1
 
-            try:
-                pikachu_structure = read_smiles(smiles)
-                rdkit_structure = MolFromSmiles(smiles)
+                try:
+                    # pikachu_structure = read_smiles(smiles)
+                    rdkit_structure = MolFromSmiles(smiles)
 
-                MolToMolFile(rdkit_structure, 'temp_rdkit.mol')
+                    MolToMolFile(rdkit_structure, 'temp_rdkit.mol')
 
-                MolFileWriter(pikachu_structure, 'temp.mol', drawing_options=options).write_mol_file()
-                rdkit_structure_pikachu = MolFromMolFile('temp.mol')
+                    smiles_to_molfile(smiles, 'temp.mol', options=options)
 
-                rdkit_smiles_original = MolToSmiles(rdkit_structure)
-                rdkit_smiles_pikachu = MolToSmiles(rdkit_structure_pikachu)
+                    #MolFileWriter(pikachu_structure, 'temp.mol', drawing_options=options).write_mol_file()
 
-                if rdkit_smiles_original == rdkit_smiles_pikachu:
-                    correct += 1
-                else:
-                    incorrect += 1
-                    incorrect_smiles.append((smiles, rdkit_smiles_original, rdkit_smiles_pikachu))
-                    print("Original:", smiles)
-                    print("RDKit:   ", rdkit_smiles_original)
-                    print("PIKAChU: ", rdkit_smiles_pikachu)
+                    rdkit_structure_pikachu = MolFromMolFile('temp.mol')
 
-            except Exception as e:
-                print(smiles, e)
+                    rdkit_smiles_original = MolToSmiles(rdkit_structure)
+                    rdkit_smiles_pikachu = MolToSmiles(rdkit_structure_pikachu)
+
+                    if rdkit_smiles_original == rdkit_smiles_pikachu:
+                        correct += 1
+                    else:
+                        incorrect += 1
+                        incorrect_smiles.append((smiles, rdkit_smiles_original, rdkit_smiles_pikachu))
+                        print("Original:", smiles)
+                        print("RDKit:   ", rdkit_smiles_original)
+                        print("PIKAChU: ", rdkit_smiles_pikachu)
+
+                except Exception as e:
+                    print(smiles, e)
+                    failed_smiles.write(f'{smiles}\t{e}\n')
+
+                if total == 100000:
+                    break
 
     print(f"Correct SMILES: {correct}")
     print(f"Incorrect SMILES: {incorrect}")

@@ -47,7 +47,7 @@ def is_aromatic(atom_set):
         for bond in atom_1.bonds:
             connected_atom = bond.get_connected_atom(atom_1)
 
-            if bond.type == 'double' and connected_atom not in atom_set and connected_atom.type != 'O' and connected_atom.charge <= 0:
+            if bond.type == 'double' and connected_atom not in atom_set and connected_atom.type not in {'O', 'S'} and connected_atom.charge <= 0:
                 return False
 
         for atom_2 in atom_set:
@@ -63,7 +63,6 @@ def is_aromatic(atom_set):
         permissible_nr = get_permissible_double_bond_number(aromatic_bonds)
 
         pi_electrons = (permissible_nr + len(sp3)) * 2
-        print(atom_set, permissible_nr, pi_electrons)
 
         # Make exception for heme
         if pi_electrons == 16:
@@ -91,11 +90,9 @@ def is_aromatic(atom_set):
                 aromatic_bond_1 = neighbouring_aromatic_bonds[0][0]
                 aromatic_bond_2 = neighbouring_aromatic_bonds[1][0]
 
-                print(aromatic_bond_1, aromatic_bond_2)
-
                 if aromatic_bond_1.atom_1.hybridisation == aromatic_bond_1.atom_2.hybridisation == aromatic_bond_2.atom_1.hybridisation == aromatic_bond_2.atom_2.hybridisation == 'sp2':
                     pi_electrons = (2 + len(sp3) + len(double_bonds)) * 2
-                    print("squeezed between", atom_set, pi_electrons)
+
                 else:
                     return False
 
@@ -107,12 +104,10 @@ def is_aromatic(atom_set):
                 if aromatic_bond.atom_1.hybridisation != 'sp2' or aromatic_bond.atom_2.hybridisation != 'sp2':
                     inaccessible_aromatic_bonds.append(aromatic_bond)
 
-            print(inaccessible_aromatic_bonds)
-
             bond_nr = len(neighbouring_aromatic_bonds[0]) - len(inaccessible_aromatic_bonds)
 
             pi_electrons = (int(math.ceil(bond_nr / 2)) + len(double_bonds) + len(sp3)) * 2
-            print("squeezed between 2", atom_set, pi_electrons)
+
         else:
             return False
 
@@ -155,8 +150,8 @@ def get_neighbouring_bonds(bonds):
                                 bond_group_2_found = True
                                 bond_1_found = True
                                 break
-                            if bond_1_found:
-                                break
+                        if bond_1_found:
+                            break
                 if bond_group_2_found:
                     break
             if bond_group_1_found:

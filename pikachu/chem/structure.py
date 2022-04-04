@@ -678,6 +678,25 @@ class Structure:
                     elif atom.type == 'O':
                         atom.furan = True
 
+    def get_bounding_box(self):
+        min_x = 1000000000
+        max_x = -1000000000
+        min_y = 1000000000
+        max_y = -1000000000
+
+        for atom in self.graph:
+            if atom.draw.is_drawn:
+                if atom.draw.position.x < min_x:
+                    min_x = atom.draw.position.x
+                if atom.draw.position.x > max_x:
+                    max_x = atom.draw.position.x
+                if atom.draw.position.y < min_y:
+                    min_y = atom.draw.position.y
+                if atom.draw.position.y > max_y:
+                    max_y = atom.draw.position.y
+                    
+        return min_x, min_y, max_x, max_y
+
     def find_aromatic_cycles(self):
         """
         Returns cycles that are aromatic

@@ -10,6 +10,17 @@ from pikachu.general import read_smiles, position_smiles
 import timeout_decorator
 
 
+@timeout_decorator.timeout(30)
+def draw_pikachu_smiles(s):
+    position_smiles(s)
+
+
+@timeout_decorator.timeout(30)
+def read_pikachu_smiles(s):
+    structure = read_smiles(s)
+    return structure
+
+
 def substructure_matching_speed_pikachu(smiles, subsmiles):
     start_time = time.time()
     print("Starting substructure search..")
@@ -27,37 +38,62 @@ def substructure_matching_speed_pikachu(smiles, subsmiles):
     return has_substructure
 
 
-def drawing_speed_pikachu(smiles):
+def drawing_speed_pikachu(smiles, measuring_points):
 
     start_time = time.time()
-    for i, s in enumerate(smiles):
-        position_smiles(s)
-    time_1 = time.time()
-    print(f'Time spent by PIKAChU drawing {len(smiles)} SMILES: {time_1 - start_time}')
 
-
-def reading_speed_pikachu(smiles):
-    start_time = time.time()
-    in_between_time = start_time
+    drawn_smiles = 0
     failed_smiles = 0
+
     time_1 = time.time()
 
     for i, s in enumerate(smiles):
         try:
-             _ = read_smiles(s)
-             if not _:
-                 failed_smiles += 1
+            draw_pikachu_smiles(s)
+            drawn_smiles += 1
+
+        except Exception as e:
+            failed_smiles += 1
+
+        if drawn_smiles in measuring_points:
+            time_1 = time.time()
+            print(f'Time spent by PIKAChU drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+            print(f"Failed smiles: {failed_smiles}")
+
+        if drawn_smiles == measuring_points[-1]:
+            break
+
+    print(f'Time spent by PIKAChU drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+    print(f"Failed smiles: {failed_smiles}")
+
+
+def reading_speed_pikachu(smiles, measuring_points):
+    start_time = time.time()
+    failed_smiles = 0
+    r_smiles = 0
+
+    time_1 = time.time()
+
+    for i, s in enumerate(smiles):
+        try:
+            _ = read_pikachu_smiles(s)
+            if not _:
+                failed_smiles += 1
+            else:
+                r_smiles += 1
         except Exception as e:
             failed_smiles += 1
             print(s, e)
-        if i % 500 == 0:
+
+        if r_smiles in measuring_points:
             time_1 = time.time()
-            print(f'Time spent by PIKAChU reading {i + 1} SMILES: {time_1 - start_time}')
+            print(f'Time spent by PIKAChU reading {r_smiles} SMILES: {time_1 - start_time}')
             print(f"Failed smiles: {failed_smiles}")
+        if r_smiles == measuring_points[-1]:
+            break
 
-    print(f'Time spent by PIKAChU reading {len(smiles)} SMILES: {time_1 - start_time}')
+    print(f'Time spent by PIKAChU reading {r_smiles} SMILES: {time_1 - start_time}')
     print(f"Failed smiles: {failed_smiles}")
-
 
 
 def substructure_matching_speed_rdkit(smiles, subsmiles):
@@ -132,8 +168,14 @@ if __name__ == "__main__":
     # supersmiles_strings = read_smiles_file(supersmiles_file)
     # subsmiles_strings = read_smiles_file(subsmiles_file)
 
-    # drawing_speed_pikachu(smiles_strings)
-    reading_speed_pikachu(smiles_strings)
+    measuring_points = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+
+    # print("Drawing")
+
+    # drawing_speed_pikachu(smiles_strings, measuring_points)
+
+    print("Reading")
+    reading_speed_pikachu(smiles_strings, measuring_points)
 
     # drawing_speed_rdkit(smiles_strings)
     # reading_speed_rdkit(smiles_strings)

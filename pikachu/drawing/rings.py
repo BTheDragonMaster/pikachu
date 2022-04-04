@@ -3,6 +3,72 @@
 from pikachu.math_functions import Vector
 import math
 
+def ring_groups_have_overlap(group_1, group_2, ring_overlaps):
+    for ring_1 in group_1:
+        for ring_2 in group_2:
+            if ring_1 in find_neighbouring_rings(ring_overlaps, ring_2):
+                return True
+    return False
+
+
+def get_ring_groups(rings, ring_overlaps):
+    ring_groups = []
+    for ring in rings:
+        ring_groups.append([ring.id])
+
+    current_ring_nr = 0
+    previous_ring_nr = -1
+
+    while current_ring_nr != previous_ring_nr:
+        previous_ring_nr = current_ring_nr
+        indices = None
+        new_group = None
+
+        for i, ring_group_1 in enumerate(ring_groups):
+            ring_group_1_found = False
+            for j, ring_group_2 in enumerate(ring_groups):
+                if i != j:
+                    if ring_groups_have_overlap(ring_group_1, ring_group_2, ring_overlaps):
+                        indices = [i, j]
+                        new_group = list(set(ring_group_1 + ring_group_2))
+                        ring_group_1_found = True
+                        break
+            if ring_group_1_found:
+                break
+
+        if new_group:
+            indices.sort(reverse=True)
+            for index in indices:
+                ring_groups.pop(index)
+            ring_groups.append(new_group)
+
+        current_ring_nr = len(ring_groups)
+
+    return ring_groups
+
+
+def get_group_overlap_nr(ring_group, ring_overlaps):
+    overlaps = 0
+    ring_group = set(ring_group)
+    for ring_overlap in ring_overlaps:
+        if ring_overlap.ring_id_1 in ring_group and ring_overlap.ring_id_2 in ring_group:
+            overlaps += 1
+
+    return overlaps
+
+
+def find_bridged_systems(rings, ring_overlaps):
+    bridged_systems = []
+    ring_groups = get_ring_groups(rings, ring_overlaps)
+    for ring_group in ring_groups:
+        ring_nr = len(ring_group)
+        overlap_nr = get_group_overlap_nr(ring_group, ring_overlaps)
+        if overlap_nr >= ring_nr:
+            bridged_systems.append(ring_group)
+
+    return bridged_systems
+
+
 class Ring:
     def __init__(self, members):
         self.id = None

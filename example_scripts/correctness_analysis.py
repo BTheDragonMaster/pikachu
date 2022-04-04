@@ -1,6 +1,7 @@
 from sys import argv
 from pikachu.general import svg_from_smiles
 
+
 def parse_smiles(tbd_file):
     name_to_compound = {}
     with open(tbd_file, 'r') as tbd:
@@ -12,6 +13,7 @@ def parse_smiles(tbd_file):
                     name_to_compound[compound_name] = []
                 name_to_compound[compound_name].append(smiles)
     return name_to_compound
+
 
 if __name__ == "__main__":
     in_file = argv[1]

@@ -1,6 +1,1 @@
-CC1CC(OC(=O)/C(=C/C(=C/C(=C/C(C(C(=C/C(=C/C(=C/C1O)/C)/C)C)OC2C(C(C(C(O2)C)O)O)O)C)/C)/OC)/C)C(C)C3(C(C(C(C(O3)CCCOC)(C)O)O)OC)O
-C[C@H]1CC[C@@H](C[C@@H](C[C@@H](C[C@H](C[C@@H](C[C@H](C[C@H](C[C@H](C[C@@H](C/C=C/C=C/C=C/C=C/C=C/C=C/C(=O)O[C@H]1C(C)C)O)O)O)O)O)O)O)O)O
-CCC/C=C/C=C/C[C@@H]1C/C=C/C=C(/C=C/C=C\[C@@H]([C@@H](/C=C(/C=C/C=C/C(=O)N1)\C)O)O)\C
-CC(CC1CC(C=C/C=C/C=C/CC(CC(C/C=C/C=C/C=C/C(=O)O1)O)O)OC)O
-CC(CC1C/C=C/C=C/C=C/C(CC(CC(C/C=C/C=C/C=C/C(=O)O1)O)O)O)O
-CC1C/C=C(/C=C(/C=C(C(C(/C=C(/C=C(/C=C(/C(=O)OC(C1)C(C)C2(C(C(C(C(O2)CCCOC)(C)OC3CC(C(C(O3)C)O)(C)O)O)OC)O)\C)\OC)\C)C)OC4C(C(C(C(O4)C)O)O)O)C)\C)\C
+COC[C@@H]1[C@H]([C@H]([C@@H](C(O1)O[C@H]2[C@H]([C@@H]([C@H](O[C@@H]2O[C@H]3C([C@@H]([C@H](OC3OC[C@@H]4[C@@H]([C@@H]([C@H]([C@H](O4)OC)O)O)O)CO[C@H]5[C@H](C([C@@H]([C@@H](O5)CO[C@@H]6C[C@H]([C@@H]([C@H]([C@H]6O[C@H]7[C@@H](C([C@H]([C@@H](O7)CO)O)O[C@H]8[C@@H]([C@@H]([C@H]([C@@H](O8)CO)O)O)O)O)O)O)CO)O)O)O)O)O)CO)O)O)O)O)O.[Ho]

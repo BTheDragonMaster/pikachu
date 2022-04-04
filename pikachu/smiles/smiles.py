@@ -42,7 +42,13 @@ def parse_explicit(component):
         if character.isupper():
 
             if character == 'H':
-                hydrogen = i
+                if not (len(informative) >= 2 and informative[1] in {'o', 'e', 'f', 's'}):
+                    hydrogen = i
+                else:
+                    element.append(i)
+                    element.append(i + 1)
+                    skip = True
+
             else:
                 try:
                     if informative[i + 1].islower():
@@ -269,7 +275,7 @@ class Smiles:
                 last_atoms_dict = {0: None}
                 double = False
                 triple = False
-                chiral_dict = {}
+                # chiral_dict = {}
 
             elif label == "atom":
 

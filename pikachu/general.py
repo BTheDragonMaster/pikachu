@@ -3,11 +3,14 @@
 import time
 import os
 
+import matplotlib.pyplot as plt
+
 from pikachu.smiles.smiles import Smiles
 from pikachu.errors import StructureError, ColourError
 from pikachu.smiles.graph_to_smiles import GraphToSmiles
-from pikachu.drawing.drawing import Drawer, Options
+from pikachu.drawing.drawing import Drawer, Options, draw_multiple
 from pikachu.drawing.colours import *
+from pikachu.chem.molfile.write_molfile import MolFileWriter
 
 
 def smiles_from_file(smiles_file):
@@ -87,8 +90,10 @@ def position_smiles(smiles):
 
     """
     structure = read_smiles(smiles)
-    structure = structure.kekulise()
-    drawer = Drawer(structure, coords_only=True)
+    if '.' in smiles:
+        drawer = draw_multiple(structure, coords_only=True)
+    else:
+        drawer = Drawer(structure, coords_only=True)
 
     return drawer.structure
 
@@ -102,14 +107,30 @@ def draw_smiles(smiles, finetune=True):
 
     """
 
-    structure = read_smiles(smiles)
-    structure = structure.kekulise()
-
     options = Options()
     options.finetune = finetune
-    drawer = Drawer(structure, options=options)
 
+    structure = read_smiles(smiles)
+    if '.' in smiles:
+        drawer = draw_multiple(structure, options=options)
+
+    else:
+
+        drawer = Drawer(structure, options=options)
+    
     drawer.show_molecule()
+
+
+def smiles_to_molfile(smiles, molfile, options=None):
+    if not options:
+        options = Options()
+
+    structure = read_smiles(smiles)
+    if '.' in smiles:
+        MolFileWriter(structure, molfile, drawing_options=options, multiple=True).write_mol_file()
+    else:
+        MolFileWriter(structure, molfile, drawing_options=options).write_mol_file()
+
 
 
 def svg_from_smiles_timed(smiles, svg_out):

@@ -8,11 +8,47 @@ from pprint import pprint
 from io import StringIO
 
 from pikachu.drawing.sssr import SSSR
-from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge
+from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge, find_bridged_systems
 from pikachu.math_functions import Vector, Polygon, Line, Permutations
 from pikachu.chem.chirality import find_chirality_from_nonh, get_chiral_permutations, get_chiral_permutations_lonepair
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.errors import DrawingError
+
+
+def draw_multiple(structure, coords_only=False, options=None):
+    if not options:
+        options = Options()
+    options_main = Options()
+    options_main.finetune = False
+        
+    drawer = Drawer(structure, options=options_main, coords_only=True)
+    structures = structure.split_disconnected_structures()
+    max_x = -100000000
+
+    for i, substructure in enumerate(structures):
+        subdrawer = Drawer(substructure, options=options, coords_only=True)
+        bounding_box = subdrawer.structure.get_bounding_box()
+        min_x = bounding_box[0]
+        diff_x = max_x - min_x
+
+        if max_x != -100000000:
+            subdrawer.move_structure(x=diff_x + 20)
+
+        bounding_box = subdrawer.structure.get_bounding_box()
+        max_x = bounding_box[2]
+
+        for atom in subdrawer.structure.graph:
+            if atom.draw.is_drawn:
+                atom_2 = drawer.structure.atoms[atom.nr]
+                atom_2.draw.position = atom.draw.position
+                atom_2.draw.positioned = True
+
+    drawer.structure.refresh_structure()
+
+    if not coords_only:
+        drawer.draw_structure()
+
+    return drawer
 
 
 class KKLayout:
@@ -703,7 +739,9 @@ class Drawer:
     @staticmethod
     def place_eclipsed_bond(hydrogen, angles_between_lines, atom_order, wedge_atom):
         position = None
+
         for i, angle in enumerate(angles_between_lines):
+
             if round(angle, 3) >= round(math.pi, 3):
                 position = i
 
@@ -718,6 +756,12 @@ class Drawer:
         first_index = atom_order.index(wedge_atom)
         new_order = atom_order[first_index:] + atom_order[:first_index]
         return new_order
+
+    def move_structure(self, x=0.0, y=0.0):
+        for atom in self.structure.graph:
+            if atom.draw.is_drawn:
+                atom.draw.position.x += x
+                atom.draw.position.y += y
     
     def determine_chirality_2(self, chiral_center):
 
@@ -783,6 +827,7 @@ class Drawer:
         atom_order = self.reorder(atom_order, wedge_atom)
 
         original_order = chiral_center.neighbours[:]
+
         if len(original_order) == 3:
             if chiral_center.lone_pairs:
                 original_order.append(chiral_center.lone_pairs[0])
@@ -2524,6 +2569,17 @@ class Drawer:
                 involved_ring = self.id_to_ring[involved_ring_id]
                 self.remove_ring(involved_ring)
 
+        # This is new - if stuff breaks, remove
+        bridged_systems = find_bridged_systems(self.rings, self.ring_overlaps)
+        if bridged_systems and not self.bridged_ring:
+            self.bridged_ring = True
+            for bridged_system in bridged_systems:
+                involved_ring_ids = set(bridged_system)
+                self.create_bridged_ring(involved_ring_ids)
+                for involved_ring_id in involved_ring_ids:
+                    involved_ring = self.id_to_ring[involved_ring_id]
+                    self.remove_ring(involved_ring)
+
     def hide_hydrogens(self):
         hidden = []
         exposed = []
@@ -2532,6 +2588,9 @@ class Drawer:
 
         for atom in self.structure.graph:
             if atom.type != 'H':
+                continue
+
+            elif atom.charge != 0:
                 continue
 
             neighbour = atom.neighbours[0]
