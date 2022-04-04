@@ -7,7 +7,7 @@ from pikachu.math_functions import Vector
 from rdkit.Chem.rdCoordGen import AddCoords
 from rdkit.Chem import MolFromSmiles
 
-import timeout_decorator
+import timeout_decorator, time
 
 
 def get_rdkit_coords(smiles):
@@ -86,7 +86,7 @@ def find_steric_clashes(atoms, atom_positions, average_bond_length, bond_lookup)
     return steric_clashes
 
 
-@timeout_decorator.timeout(20)
+@timeout_decorator.timeout(40)
 def find_clashes_rdkit(smiles):
     atoms, atom_positions, bond_lookup = get_rdkit_coords(smiles)
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
@@ -95,7 +95,7 @@ def find_clashes_rdkit(smiles):
     return clashes
 
 
-@timeout_decorator.timeout(20)
+@timeout_decorator.timeout(40)
 def find_clashes_pikachu(smiles):
     atoms, atom_positions, bond_lookup = get_pikachu_coords(smiles)
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)

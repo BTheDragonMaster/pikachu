@@ -1614,6 +1614,33 @@ class Structure:
 
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond
+        
+    def add_attributes(self, annotations, defaults=None, boolean=False):
+        if defaults:
+            assert len(defaults) == len(annotations)
+            
+        for atom in self.graph:
+            for i, annotation in enumerate(annotations):
+                if defaults:
+                    default = defaults[i]
+                elif boolean:
+                    default = False
+                else:
+                    default = None
+                    
+                atom.annotations.add_annotation(annotation, default)
+
+    def set_attribute(self, atoms, annotation, value):
+        for atom in atoms:
+            atom.annotations.set_annotation(annotation, value)
+
+    def get_atoms_of_type(self, atom_type):
+        atoms = []
+        for atom in self.atoms.values():
+            if atom.type == atom_type:
+                atoms.append(atom)
+
+        return atoms
 
     def print_graph(self):
         pprint(self.graph)

@@ -44,6 +44,7 @@ class Atom:
         self.shells = {}
         self.lone_pairs = []
         self.draw = AtomDrawProperties()
+        self.annotations = AtomAnnotations()
         self.hybridisation = ''
         self.connectivity = ()
         self.neighbours = []
@@ -670,3 +671,26 @@ class AtomDrawProperties:
         self.rings = []
         for ring in self.original_rings:
             self.rings.append(ring)
+
+
+class AtomAnnotations:
+    def __init__(self):
+
+        self.annotations = set()
+
+    def add_annotation(self, name, default):
+        assert not getattr(self, name, None)
+        setattr(self, name, default)
+        self.annotations.add(name)
+
+    def set_annotation(self, name, value):
+        getattr(self, name)
+        setattr(self, name, value)
+
+    def get_annotation(self, name):
+        return getattr(self, name)
+
+    def print_annotations(self):
+        for annotation in self.annotations:
+            print(annotation)
+
