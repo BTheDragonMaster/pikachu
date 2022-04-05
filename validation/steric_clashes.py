@@ -149,6 +149,9 @@ def assess_tools(smiles_file):
                 print(f"Failed SMILES RDKit: {failed_smiles_rdkit}")
                 print(f"Failed SMILES PIKAChU: {failed_smiles_pikachu}")
                 print('\n')
+                
+            if i == 100000:
+                break
 
     print(f"Steric clashes RDKit: {steric_clashes_rdkit / 2}")
     print(f"Steric clashes PIKAChU: {steric_clashes_pikachu / 2}")

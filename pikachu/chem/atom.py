@@ -348,13 +348,13 @@ class Atom:
 
         if unbonded_electrons % 2 != 0:
             print("Warning! Rogue electron.")
-            print(self)
-            print(bond_nr)
-            print(self.bonds)
-            print(bonds_to_make)
-            print(bonds_accounted_for)
-            print(electron_nr)
-            self.valence_shell.print_shell()
+            # print(self)
+            # print(bond_nr)
+            # print(self.bonds)
+            # print(bonds_to_make)
+            # print(bonds_accounted_for)
+            # print(electron_nr)
+            # self.valence_shell.print_shell()
 
         electron_pair_nr = int(unbonded_electrons / 2)
 

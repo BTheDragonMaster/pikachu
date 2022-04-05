@@ -197,42 +197,83 @@ class GraphToSmiles:
 
                                 if place_bond_1:
 
-                                    if attaching_atom_index > atom_1_index:
-                                        insertion_point_1 = attaching_atom_index - 1
-                                        direction_1 = atom_pair_to_direction[atom_1][attaching_atom]
-                                    else:
-                                        insertion_point_1 = atom_1_index - 1
-                                        direction_1 = atom_pair_to_direction[attaching_atom][atom_1]
 
-                                    if direction_1 == 'up':
-                                        symbol_1 = '/'
-                                    else:
-                                        symbol_1 = '\\'
+                                    if not set(self.atom_to_cycle_nr[attaching_atom]).intersection(set(self.atom_to_cycle_nr[atom_1])):
 
-                                    self.add_insert([symbol_1], insertion_point_1)
+                                        if attaching_atom_index > atom_1_index:
+                                            insertion_points_1 = [attaching_atom_index - 1]
+                                            directions_1 = [atom_pair_to_direction[atom_1][attaching_atom]]
+                                        else:
+                                            insertion_points_1 = [atom_1_index - 1]
+                                            directions_1 = [atom_pair_to_direction[attaching_atom][atom_1]]
+
+                                    else:
+
+                                        cycle_nr = list(set(self.atom_to_cycle_nr[attaching_atom]).intersection(
+                                            set(self.atom_to_cycle_nr[atom_1])))[0]
+
+                                        cycle_position_1 = self.atom_to_cycle_nr[atom_1].index(cycle_nr)
+                                        cycle_position_attaching = self.atom_to_cycle_nr[attaching_atom].index(cycle_nr)
+
+                                        if attaching_atom_index > atom_1_index:
+                                            insertion_points_1 = [attaching_atom_index + cycle_position_attaching, atom_1_index + cycle_position_1]
+                                            directions_1 = [atom_pair_to_direction[attaching_atom][atom_1], atom_pair_to_direction[atom_1][attaching_atom]]
+                                        else:
+                                            insertion_points_1 = [atom_1_index + cycle_position_1, attaching_atom_index + cycle_position_attaching]
+                                            directions_1 = [atom_pair_to_direction[atom_1][attaching_atom],
+                                                            atom_pair_to_direction[attaching_atom][atom_1]]
+
+                                    for j, insertion_point_1 in enumerate(insertion_points_1):
+                                        direction_1 = directions_1[j]
+                                        if direction_1 == 'up':
+                                            symbol_1 = '/'
+                                        else:
+                                            symbol_1 = '\\'
+
+                                        self.add_insert([symbol_1], insertion_point_1)
 
                                     place_bond_1 = False
 
                                 if place_bond_2:
+
                                     atom_2_index = self.atom_to_index[atom_2]
                                     other_atom_index = self.atom_to_index[other_atom]
 
-                                    if other_atom_index > atom_2_index:
-                                        insertion_point_2 = other_atom_index - 1
-                                        direction_2 = atom_pair_to_direction[atom_2][other_atom]
+                                    if not set(self.atom_to_cycle_nr[other_atom]).intersection(
+                                            set(self.atom_to_cycle_nr[atom_2])):
+
+                                        if other_atom_index > atom_2_index:
+                                            insertion_points_2 = [other_atom_index - 1]
+                                            directions_2 = [atom_pair_to_direction[atom_2][other_atom]]
+                                        else:
+                                            insertion_points_2 = [atom_2_index - 1]
+                                            directions_2 = [atom_pair_to_direction[other_atom][atom_2]]
                                     else:
-                                        insertion_point_2 = atom_2_index - 1
-                                        direction_2 = atom_pair_to_direction[other_atom][atom_2]
+                                        cycle_nr = list(set(self.atom_to_cycle_nr[other_atom]).intersection(
+                                            set(self.atom_to_cycle_nr[atom_2])))[0]
 
-                                    if direction_2 == 'up':
-                                        symbol_2 = '/'
-                                    else:
-                                        symbol_2 = "\\"
+                                        cycle_position_2 = self.atom_to_cycle_nr[atom_2].index(cycle_nr)
+                                        cycle_position_other = self.atom_to_cycle_nr[other_atom].index(cycle_nr)
 
-                                    self.add_insert([symbol_2], insertion_point_2)
+                                        if other_atom_index > atom_2_index:
+                                            insertion_points_2 = [other_atom_index + cycle_position_other, atom_2_index + cycle_position_2]
+                                            directions_2 = [atom_pair_to_direction[other_atom][atom_2],
+                                                            atom_pair_to_direction[atom_2][other_atom]]
+                                        else:
 
+                                            insertion_points_2 = [atom_2_index + cycle_position_other, other_atom_index + cycle_position_2]
+                                            directions_2 = [atom_pair_to_direction[atom_2][other_atom],
+                                                            atom_pair_to_direction[other_atom][atom_2]]
 
+                                    for j, insertion_point_2 in enumerate(insertion_points_2):
+                                        direction_2 = directions_2[j]
 
+                                        if direction_2 == 'up':
+                                            symbol_2 = '/'
+                                        else:
+                                            symbol_2 = "\\"
+
+                                        self.add_insert([symbol_2], insertion_point_2)
 
     def resolve_chiral_centres(self):
         for atom in self.original_structure.graph:

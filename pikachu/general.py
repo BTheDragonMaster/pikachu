@@ -13,12 +13,21 @@ from pikachu.drawing.colours import *
 from pikachu.chem.molfile.write_molfile import MolFileWriter
 
 
-def smiles_from_file(smiles_file):
-    with open(smiles_file, 'r') as smiles:
-        smiles_string = smiles.readline().strip()
+def smiles_from_file(smiles_file, all=False):
+    if not all:
+        with open(smiles_file, 'r') as smiles:
+            smiles_string = smiles.readline().strip()
 
-    return smiles_string
+        return smiles_string
+    else:
+        smiles_strings = []
+        with open(smiles_file, 'r') as smiles:
+            for line in smiles:
+                smiles_string = line.strip()
+                smiles_strings.append(smiles_string)
 
+        return smiles_strings
+    
 
 def read_smiles(smiles_string):
     """
