@@ -22,7 +22,7 @@ class Electron:
             return f'{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}_{self.spin}{aromatic_string}'
 
     def __eq__(self, other):
-        if type(self) == type(other) and self.id == other.id:
+        if type(self) == type(other) and hash((self.id, self.atom.nr)) == hash((other.id, other.atom.nr)):
             return True
 
         return False
