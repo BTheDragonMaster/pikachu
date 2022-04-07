@@ -1893,7 +1893,7 @@ class Structure:
             bidirectional graph that is not connected to the other graphs in
             the list
         """
-        working_graph = self.copy()
+        working_graph = self.deepcopy()
 
         new_graphs = []
         working_graph.make_bond_nr_dict()
