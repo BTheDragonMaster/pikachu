@@ -1939,6 +1939,7 @@ class Structure:
 
         for new_graph in new_graphs:
             for node in new_graph:
+
                 new_graph[node] = self.graph[node]
 
         # Add lone atoms
