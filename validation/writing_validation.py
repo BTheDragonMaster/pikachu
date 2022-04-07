@@ -2,6 +2,13 @@ from sys import argv
 
 from rdkit.Chem import MolFromSmiles, MolToSmiles
 from pikachu.general import read_smiles, structure_to_smiles, smiles_from_file
+import timeout_decorator
+
+
+@timeout_decorator.timeout(10)
+def read_and_write(smiles):
+    pikachu_smiles = structure_to_smiles(read_smiles(smiles))
+    return pikachu_smiles
 
 
 def assess_writing_accuracy(smiles_strings):
@@ -10,7 +17,8 @@ def assess_writing_accuracy(smiles_strings):
     failed_smiles = []
     for i, smiles in enumerate(smiles_strings):
         try:
-            pikachu_smiles = structure_to_smiles(read_smiles(smiles))
+            pikachu_smiles = read_and_write(smiles)
+
             rdkit_original = MolToSmiles(MolFromSmiles(smiles))
             rdkit_pikachu = MolToSmiles(MolFromSmiles(pikachu_smiles))
 

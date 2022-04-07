@@ -228,6 +228,11 @@ class Atom:
             # If odd number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
             # three outgoing aromatic bonds
 
+            h_bonds = 0
+            for bond in self.bonds:
+                if bond.get_connected_atom(self).type == 'H':
+                    h_bonds += 1
+
             nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
             if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
@@ -240,8 +245,18 @@ class Atom:
             if nr_of_nonH_bonds > bonding_electrons:
                 if self.excitable:
                     self.excite()
+                elif h_bonds:
+
+                    nr_of_nonH_bonds -= h_bonds
+                    if nr_of_nonH_bonds > bonding_electrons:
+                        if self.excitable:
+                            self.excite()
+                        else:
+
+                            raise StructureError('violated_bonding_laws')
                 else:
                     raise StructureError('violated_bonding_laws')
+
 
     def get_bonding_electrons(self):
         counter = 0

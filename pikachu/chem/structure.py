@@ -1525,8 +1525,6 @@ class Structure:
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond
 
-    
-
     def make_bond(self, atom_1, atom_2, bond_nr):
 
         bond = Bond(atom_1, atom_2, 'single', bond_nr)
@@ -1895,8 +1893,8 @@ class Structure:
             bidirectional graph that is not connected to the other graphs in
             the list
         """
-        working_graph = self.copy()
-        # working_graph.refresh_structure()
+        working_graph = self.deepcopy()
+
         new_graphs = []
         working_graph.make_bond_nr_dict()
 

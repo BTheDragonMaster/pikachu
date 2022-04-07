@@ -5,7 +5,8 @@ from random import shuffle, seed
 
 from pikachu.general import read_smiles, position_smiles
 
-# from rdkit.Chem import MolFromSmiles
+from rdkit.Chem.rdCoordGen import AddCoords
+from rdkit.Chem import MolFromSmiles
 
 import timeout_decorator
 
@@ -112,16 +113,27 @@ def substructure_matching_speed_rdkit(smiles, subsmiles):
     return has_substructure
 
 
-def drawing_speed_rdkit(smiles):
+def drawing_speed_rdkit(smiles, measuring_points):
     start_time = time.time()
+    drawn_smiles = 0
     for s in smiles:
         x = MolFromSmiles(s)
+        AddCoords(x)
+        drawn_smiles += 1
+
+        if drawn_smiles in measuring_points:
+            time_1 = time.time()
+            print(f'Time spent by RDKit drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+
+        if drawn_smiles == measuring_points[-1]:
+            break
 
     time_1 = time.time()
-    print(f'Time spent by RDKit drawing {len(smiles)} SMILES: {time_1 - start_time}')
+
+    print(f'Time spent by RDKit drawing {drawn_smiles} SMILES: {time_1 - start_time}')
 
 
-def reading_speed_rdkit(smiles):
+def reading_speed_rdkit(smiles, measuring_points):
     start_time = time.time()
     for s in smiles:
         x = MolFromSmiles(s)
@@ -168,14 +180,15 @@ if __name__ == "__main__":
     # supersmiles_strings = read_smiles_file(supersmiles_file)
     # subsmiles_strings = read_smiles_file(subsmiles_file)
 
-    measuring_points = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+    measuring_points = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
 
     # print("Drawing")
 
     # drawing_speed_pikachu(smiles_strings, measuring_points)
 
     print("Reading")
-    reading_speed_pikachu(smiles_strings, measuring_points)
+    #reading_speed_pikachu(smiles_strings, measuring_points)
+    drawing_speed_rdkit(smiles_strings, measuring_points)
 
     # drawing_speed_rdkit(smiles_strings)
     # reading_speed_rdkit(smiles_strings)

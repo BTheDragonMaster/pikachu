@@ -67,7 +67,10 @@ def find_average_bond_length(atoms, atom_positions, bond_lookup):
                     total_bond_length += bond_length
                     counter += 1
 
-    average_bond_length = total_bond_length / float(counter)
+    try:
+        average_bond_length = total_bond_length / float(counter)
+    except ZeroDivisionError:
+        return None
 
     return average_bond_length
 
@@ -78,7 +81,12 @@ def find_steric_clashes(atoms, atom_positions, average_bond_length, bond_lookup)
         atom_1 = atoms[i]
         for j, position_2 in enumerate(atom_positions):
             atom_2 = atoms[j]
-            if i != j and atom_1 not in bond_lookup[atom_2]:
+            if atom_2 in bond_lookup:
+                if i != j and atom_1 not in bond_lookup[atom_2]:
+                    distance = position_1.get_distance(position_2)
+                    if distance < 0.5 * average_bond_length:
+                        steric_clashes += 1
+            elif i != j:
                 distance = position_1.get_distance(position_2)
                 if distance < 0.5 * average_bond_length:
                     steric_clashes += 1
@@ -86,27 +94,41 @@ def find_steric_clashes(atoms, atom_positions, average_bond_length, bond_lookup)
     return steric_clashes
 
 
-@timeout_decorator.timeout(40)
+# @timeout_decorator.timeout(40)
 def find_clashes_rdkit(smiles):
     atoms, atom_positions, bond_lookup = get_rdkit_coords(smiles)
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
-    clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
+
+    if av_bond_length:
+        clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
+
+
+    # Only happens if there are no bonds in the structure.
+    else:
+        clashes = 0
     if clashes:
         print(f"Handling smiles: {smiles}, found {clashes} clashes (RDKit).")
     return clashes
 
 
-@timeout_decorator.timeout(40)
+# @timeout_decorator.timeout(40)
 def find_clashes_pikachu(smiles):
     atoms, atom_positions, bond_lookup = get_pikachu_coords(smiles)
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
-    clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
+
+    if av_bond_length:
+        clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
+
+    # Only happens if there are no bonds in the structure.
+    else:
+        clashes = 0
+
     if clashes:
         print(f"Handling smiles: {smiles}, found {clashes} clashes (PIKAChU).")
     return clashes
 
 
-def assess_tools(smiles_file):
+def assess_tools(smiles_file, failed_out, clashes_out):
     steric_clashes_rdkit = 0
     steric_clashes_pikachu = 0
 
@@ -115,55 +137,64 @@ def assess_tools(smiles_file):
 
     failed_smiles_rdkit = 0
     failed_smiles_pikachu = 0
+    clashes = open(clashes_out, 'w')
+    failed = open(failed_out, 'w')
     with open(smiles_file, 'r') as smi:
         for i, line in enumerate(smi):
             smiles = line.strip()
-            try:
-                clashes_rdkit = find_clashes_rdkit(smiles)
-                steric_clashes_rdkit += clashes_rdkit
-
-                if clashes_rdkit:
-                    clashing_structures_rdkit += 1
-
-            except Exception:
-                print(f"Failed smiles RDKIT: {smiles}")
-                failed_smiles_rdkit += 1
+            # try:
+            #     clashes_rdkit = find_clashes_rdkit(smiles)
+            #     steric_clashes_rdkit += clashes_rdkit
+            #
+            #     if clashes_rdkit:
+            #         clashing_structures_rdkit += 1
+            #
+            # except Exception:
+            #     print(f"Failed smiles RDKIT: {smiles}")
+            #     failed_smiles_rdkit += 1
 
             try:
                 clashes_pikachu = find_clashes_pikachu(smiles)
                 steric_clashes_pikachu += clashes_pikachu
 
                 if clashes_pikachu:
+                    clashes.write(f"{smiles}\t{clashes_pikachu}\n")
                     clashing_structures_pikachu += 1
 
-            except Exception:
+            except Exception as e:
                 print(f"Failed smiles PIKAChU: {smiles}")
                 failed_smiles_pikachu += 1
+                failed.write(f"{smiles}\n")
 
             if i % 500 == 0:
                 print(f"Processed {i} smiles.")
-                print(f"Steric clashes RDKit: {steric_clashes_rdkit / 2}")
+                # print(f"Steric clashes RDKit: {steric_clashes_rdkit / 2}")
                 print(f"Steric clashes PIKAChU: {steric_clashes_pikachu / 2}")
-                print(f"Clashing structures RDKit: {clashing_structures_rdkit}")
+                # print(f"Clashing structures RDKit: {clashing_structures_rdkit}")
                 print(f"Clashing structures PIKAChU: {clashing_structures_pikachu}")
-                print(f"Failed SMILES RDKit: {failed_smiles_rdkit}")
+                # print(f"Failed SMILES RDKit: {failed_smiles_rdkit}")
                 print(f"Failed SMILES PIKAChU: {failed_smiles_pikachu}")
                 print('\n')
                 
             if i == 100000:
-                break
 
-    print(f"Steric clashes RDKit: {steric_clashes_rdkit / 2}")
+                break
+    clashes.close()
+    failed.close()
+
+    # print(f"Steric clashes RDKit: {steric_clashes_rdkit / 2}")
     print(f"Steric clashes PIKAChU: {steric_clashes_pikachu / 2}")
-    print(f"Clashing structures RDKit: {clashing_structures_rdkit}")
+    # print(f"Clashing structures RDKit: {clashing_structures_rdkit}")
     print(f"Clashing structures PIKAChU: {clashing_structures_pikachu}")
-    print(f"Failed SMILES RDKit: {failed_smiles_rdkit}")
+    # print(f"Failed SMILES RDKit: {failed_smiles_rdkit}")
     print(f"Failed SMILES PIKAChU: {failed_smiles_pikachu}")
 
 
 if __name__ == "__main__":
     smiles_file = argv[1]
-    assess_tools(smiles_file)
+    failed = smiles_file.split('.')[0] + '_failed_steric.txt'
+    clashing = smiles_file.split('.')[0] + '_clashing_steric.txt'
+    assess_tools(smiles_file, failed, clashing)
 
 
 

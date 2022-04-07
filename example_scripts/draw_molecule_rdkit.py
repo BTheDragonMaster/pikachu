@@ -10,7 +10,7 @@ rdDepictor.SetPreferCoordGen(True)
 
 def draw_molecule(smiles, out_file):
     mol = MolFromSmiles(smiles)
-    drawer = rdMolDraw2D.MolDraw2DSVG(300, 300)
+    drawer = rdMolDraw2D.MolDraw2DSVG(1000, 1000)
     drawer.drawOptions().addStereoAnnotation = False
     drawer.DrawMolecule(mol)
     drawer.FinishDrawing()
