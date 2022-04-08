@@ -50,7 +50,11 @@ def hydrolysis(structure, bond):
     hydrolysed_structure.make_bond(hydrogen, h_acceptor, hydrolysed_structure.find_next_bond_nr())
     hydrolysed_structure.make_bond(oxygen, oh_acceptor, hydrolysed_structure.find_next_bond_nr())
 
-    return hydrolysed_structure.split_disconnected_structures()
+    structures = hydrolysed_structure.split_disconnected_structures()
+    if len(structures) == 1:
+        structures[0].refresh_structure(find_cycles=True)
+
+    return structures
 
 
 def condensation(structure_1, structure_2, oh_bond, h_bond):
@@ -146,6 +150,8 @@ if __name__ == "__main__":
     structures = hydrolysis(structure, peptide_bonds[0])
     glycine = "NCC(=O)O"
     alanine = "NC(C)C(=O)O"
+    
+    
 
     c_oh_bond = BondDefiner("c_oh_bond", "C(=O)O", 0, 2)
     # n_h_bond = BondDefiner("n_h_bond", "[H]NCC(=O)", 0, 1)
