@@ -191,6 +191,11 @@ def combine_structures(structures):
 
     struct1.bonds = new_bond_dict
 
+    annotations_1 = struct1.annotations
+    annotations_2 = struct2.annotations
+
+    new_annotations = annotations_1.union(annotations_2)
+
     new_graph = {}
     new_bonds = {}
 
@@ -199,6 +204,10 @@ def combine_structures(structures):
         new_bonds.update(structure.bonds)
 
     new_structure = Structure(new_graph, new_bonds)
+    
+    for new_annotation, default in new_annotations:
+        new_structure.add_attribute(new_annotation, default)
+        
     new_structure.make_bond_lookup()
     new_structure.refresh_structure(find_cycles=True)
 

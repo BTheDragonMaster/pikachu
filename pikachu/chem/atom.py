@@ -318,6 +318,13 @@ class Atom:
                 return neighbour
         return None
 
+    def get_neighbours(self, atom_type):
+        neighbours = []
+        for neighbour in self.neighbours:
+            if neighbour.type == atom_type:
+                neighbours.append(neighbour)
+        return neighbours
+
     def excite(self):
         assert self.excitable
 
@@ -363,6 +370,7 @@ class Atom:
 
         if unbonded_electrons % 2 != 0:
             print("Warning! Rogue electron.")
+            print(self)
             # print(self)
             # print(bond_nr)
             # print(self.bonds)
@@ -702,7 +710,8 @@ class AtomAnnotations:
         return annotation_copy
 
     def add_annotation(self, name, default):
-        assert not getattr(self, name, None)
+
+        assert getattr(self, name, 'zahar') == 'zahar'
         setattr(self, name, default)
         self.annotations.add(name)
 

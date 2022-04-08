@@ -51,7 +51,9 @@ class Structure:
             self.bond_lookup = bond_lookup
         else:
             self.make_bond_lookup()
-            
+
+        self.annotations = set()
+
         self.aromatic_cycles = []
         self.aromatic_systems = []
 
@@ -101,10 +103,14 @@ class Structure:
             new_bond.chiral_symbol = bond.chiral_symbol
 
             for atom_1 in bond.chiral_dict:
+                new_1 = None
                 if type(atom_1) == Atom:
                     new_1 = new_atoms[atom_1.nr]
                 else:
                     pass
+
+                assert new_1
+
                 new_bond.chiral_dict[new_1] = {}
                 for atom_2 in bond.chiral_dict[atom_1]:
                     if type(atom_2) == Atom:
@@ -139,6 +145,9 @@ class Structure:
         new_structure.set_atom_neighbours()
         new_structure.make_bond_lookup()
         new_structure.set_connectivities()
+
+        for annotation, default in self.annotations:
+            new_structure.annotations.add((annotation, default))
 
         return new_structure
 
@@ -181,6 +190,8 @@ class Structure:
         self.make_bond_lookup()
         self.set_atom_neighbours()
         self.set_connectivities()
+        for bond in self.bonds.values():
+            bond.set_bond_summary()
 
         if find_cycles:
             self.find_cycles()
@@ -643,6 +654,9 @@ class Structure:
         next_atom_nr = self.find_next_atom_nr()
         atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
         atom.add_electron_shells()
+
+        for annotation, default in self.annotations:
+            atom.annotations.add_annotation(annotation, default)
 
         for i, neighbour in enumerate(neighbours):
             next_bond_nr = self.find_next_bond_nr()
@@ -1609,11 +1623,20 @@ class Structure:
 
         self.bond_lookup[atom_1][atom_2] = bond
         self.bond_lookup[atom_2][atom_1] = bond
-        
-    def add_attributes(self, annotations, defaults=None, boolean=False):
-        if defaults:
-            assert len(defaults) == len(annotations)
-            
+
+    def reset_attribute(self, annotation, default=None):
+        for atom in self.graph:
+            atom.annotations.set_annotation(annotation, default)
+
+    def add_attribute(self, annotation, default=None):
+        for atom in self.graph:
+            if annotation not in atom.annotations.annotations:
+                atom.annotations.add_annotation(annotation, default)
+
+        self.annotations.add((annotation, default))
+
+    def reset_attributes(self, annotations, defaults=None, boolean=False):
+
         for atom in self.graph:
             for i, annotation in enumerate(annotations):
                 if defaults:
@@ -1622,8 +1645,35 @@ class Structure:
                     default = False
                 else:
                     default = None
-                    
-                atom.annotations.add_annotation(annotation, default)
+
+                atom.annotations.set_annotation(annotation, default)
+        
+    def add_attributes(self, annotations, defaults=None, boolean=False):
+        if defaults:
+            assert len(defaults) == len(annotations)
+
+            for i, annotation in enumerate(annotations):
+                self.annotations.add((annotation, defaults[i]))
+
+        elif boolean:
+            for i, annotation in enumerate(annotations):
+                self.annotations.add((annotation, False))
+
+        else:
+            for i, annotation in enumerate(annotations):
+                self.annotations.add((annotation, None))
+
+        for atom in self.graph:
+            for i, annotation in enumerate(annotations):
+                if defaults:
+                    default = defaults[i]
+                elif boolean:
+                    default = False
+                else:
+                    default = None
+
+                if annotation not in atom.annotations.annotations:
+                    atom.annotations.add_annotation(annotation, default)
 
     def set_attribute(self, atoms, annotation, value):
         for atom in atoms:

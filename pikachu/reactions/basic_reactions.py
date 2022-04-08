@@ -137,6 +137,7 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
         if h_atom in structure.graph:
             water = structure
         elif h_neighbour in structure.graph:
+            structure.refresh_structure(find_cycles=True)
             product = structure
 
     return [product, water]
