@@ -102,7 +102,7 @@ class Structure:
             new_bond.chiral = bond.chiral
             new_bond.chiral_symbol = bond.chiral_symbol
 
-            for atom_1 in bond.chiral_dict:
+            for atom_1, atoms_and_chirality in bond.chiral_dict.items():
                 new_1 = None
                 if type(atom_1) == Atom:
                     new_1 = new_atoms[atom_1.nr]
@@ -112,10 +112,11 @@ class Structure:
                 assert new_1
 
                 new_bond.chiral_dict[new_1] = {}
-                for atom_2 in bond.chiral_dict[atom_1]:
+
+                for atom_2, chirality in atoms_and_chirality.items():
                     if type(atom_2) == Atom:
                         new_2 = new_atoms[atom_2.nr]
-                        new_bond.chiral_dict[new_1][new_2] = bond.chiral_dict[atom_1][atom_2]
+                        new_bond.chiral_dict[new_1][new_2] = chirality
                     else:
                         pass
 
