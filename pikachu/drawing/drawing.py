@@ -1446,8 +1446,6 @@ class Drawer:
 
                 atom_draw_position = Vector(atom.draw.position.x, atom.draw.position.y)
 
-                print(atom, atom.draw.position)
-
                 if not atom.charge and (atom.type != 'C' or atom.draw.draw_explicit):
 
                     if atom.draw.has_hydrogen:
@@ -1595,9 +1593,6 @@ class Drawer:
                              horizontalalignment='center',
                              verticalalignment='center',
                              color=atom.draw.colour)
-
-                print(atom, atom.draw.position)
-                print('\n')
 
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
