@@ -1444,6 +1444,10 @@ class Drawer:
                 if orientation == 'H_below_atom':
                     text_h_pos = Vector(atom.draw.position.x, atom.draw.position.y - 6)
 
+                atom_draw_position = Vector(atom.draw.position.x, atom.draw.position.y)
+
+                print(atom, atom.draw.position)
+
                 if not atom.charge and (atom.type != 'C' or atom.draw.draw_explicit):
 
                     if atom.draw.has_hydrogen:
@@ -1459,7 +1463,7 @@ class Drawer:
                                     text = r'$H_{hydrogens}{atom_type}$'.format(hydrogens=hydrogen_count,
                                                                                 atom_type=atom.type)
                                     horizontal_alignment = 'right'
-                                    atom.draw.position.x += 3
+                                    atom_draw_position.x += 3
                                 elif orientation == 'H_below_atom' or orientation == 'H_above_atom':
                                     text = atom.type
                                     text_h = r'$H_{hydrogens}$'.format(hydrogens=hydrogen_count)
@@ -1468,19 +1472,19 @@ class Drawer:
                                     text = r'${atom_type}H_{hydrogens}$'.format(hydrogens=hydrogen_count,
                                                                                 atom_type=atom.type)
                                     horizontal_alignment = 'left'
-                                    atom.draw.position.x -= 3
+                                    atom_draw_position.x -= 3
                             elif hydrogen_count == 1:
                                 if orientation == 'H_before_atom':
                                     text = f'H{atom.type}'
                                     horizontal_alignment = 'right'
-                                    atom.draw.position.x += 3
+                                    atom_draw_position.x += 3
                                 elif orientation == 'H_below_atom' or orientation == 'H_above_atom':
                                     text = atom.type
                                     text_h = 'H'
                                 else:
                                     text = f'{atom.type}H'
                                     horizontal_alignment = 'left'
-                                    atom.draw.position.x -= 3
+                                    atom_draw_position.x -= 3
 
                 elif atom.charge:
                     if atom.charge > 0:
@@ -1505,7 +1509,7 @@ class Drawer:
                                                                            charge_symbol=charge_symbol)
 
                         horizontal_alignment = 'left'
-                        atom.draw.position.x -= 3
+                        atom_draw_position.x -= 3
                     else:
 
                         if hydrogen_count > 1:
@@ -1521,7 +1525,7 @@ class Drawer:
                                                                                                 charge_symbol=charge_symbol)
 
                                 horizontal_alignment = 'right'
-                                atom.draw.position.x += 3
+                                atom_draw_position.x += 3
                             elif orientation == 'H_above_atom' or orientation == 'H_below_atom':
                                 text_h = r'$H_{hydrogens}$'.format(hydrogens=hydrogen_count)
                                 if abs(atom.charge) > 1:
@@ -1543,7 +1547,7 @@ class Drawer:
                                                                                                 charge_symbol=charge_symbol)
 
                                 horizontal_alignment = 'left'
-                                atom.draw.position.x -= 3
+                                atom_draw_position.x -= 3
                         elif hydrogen_count == 1:
                             if orientation == 'H_before_atom':
                                 if abs(atom.charge) > 1:
@@ -1555,7 +1559,7 @@ class Drawer:
                                     text = r'$H{atom_type}^{charge_symbol}$'.format(atom_type=atom.type,
                                                                                     charge_symbol=charge_symbol)
                                 horizontal_alignment = 'right'
-                                atom.draw.position.x += 3
+                                atom_draw_position.x += 3
                             elif orientation == 'H_above_atom' or orientation == 'H_below_atom':
                                 text_h = 'H'
                                 if abs(atom.charge) > 1:
@@ -1577,10 +1581,10 @@ class Drawer:
                                     text = r'${atom_type}H^{charge_symbol}$'.format(atom_type=atom.type,
                                                                                     charge_symbol=charge_symbol)
                                 horizontal_alignment = 'left'
-                                atom.draw.position.x -= 3
+                                atom_draw_position.x -= 3
 
                 if text:
-                    plt.text(atom.draw.position.x, atom.draw.position.y,
+                    plt.text(atom_draw_position.x, atom_draw_position.y,
                              text,
                              horizontalalignment=horizontal_alignment,
                              verticalalignment='center',
@@ -1591,6 +1595,9 @@ class Drawer:
                              horizontalalignment='center',
                              verticalalignment='center',
                              color=atom.draw.colour)
+
+                print(atom, atom.draw.position)
+                print('\n')
 
     def is_terminal(self, atom):
         if len(atom.drawn_neighbours) <= 1:
