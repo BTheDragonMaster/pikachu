@@ -15,6 +15,14 @@ def get_chiral_permutations(order):
     return permutations
 
 
+def same_chirality(order_1, order_2):
+    permutations = get_chiral_permutations(order_1)
+    if tuple(order_2) in permutations:
+        return True
+    else:
+        return False
+
+
 def get_chiral_permutations_lonepair(order):
     permutations = [tuple(order),
                     (order[1], order[2], order[0]),
