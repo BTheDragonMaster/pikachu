@@ -1131,6 +1131,9 @@ class Structure:
     def get_atom(self, atom):
         return self.atoms[atom.nr]
 
+    def get_bond(self, bond):
+        return self.bonds[bond.nr]
+
     def is_substructure_atom_composition(self, child):
 
         atom_counts_self = self.get_atom_counts()
