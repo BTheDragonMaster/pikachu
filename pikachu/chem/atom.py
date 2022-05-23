@@ -203,6 +203,35 @@ class Atom:
         # Generate empty shells depending on atom type
         self.make_shells()
 
+        double_bonds = 0
+        single_bonds = 0
+
+        for bond in self.bonds:
+            if bond.type == 'double':
+                double_bonds += 1
+            elif bond.type == 'single':
+                single_bonds += 1
+
+        if self.type == 'N' and self.charge == 0 and double_bonds == 2 and single_bonds == 1:
+            oxygen_bonds = []
+            oxygens = []
+
+            for bond in self.bonds:
+                neighbour = bond.get_connected_atom(self)
+                if bond.type == 'double' and neighbour.type == 'O':
+                    oxygens.append(neighbour)
+                    oxygen_bonds.append(bond)
+
+            if len(oxygens) >= 1:
+                oxygen = oxygens[0]
+                bond = oxygen_bonds[0]
+                bond.type = 'single'
+                bond.set_bond_summary()
+                oxygen.charge = -1
+                self.charge = 1
+                if oxygen.shells:
+                    oxygen.add_electron_shells()
+
         # Fill them with electrons
         self.fill_shells()
 
@@ -242,6 +271,7 @@ class Atom:
 
             bonding_electrons = self.get_bonding_electrons()
 
+
             if nr_of_nonH_bonds > bonding_electrons:
                 if self.excitable:
                     self.excite()
@@ -254,6 +284,7 @@ class Atom:
                         else:
 
                             raise StructureError('violated_bonding_laws')
+
                 else:
                     raise StructureError('violated_bonding_laws')
 

@@ -30,10 +30,7 @@ class Daylight:
     def get_hash(self):
         daylight_hash = hashlib.sha256()
         for attribute in self.daylight:
-            print(attribute)
             daylight_hash.update(str(attribute).encode())
-
-        print(int.from_bytes(daylight_hash.digest()[:4], byteorder='little'))
 
         # return int.from_bytes(hashlib.sha256(b"H").digest()[:4], 'little')
         #print(hash(tuple(self.daylight)))
@@ -42,7 +39,6 @@ class Daylight:
 
     def atom_in_cycle(self):
         cycles = self.structure.cycles.all_cycles
-        print(cycles)
 
         for cycle in cycles:
             if self.atom in cycle:

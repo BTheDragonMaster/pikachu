@@ -1432,7 +1432,10 @@ class Drawer:
                 text_h = ''
                 text_h_pos = None
                 if atom.type != 'C' or atom.draw.draw_explicit:
-                    text = atom.type
+                    if atom.type == 'C':
+                        text = '.'
+                    else:
+                        text = atom.type
                 else:
                     text = ''
 
@@ -1445,6 +1448,8 @@ class Drawer:
                     text_h_pos = Vector(atom.draw.position.x, atom.draw.position.y - 6)
 
                 atom_draw_position = Vector(atom.draw.position.x, atom.draw.position.y)
+                if text == '.':
+                    atom_draw_position.y += 2
 
                 if not atom.charge and (atom.type != 'C' or atom.draw.draw_explicit):
 
@@ -1454,7 +1459,7 @@ class Drawer:
                             if neighbour.type == 'H' and not neighbour.draw.is_drawn:
                                 hydrogen_count += 1
 
-                        if hydrogen_count:
+                        if hydrogen_count and atom.type != 'C':
 
                             if hydrogen_count > 1:
                                 if orientation == 'H_before_atom':
@@ -1508,7 +1513,7 @@ class Drawer:
 
                         horizontal_alignment = 'left'
                         atom_draw_position.x -= 3
-                    else:
+                    elif atom.type != 'C':
 
                         if hydrogen_count > 1:
                             if orientation == 'H_before_atom':
@@ -1897,9 +1902,9 @@ class Drawer:
                     a = atom.draw.angle
 
                     if previous_atom and len(previous_atom.drawn_neighbours) > 3:
-                        if a > 0:
+                        if round(a, 2) > 0.00:
                             a = min([math.radians(60), a])
-                        elif a < 0:
+                        elif round(a, 2) < 0:
                             a = max([-math.radians(60), a])
                         else:
                             a = math.radians(60)
@@ -1936,6 +1941,11 @@ class Drawer:
                             next_atom.draw.angle = -a
                     else:
                         next_atom.draw.angle = -a
+
+                    if round(math.degrees(next_atom.draw.angle), 0) == 360 or \
+                            round(math.degrees(next_atom.draw.angle), 0) == -360 or \
+                            round(math.degrees(next_atom.draw.angle), 0) == 0:
+                        atom.draw.draw_explicit = True
 
                     self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
 
