@@ -68,7 +68,7 @@ def structure_to_smiles(structure, kekule=False):
     return GraphToSmiles(structure).smiles
 
 
-def draw_structure(structure, finetune=True):
+def draw_structure(structure, options=None):
     """
     Display structure from structure object
 
@@ -77,8 +77,8 @@ def draw_structure(structure, finetune=True):
 
     """
 
-    options = Options()
-    options.finetune = finetune
+    if not options:
+        options = Options()
     drawer = Drawer(structure, options=options)
 
     drawer.show_molecule()
@@ -107,7 +107,7 @@ def position_smiles(smiles):
     return drawer
 
 
-def draw_smiles(smiles, finetune=True):
+def draw_smiles(smiles, options=None):
     """
     Display structure from SMILES string
 
@@ -116,8 +116,8 @@ def draw_smiles(smiles, finetune=True):
 
     """
 
-    options = Options()
-    options.finetune = finetune
+    if not options:
+        options = Options()
 
     structure = read_smiles(smiles)
     if '.' in smiles:
@@ -164,7 +164,7 @@ def svg_from_smiles_timed(smiles, svg_out):
     print(time_5 - time_4)
 
 
-def svg_from_structure(structure, svg_out, finetune=True):
+def svg_from_structure(structure, svg_out, options=None):
     """
     Save structure drawing of Structure object to .svg
 
@@ -173,22 +173,24 @@ def svg_from_structure(structure, svg_out, finetune=True):
     svg_out: str, output file name, should end in .svg
 
     """
-    options = Options()
-    options.finetune = finetune
+    if not options:
+        options = Options()
+
     drawer = Drawer(structure, options=options)
     drawer.save_svg(svg_out)
 
 
-def svg_string_from_structure(structure, finetune=True):
-    options = Options()
-    options.finetune = finetune
+def svg_string_from_structure(structure, options=None):
+    if not options:
+        options = Options()
+
     drawer = Drawer(structure, options=options)
     svg_string = drawer.save_svg_string()
 
     return svg_string
 
 
-def png_from_structure(structure, png_out, finetune=True):
+def png_from_structure(structure, png_out, options=None):
     """
     Save structure drawing of Structure object to .png
 
@@ -197,13 +199,14 @@ def png_from_structure(structure, png_out, finetune=True):
     png_out: str, output file name, should end in .png
 
     """
-    options = Options()
-    options.finetune = finetune
+    if not options:
+        options = Options()
+
     drawer = Drawer(structure, options=options)
     drawer.save_png(png_out)
 
 
-def svg_from_smiles(smiles, svg_out, finetune=True):
+def svg_from_smiles(smiles, svg_out, options=None):
     """
     Save structure drawing of SMILES string to .svg
 
@@ -213,13 +216,14 @@ def svg_from_smiles(smiles, svg_out, finetune=True):
 
     """
     structure = read_smiles(smiles)
-    options = Options()
-    options.finetune = finetune
+    if not options:
+        options = Options()
+
     drawer = Drawer(structure, options=options)
     drawer.save_svg(svg_out)
 
 
-def png_from_smiles(smiles, png_out, finetune=True):
+def png_from_smiles(smiles, png_out, options=None):
     """
     Save structure drawing of SMILES string to .png
 
@@ -229,8 +233,8 @@ def png_from_smiles(smiles, png_out, finetune=True):
 
     """
     structure = read_smiles(smiles)
-    options = Options()
-    options.finetune = finetune
+    if not options:
+        options = Options()
     drawer = Drawer(structure, options=options)
     drawer.save_png(png_out)
 

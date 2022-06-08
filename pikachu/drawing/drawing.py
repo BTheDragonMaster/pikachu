@@ -1055,7 +1055,7 @@ class Drawer:
 
     def plot_line(self, line, ax, color='black'):
         ax.plot([line.point_1.x, line.point_2.x],
-                [line.point_1.y, line.point_2.y], color=color, linewidth=self.line_width)
+                [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness)
 
     @staticmethod
     def save_svg(out_file):
@@ -2830,7 +2830,7 @@ class Options:
     def __init__(self):
         self.width = 500
         self.height = 500
-        self.bond_thickness = 0.6
+        self.bond_thickness = 2
         self.bond_length = 15
         self.chiral_bond_width = self.bond_length * 0.1
         self.bond_length_squared = self.bond_length ** 2
