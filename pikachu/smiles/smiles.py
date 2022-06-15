@@ -271,10 +271,8 @@ class Smiles:
             if label == 'split':
                 # Starts disconnected structure; set everything back to default
                 branch_level = 0
-                cyclic_dict = {}
+                # cyclic_dict = {}
                 last_atoms_dict = {0: None}
-                double = False
-                triple = False
                 # chiral_dict = {}
 
             elif label == "atom":
