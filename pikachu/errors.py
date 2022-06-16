@@ -22,7 +22,7 @@ class KekulisationError(Exception):
 
 class DrawingError(Exception):
     error_to_message = {'chiral bond ring': "PIKAChU could not correctly draw the cis/trans stereochemistry of a double bond in a cycle.",
-                        'chiral center': "Only three elements attached to chiral center, including hydrogens and lone pairs."}
+                        'chiral center': "Too few elements attached to chiral center, including hydrogens and lone pairs."}
 
     def __init__(self, error_type):
         self.message = self.error_to_message[error_type]

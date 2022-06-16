@@ -8,7 +8,8 @@ from pprint import pprint
 from io import StringIO
 
 from pikachu.drawing.sssr import SSSR
-from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge, find_bridged_systems
+from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge, \
+    find_bridged_systems
 from pikachu.math_functions import Vector, Polygon, Line, Permutations
 from pikachu.chem.chirality import find_chirality_from_nonh, get_chiral_permutations, get_chiral_permutations_lonepair
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
@@ -21,7 +22,7 @@ def draw_multiple(structure, coords_only=False, options=None):
     options_main = Options()
     options_main.finetune = False
         
-    drawer = Drawer(structure, options=options_main, coords_only=True)
+    drawer = Drawer(structure, options=options_main, coords_only=True, multiple=True)
     structures = structure.split_disconnected_structures()
     max_x = -100000000
 
@@ -36,6 +37,9 @@ def draw_multiple(structure, coords_only=False, options=None):
 
         bounding_box = subdrawer.structure.get_bounding_box()
         max_x = bounding_box[2]
+
+        drawer.chiral_bonds += subdrawer.chiral_bonds
+        drawer.chiral_bond_to_orientation.update(subdrawer.chiral_bond_to_orientation)
 
         for atom in subdrawer.structure.graph:
             if atom.draw.is_drawn:
@@ -72,6 +76,7 @@ class KKLayout:
         self.positioned = {}
 
         self.length_matrix = {}
+        self.distance_matrix = {}
         self.spring_strengths = {}
         self.energy_matrix = {}
 
@@ -177,7 +182,7 @@ class KKLayout:
         for atom in self.atoms:
             delta, d_ex, d_ey = self.energy(atom)
 
-            if delta > max_energy and self.positioned[atom] == False:
+            if delta > max_energy and not self.positioned[atom]:
                 max_energy = delta
                 max_energy_atom = atom
                 max_d_ex = d_ex
@@ -266,7 +271,7 @@ class KKLayout:
         distance_matrix = {}
 
         for atom_1 in atoms:
-            if not atom_1 in distance_matrix:
+            if atom_1 not in distance_matrix:
                 distance_matrix[atom_1] = {}
             for atom_2 in atoms:
                 distance_matrix[atom_1][atom_2] = float('inf')
@@ -299,9 +304,9 @@ class KKLayout:
 
 
 class Drawer:
-    def __init__(self, structure, options=None, coords_only=False):
+    def __init__(self, structure, options=None, coords_only=False, multiple=False):
 
-        if options == None:
+        if options is None:
             self.options = Options()
         else:
             self.options = options
@@ -320,6 +325,7 @@ class Drawer:
         self.chiral_bonds = []
         self.chiral_bond_to_orientation = {}
         self.fixed_chiral_bonds = set()
+        self.multiple = multiple
 
         self.ring_id_tracker = 0
         self.ring_overlap_id_tracker = 0
@@ -446,9 +452,11 @@ class Drawer:
 
                     self.total_overlap_score = best_score
 
-                    self.rotate_subtree(rotating_atom, parent_atom, math.radians(30 * best_i + 1), parent_atom.draw.position)
+                    self.rotate_subtree(rotating_atom, parent_atom, math.radians(30 * best_i + 1),
+                                        parent_atom.draw.position)
 
-    def find_ring_neighbour(self, atom, bond):
+    @staticmethod
+    def find_ring_neighbour(atom, bond):
         rings = set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))
 
         cyclic_neighbour = None
@@ -488,7 +496,6 @@ class Drawer:
 
             for neighbour in neighbours_1:
                 if len(set(neighbour.draw.rings).intersection(rings)) == 0:
-
 
                     subtree_size = self.get_subgraph_size(neighbour, {bond.atom_1})
                     if neighbour_1 and not neighbour_1_in_cycle:
@@ -556,6 +563,8 @@ class Drawer:
                 flanking_atoms = (bond.atom_2, ring_atom)
 
             else:
+                central_atom = None
+                flanking_atoms = None
                 resolvable = False
 
         if resolvable:
@@ -572,7 +581,7 @@ class Drawer:
 
         # get the rings that this bond is part of
 
-        rings = set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))
+        # rings = set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))
 
         central_atom = None
 
@@ -730,7 +739,10 @@ class Drawer:
                 else:
                     backup_options_chiral_neighbour_ring.append(neighbour)
 
-        priority = options_h + options + backup_options_chiral_noring + backup_options_rings + backup_options_chiral_ring + backup_options_chiral_neighbour + backup_options_chiral_neighbour_ring + non_options
+        priority = options_h + options + backup_options_chiral_noring + \
+            backup_options_rings + backup_options_chiral_ring + backup_options_chiral_neighbour + \
+            backup_options_chiral_neighbour_ring + non_options
+
         if chiral_center.type == 'C':
             assert len(priority) == 4
 
@@ -745,7 +757,7 @@ class Drawer:
             if round(angle, 3) >= round(math.pi, 3):
                 position = i
 
-        if position != None:
+        if position is not None:
             atom_order.insert(position, hydrogen)
         else:
             wedge_index = atom_order.index(wedge_atom)
@@ -800,9 +812,6 @@ class Drawer:
         priority = self.prioritise_chiral_bonds(chiral_center)
         
         if len(atom_order) == 3:
-
-            eclipsed_element = None
-            wedge_atom = None
 
             if chiral_center.has_neighbour('H'):
                 hydrogen = chiral_center.get_neighbour('H')
@@ -891,6 +900,9 @@ class Drawer:
                                                            position_1,
                                                            position_2)
 
+        else:
+            raise DrawingError('chiral center')
+
         chirality = chiral_center.chiral
 
         if chirality == 'clockwise':
@@ -948,10 +960,14 @@ class Drawer:
 
         self.get_atom_nr_to_atom()
         self.define_rings()
-        self.process_structure()
-        self.set_chiral_bonds()
-        if not coords_only:
-            self.draw_structure()
+
+        if not self.multiple:
+            self.process_structure()
+            self.set_chiral_bonds()
+            if not coords_only:
+                self.draw_structure()
+        else:
+            self.restore_ring_information()
 
     @staticmethod
     def get_hydrogen_text_orientation(atom):
@@ -1096,7 +1112,8 @@ class Drawer:
         plt.clf()
         plt.close()
 
-    def chirality_correct(self, bond):
+    @staticmethod
+    def chirality_correct(bond):
         assert bond.chiral
 
         must_be_fixed = False
@@ -1175,6 +1192,7 @@ class Drawer:
                 if chirality_correct:
                     self.fixed_chiral_bonds.add(double_bond)
                 else:
+                    print(double_bond)
                     self.fix_chiral_bond(double_bond)
 
         for bond in self.structure.bonds.values():
@@ -1184,76 +1202,6 @@ class Drawer:
                     self.fixed_chiral_bonds.add(bond)
                 else:
                     self.fix_chiral_bond(bond)
-
-        #
-        # for bond_nr, bond in self.structure.bonds.items():
-        #     if bond.chiral and bond not in self.fixed_chiral_bonds:
-        #         chirality_correct = self.chirality_correct(bond)
-                # must_be_fixed = False
-                #
-                # for neighbour_1 in bond.atom_1.neighbours:
-                #     if neighbour_1 != bond.atom_2:
-                #         for neighbour_2 in bond.atom_2.neighbours:
-                #             if neighbour_2 != bond.atom_1:
-                #                 if neighbour_1.draw.is_drawn and neighbour_2.draw.is_drawn:
-                #
-                #                     placement_1 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
-                #                                                                        bond.atom_2.draw.position,
-                #                                                                        neighbour_1.draw.position)
-                #                     placement_2 = Vector.get_position_relative_to_line(bond.atom_1.draw.position,
-                #                                                                        bond.atom_2.draw.position,
-                #                                                                        neighbour_2.draw.position)
-                #
-                #                     orientation = bond.chiral_dict[neighbour_1][neighbour_2]
-                #
-                #                     if orientation == 'cis':
-                #                         if placement_1 != placement_2:
-                #                             must_be_fixed = True
-                #                     else:
-                #                         if placement_1 == placement_2:
-                #                             must_be_fixed = True
-                #
-                # if len(bond.atom_1.draw.rings) and len(bond.atom_2.draw.rings) and \
-                #         len(set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))) >= 1:
-                #
-                #     #if must_be_fixed:
-                #     if not chirality_correct:
-                #         self.flip_stereobond_in_ring(bond)
-                #         continue
-                #
-                # else:
-                #     if len(bond.atom_1.draw.rings) > 0:
-                #         parent_atom = bond.atom_2
-                #         root_atom = bond.atom_1
-                #
-                #     else:
-                #         parent_atom = bond.atom_1
-                #         root_atom = bond.atom_2
-                #
-                #     #if must_be_fixed:
-                #     if not chirality_correct:
-                #
-                #         neighbours = parent_atom.drawn_neighbours[:]
-                #         neighbours.remove(root_atom)
-                #
-                #         if len(neighbours) == 1:
-                #             neighbour = neighbours[0]
-                #             self.flip_subtree(neighbour, root_atom, parent_atom)
-                #
-                #         # Only need to flip once if both neighbours are in the same ring
-                #
-                #         elif len(neighbours) == 2 and len(set(neighbours[0].draw.rings).intersection(set(neighbours[1].draw.rings))) >= 1:
-                #
-                #             self.flip_subtree(neighbours[0], root_atom, parent_atom)
-                #
-                #         elif len(neighbours) == 2:
-                #             neighbour_1 = neighbours[0]
-                #             neighbour_2 = neighbours[1]
-                #
-                #             self.flip_subtree(neighbour_1, root_atom, parent_atom)
-                #             self.flip_subtree(neighbour_2, root_atom, parent_atom)
-                #
-                # self.fixed_chiral_bonds.add(bond)
 
     def draw_structure(self):
 
@@ -1278,9 +1226,8 @@ class Drawer:
         height = max_y - min_y
         width = max_x - min_x
 
-        self.line_width = 2
-
-        fig, ax = plt.subplots(figsize=((width + 2 * self.options.padding) / 50.0, (height + 2 * self.options.padding) / 50.0), dpi=100)
+        fig, ax = plt.subplots(figsize=((width + 2 * self.options.padding) / 50.0,
+                                        (height + 2 * self.options.padding) / 50.0), dpi=100)
 
         ax.set_aspect('equal', adjustable='box')
         ax.axis('off')
@@ -1599,7 +1546,8 @@ class Drawer:
                              verticalalignment='center',
                              color=atom.draw.colour)
 
-    def is_terminal(self, atom):
+    @staticmethod
+    def is_terminal(atom):
         if len(atom.drawn_neighbours) <= 1:
             return True
 
@@ -1713,20 +1661,20 @@ class Drawer:
         start_atom = None
 
         for atom in self.structure.graph:
-            if atom.draw.bridged_ring != None:
+            if atom.draw.bridged_ring is not None:
                 start_atom = atom
                 break
 
-        #is this necessary?
+        # is this necessary?
 
         for ring in self.rings:
             if ring.bridged:
                 start_atom = ring.members[0]
 
-        if len(self.rings) > 0 and start_atom == None:
+        if len(self.rings) > 0 and start_atom is None:
             start_atom = self.rings[0].members[0]
 
-        if start_atom == None:
+        if start_atom is None:
             start_atom = list(self.drawn_atoms)[0]
 
         self.create_next_bond(start_atom, None, 0.0)
@@ -1747,7 +1695,7 @@ class Drawer:
                 atom.draw.set_position(Vector(self.options.bond_length, 0))
                 atom.draw.angle = math.radians(-60.0)
 
-                if atom.draw.bridged_ring == None:
+                if atom.draw.bridged_ring is None:
                     atom.draw.positioned = True
 
             # If the previous atom was part of a ring
@@ -1760,7 +1708,7 @@ class Drawer:
 
                 # If the previous atom was not part of a bridged ring and the previous atom was part of more than one ring
 
-                if previous_atom.draw.bridged_ring == None and len(previous_atom.draw.rings) > 1:
+                if previous_atom.draw.bridged_ring is None and len(previous_atom.draw.rings) > 1:
                     # Find the vertex adjoining the current bridged ring that is also in both ring systems. This is the
                     # joined vertex.
                     for neighbour in neighbours:
@@ -1802,7 +1750,7 @@ class Drawer:
                 atom.draw.positioned = True
 
         # If the atom is part of a bridged ring: position the entire bridged ring
-        if atom.draw.bridged_ring != None:
+        if atom.draw.bridged_ring is not None:
             next_ring = self.id_to_ring[atom.draw.bridged_ring]
 
             if not next_ring.positioned:
@@ -2112,15 +2060,14 @@ class Drawer:
             self.set_ring_center(ring)
             self.rings.append(ring)
 
-
-
         for ring_overlap in self.original_ring_overlaps:
             self.ring_overlaps.append(ring_overlap)
 
         for atom in self.structure.graph:
             atom.draw.restore_rings()
-            
-    def bond_is_rotatable(self, bond):
+
+    @staticmethod
+    def bond_is_rotatable(bond):
         if bond.atom_1.draw.rings and \
                 bond.atom_2.draw.rings and \
                 len(set(bond.atom_1.draw.rings).intersection(set(bond.atom_2.draw.rings))) > 0:
@@ -2152,7 +2099,8 @@ class Drawer:
         
         return True
 
-    def can_rotate_around_bond(self, bond):
+    @staticmethod
+    def can_rotate_around_bond(bond):
 
         if bond.type != 'single':
             return False
@@ -2192,8 +2140,7 @@ class Drawer:
 
                     non_ring_neighbours = self.get_non_ring_neighbours(atom)
 
-                    if len(non_ring_neighbours) > 1 or\
-                        (len(non_ring_neighbours) == 1 and len(atom.draw.rings) == 2):
+                    if len(non_ring_neighbours) > 1 or (len(non_ring_neighbours) == 1 and len(atom.draw.rings) == 2):
                         overlaps.append({'common': atom,
                                          'rings': atom.draw.rings,
                                          'vertices': non_ring_neighbours})
@@ -2264,7 +2211,8 @@ class Drawer:
                     else:
                         atom_previous_position = atom.draw.previous_position
 
-                    atom.draw.position.rotate_away_from_vector(closest_position, atom_previous_position, math.radians(20))
+                    atom.draw.position.rotate_away_from_vector(closest_position, atom_previous_position,
+                                                               math.radians(20))
 
     def get_atom_nr_to_atom(self):
         self.atom_nr_to_atom = {}
@@ -2322,7 +2270,8 @@ class Drawer:
 
         return total, sorted_overlaps, overlap_scores
 
-    def get_non_ring_neighbours(self, atom):
+    @staticmethod
+    def get_non_ring_neighbours(atom):
         non_ring_neighbours = []
 
         for neighbour in atom.drawn_neighbours:
@@ -2367,7 +2316,8 @@ class Drawer:
 
         return len(masked_atoms) - 1
 
-    def get_last_atom_with_angle(self, atom):
+    @staticmethod
+    def get_last_atom_with_angle(atom):
 
         parent_atom = atom.draw.previous_atom
         angle = parent_atom.draw.angle
@@ -2378,12 +2328,12 @@ class Drawer:
 
         return parent_atom
 
-    def create_ring(self, ring, center = None, start_atom = None, previous_atom = None):
+    def create_ring(self, ring, center=None, start_atom=None, previous_atom=None):
 
         if ring.positioned:
             return
 
-        if center == None:
+        if center is None:
             center = Vector(0, 0)
 
         ordered_neighbour_ids = ring.get_ordered_neighbours(self.ring_overlaps)
@@ -2473,7 +2423,7 @@ class Drawer:
                         self.create_ring(neighbour, next_center, atom_2, atom_1)
 
             elif len(atoms) == 1:
-                #This ring is a spiro
+                # This ring is a spiro
                 ring.spiro = True
                 neighbour.spiro = True
 
@@ -2498,7 +2448,8 @@ class Drawer:
                 atom.draw.connected_to_ring = True
                 self.create_next_bond(neighbour, atom, 0.0)
 
-    def set_ring_center(self, ring):
+    @staticmethod
+    def set_ring_center(ring):
         total = Vector(0, 0)
         for atom in ring.members:
             total.add(atom.draw.position)
@@ -2520,7 +2471,8 @@ class Drawer:
 
         return total
 
-    def atoms_are_in_same_ring(self, atom_1, atom_2):
+    @staticmethod
+    def atoms_are_in_same_ring(atom_1, atom_2):
         for ring_id_1 in atom_1.draw.rings:
             for ring_id_2 in atom_2.draw.rings:
                 if ring_id_1 == ring_id_2:
@@ -2610,8 +2562,8 @@ class Drawer:
             atom.draw.is_drawn = False
             hidden.append(atom)
 
-            if len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring == None and \
-                    neighbour.draw.bridged_ring != None and len(neighbour.draw.original_rings) < 2:
+            if len(neighbour.draw.rings) < 2 and neighbour.draw.bridged_ring is None and \
+                    neighbour.draw.bridged_ring is not None and len(neighbour.draw.original_rings) < 2:
 
                 atom.draw.is_drawn = False
                 neighbour.draw.has_hydrogen = True
@@ -2768,9 +2720,9 @@ class Drawer:
         ring_overlaps = []
 
         for ring_overlap in self.ring_overlaps:
-            for id in ring_ids:
-                if (ring_overlap.ring_id_1 == ring_id and ring_overlap.ring_id_2 == id) or\
-                        (ring_overlap.ring_id_2 == ring_id and ring_overlap.ring_id_1 == id):
+            for ring_id_2 in ring_ids:
+                if (ring_overlap.ring_id_1 == ring_id and ring_overlap.ring_id_2 == ring_id_2) or\
+                        (ring_overlap.ring_id_2 == ring_id and ring_overlap.ring_id_1 == ring_id_2):
                     ring_overlaps.append(ring_overlap)
 
         return ring_overlaps
@@ -2809,7 +2761,8 @@ class Drawer:
 
         return closest_atom
 
-    def get_sorted_distances_from_list(self, atom, atom_list):
+    @staticmethod
+    def get_sorted_distances_from_list(atom, atom_list):
         atom_distances = []
 
         for atom_2 in atom_list:
@@ -2822,8 +2775,6 @@ class Drawer:
         atom_distances.sort(key=lambda x: x[0])
 
         return atom_distances
-
-
 
 
 class Options:
