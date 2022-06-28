@@ -1,6 +1,5 @@
 from pikachu.chem.structure import Structure
 from pikachu.chem.atom import Atom
-from pikachu.chem.bond import Bond
 from pikachu.math_functions import Vector
 
 
@@ -45,11 +44,11 @@ class MolFileReader:
             # atom_isotope = int(atom_info[34:36])
             atom_charge = self.value_to_charge[int(atom_info[36:39])]
             atom_id = i
-            
+
             atom = Atom(atom_type, atom_id, None, atom_charge, False)
             atom.draw.set_position(Vector(atom_x, atom_y))
             self.structure.add_disconnected_atom(atom)
-            
+
     def parse_bond_info(self, bonds):
         for i, bond_info in enumerate(bonds):
             atom_1_nr = int(bond_info[:3]) - 1
@@ -73,15 +72,10 @@ class MolFileReader:
             counts = molfile.readline()
             atom_counts = int(counts[:3])
             bond_counts = int(counts[3:6])
-            for i in range(atom_counts):
+            for _ in range(atom_counts):
                 atom_info = molfile.readline()
                 atoms.append(atom_info)
-            for i in range(bond_counts):
+            for _ in range(bond_counts):
                 bond_info = molfile.readline()
                 bonds.append(bond_info)
         return atoms, bonds
-                
-
-
-
-
