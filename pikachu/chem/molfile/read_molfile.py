@@ -21,18 +21,26 @@ class MolFileReader:
                               1: '/',
                               6: '\\'}
 
-    def __init__(self, molfile):
-        self.molfile = molfile
+    def __init__(self, molfile_str=False, molfile_path=False):
+        # Instantiate MolFileReader with mol_file_str or mol_file_path
+        self.molfile_str = molfile_str
+        self.molfile_path = molfile_path
+        # Raise error when not enough arguments were given
+        err = "molfile_str or molfile_path needed to instantiate MolFileReader"
+        if not molfile_path and not molfile_str:
+            raise ValueError(err)
+        # Raise error when too many arguments were given
+        if not molfile_path and not molfile_str:
+            raise ValueError(f'{err} (both were given)')
+        self.molfile_lines = self.get_molfile_lines()
         self.structure = Structure()
 
     def molfile_to_structure(self):
         atoms, bonds = self.get_molfile_components()
         self.parse_atom_info(atoms)
         self.parse_bond_info(bonds)
-
         self.structure.refine_structure()
         self.structure.set_double_bond_chirality()
-
         return self.structure
 
     def parse_atom_info(self, atoms):
@@ -59,23 +67,34 @@ class MolFileReader:
 
             bond_type = self.value_to_bond[int(bond_info[6:9])]
             chiral_symbol = self.value_to_chiral_symbol[int(bond_info[9:12])]
-
             self.structure.add_bond(atom_1, atom_2, bond_type, i, chiral_symbol)
+
+    def get_molfile_lines(self):
+        # Access lines of molfile
+        if self.molfile_str:
+            molfile_lines = self.molfile_str.split('\n')
+        else:
+            with open(self.molfile_path, 'r') as molfile:
+                molfile_lines = molfile.read()
+                molfile_lines = molfile_lines.split('\n')
+        return molfile_lines
 
     def get_molfile_components(self):
         atoms = []
         bonds = []
-        with open(self.molfile, 'r') as molfile:
-            molfile.readline()
-            molfile.readline()
-            molfile.readline()
-            counts = molfile.readline()
-            atom_counts = int(counts[:3])
-            bond_counts = int(counts[3:6])
-            for _ in range(atom_counts):
-                atom_info = molfile.readline()
-                atoms.append(atom_info)
-            for _ in range(bond_counts):
-                bond_info = molfile.readline()
-                bonds.append(bond_info)
+        # Read atom and bond counts
+        line_index = 3
+        counts = self.molfile_lines[line_index]
+        atom_counts = int(counts[:3])
+        bond_counts = int(counts[3:6])
+        # Read atom information
+        for _ in range(atom_counts):
+            line_index += 1
+            atom_info = self.molfile_lines[line_index]
+            atoms.append(atom_info)
+        # Read bond information
+        for _ in range(bond_counts):
+            line_index += 1
+            bond_info = self.molfile_lines[line_index]
+            bonds.append(bond_info)
         return atoms, bonds
