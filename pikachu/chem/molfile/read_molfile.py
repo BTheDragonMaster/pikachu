@@ -74,8 +74,8 @@ class MolFileReader:
         if self.molfile_str:
             molfile_lines = self.molfile_str.split('\n')
         else:
-            with open(self.molfile_path, 'r') as molfile:
-                molfile_lines = molfile.read()
+            with open(self.molfile_path, 'r') as mol_file:
+                molfile_lines = mol_file.read()
                 molfile_lines = molfile_lines.split('\n')
         return molfile_lines
 
