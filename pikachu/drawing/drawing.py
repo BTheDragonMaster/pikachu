@@ -6,6 +6,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from pprint import pprint
 from io import StringIO
+import re
 
 from pikachu.drawing.sssr import SSSR
 from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge, \
@@ -1382,7 +1383,7 @@ class Drawer:
                     if atom.type == 'C':
                         text = '.'
                     else:
-                        text = atom.type
+                        text = self.set_r_group_indices_subscript(atom.type)
                 else:
                     text = ''
 
@@ -1545,6 +1546,17 @@ class Drawer:
                              horizontalalignment='center',
                              verticalalignment='center',
                              color=atom.draw.colour)
+
+    def set_r_group_indices_subscript(self, atom_text: str) -> str:
+        # Takes atom type text and adapts it so that R group indices are
+        # drawn as subscript characters
+        sub_translation = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+        match = re.search('[RXZ]\d+', atom_text)
+        if match:
+            matched_pattern = match.group()
+            adapted_pattern = matched_pattern.translate(sub_translation)
+            atom_text = atom_text.replace(matched_pattern, adapted_pattern)
+        return atom_text
 
     @staticmethod
     def is_terminal(atom):
