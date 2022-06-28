@@ -21,16 +21,16 @@ class MolFileReader:
                               1: '/',
                               6: '\\'}
 
-    def __init__(self, molfile_str=False, molfile_path=False):
+    def __init__(self, molfile=False, molfile_str=False):
         # Instantiate MolFileReader with mol_file_str or mol_file_path
         self.molfile_str = molfile_str
-        self.molfile_path = molfile_path
+        self.molfile_path = molfile
         # Raise error when not enough arguments were given
         err = "molfile_str or molfile_path needed to instantiate MolFileReader"
-        if not molfile_path and not molfile_str:
+        if not molfile and not molfile_str:
             raise ValueError(err)
         # Raise error when too many arguments were given
-        if not molfile_path and not molfile_str:
+        if not molfile and not molfile_str:
             raise ValueError(f'{err} (both were given)')
         self.molfile_lines = self.get_molfile_lines()
         self.structure = Structure()
