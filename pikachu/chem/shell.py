@@ -47,7 +47,7 @@ class Shell:
             self.spd_hybridise(1)
         elif hybridisation == 'sp3d2':
             self.spd_hybridise(2)
-        elif hybridisation == None:
+        elif hybridisation is None:
             pass
 
         for orbital in self.orbitals:
@@ -221,8 +221,8 @@ class Shell:
                         if not orbital.electrons[0].aromatic:
                             lone_orbitals.append(orbital)
 
-        while len(lone_orbitals) > 1 and (lone_orbitals[0].orbital_type != lone_orbitals[-1].orbital_type \
-                                          or lone_orbitals[0].orbital_nr != lone_orbitals[-1].orbital_nr):
+        while len(lone_orbitals) > 1 and (lone_orbitals[0].orbital_type != lone_orbitals[-1].orbital_type or
+                                          lone_orbitals[0].orbital_nr != lone_orbitals[-1].orbital_nr):
             receiver_orbital = lone_orbitals[0]
             donor_orbital = lone_orbitals[-1]
 
@@ -239,3 +239,4 @@ class Shell:
         for orbital in self.orbitals:
             print(orbital)
             print(orbital.electrons)
+            

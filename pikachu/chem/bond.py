@@ -27,6 +27,7 @@ class Bond:
         if bond_type == 'aromatic':
             self.aromatic = True
         self.electrons = []
+        self.bond_summary = ''
         self.set_bond_summary()
 
         self.chiral = False
@@ -123,35 +124,6 @@ class Bond:
 
         self.atom_1.aromatic = True
         self.atom_2.aromatic = True
-
-        # p_orbitals_1 = self.atom_1.get_orbitals('p')
-        # p_orbitals_2 = self.atom_2.get_orbitals('p')
-        #
-        # if p_orbitals_1 and p_orbitals_2:
-        #     p_orbital_1 = p_orbitals_1[0]
-        #     p_orbital_2 = p_orbitals_2[0]
-        #
-        #     for electron in p_orbital_1.electrons:
-        #         if electron.atom == self.atom_2:
-        #             p_orbital_1.remove_electron(electron)
-        #         # In this case, this aromatic bond does not contribute electrons to the system.
-        #         elif electron.atom != self.atom_1:
-        #             pass
-        #         else:
-        #             electron.set_aromatic()
-        #
-        #     for electron in p_orbital_2.electrons:
-        #         if electron.atom == self.atom_1:
-        #             p_orbital_2.remove_electron(electron)
-        #         # In this case, this aromatic bond does not contribute electrons to the system.
-        #         elif electron.atom != self.atom_2:
-        #             pass
-        #         else:
-        #             electron.set_aromatic()
-        #
-        # else:
-        #
-        #     raise StructureError("aromatic p orbital")
 
         self.set_bond_summary()
 
@@ -343,7 +315,8 @@ class Bond:
 
         assert self.type != 'single'
 
-        if self.atom_1.pyrrole or self.atom_2.pyrrole or self.atom_1.thiophene or self.atom_2.thiophene or self.atom_1.furan or self.atom_2.furan:
+        if self.atom_1.pyrrole or self.atom_2.pyrrole or self.atom_1.thiophene or self.atom_2.thiophene or \
+                self.atom_1.furan or self.atom_2.furan:
             pass
         else:
             p_bonding_orbitals_1 = []
@@ -381,18 +354,6 @@ class Bond:
                 if not len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2) == 1:
                     raise StructureError('pi bond')
 
-                electron_1 = p_bonding_orbitals_1[0].electrons[0]
-                electron_2 = p_bonding_orbitals_2[0].electrons[0]
-
-                # electron_1.set_aromatic()
-                # electron_2.set_aromatic()
-
-                # self.electrons.append(electron_1)
-                # self.electrons.append(electron_2)
-
-                # p_bonding_orbitals_1[0].set_bond(self, 'pi')
-                # p_bonding_orbitals_2[0].set_bond(self, 'pi')
-
             else:
 
                 for i in range(len(p_bonding_orbitals_1)):
@@ -407,28 +368,6 @@ class Bond:
 
                     p_bonding_orbitals_1[i].set_bond(self, 'pi')
                     p_bonding_orbitals_2[i].set_bond(self, 'pi')
-
-            #
-            # for orbital in self.atom_1.valence_shell.orbitals:
-            #     if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
-            #         if (orbital.electrons[0].aromatic and self.type == 'aromatic') or not orbital.electrons[0].aromatic:
-            #             electrons_found += 1
-            #             p_bonding_orbitals_1.append(orbital)
-            #
-            #             if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
-            #                 break
-
-            # p_bonding_orbitals_2 = []
-            # electrons_found = 0
-            #
-            # for orbital in self.atom_2.valence_shell.orbitals:
-            #     if orbital.orbital_type == 'p' and orbital.electron_nr == 1:
-            #         if (orbital.electrons[0].aromatic and self.type == 'aromatic') or not orbital.electrons[0].aromatic:
-            #             electrons_found += 1
-            #             p_bonding_orbitals_2.append(orbital)
-            #
-            #             if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
-            #                 break
 
 
 class BondDrawProperties:

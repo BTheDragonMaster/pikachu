@@ -36,6 +36,3 @@ class ColourError(Exception):
 
             else:
                 self.message = f"Pikachu is unfamiliar with the colour {colour}. \n\nPikachu is confused. \nIt hurt itself in confusion."
-
-
-

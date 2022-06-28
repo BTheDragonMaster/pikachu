@@ -96,7 +96,7 @@ def parse_explicit(component):
 
     # Parsing an explicit hydrogen
 
-    if hydrogen != None:
+    if hydrogen is not None:
         try:
             if (hydrogen + 1) in numbers:
                 hydrogens = int(informative[hydrogen + 1])
@@ -158,10 +158,10 @@ class Smiles:
 
     def __init__(self, string: str) -> None:
         self.smiles = string
+        self.components = []
         self.get_components()
 
     def get_components(self):
-        self.components = []
 
         skip = False
         double_digits = False
@@ -196,7 +196,6 @@ class Smiles:
                             skip = True
                         else:
                             self.components.append(character)
-
 
                     except IndexError:
                         self.components.append(character)
@@ -246,8 +245,6 @@ class Smiles:
         atom_nr = -1
         bond_nr = -1
 
-        aromatic_system_id = 0
-
         for i, component in enumerate(self.components):
             if component[0] == '[':
                 label = 'atom'
@@ -271,9 +268,7 @@ class Smiles:
             if label == 'split':
                 # Starts disconnected structure; set everything back to default
                 branch_level = 0
-                # cyclic_dict = {}
                 last_atoms_dict = {0: None}
-                # chiral_dict = {}
 
             elif label == "atom":
 
@@ -316,7 +311,9 @@ class Smiles:
                     atom_2.thiophene = True
                     thiophene = False
 
-                for i in range(hydrogens):
+                hydrogen = None
+
+                for j in range(hydrogens):
                     atom_nr += 1
                     bond_nr += 1
                     hydrogen = Atom('H', atom_nr, None, 0, False)
@@ -338,18 +335,9 @@ class Smiles:
 
                     if atom_1.aromatic and atom_2.aromatic:
                         if not bond_type == 'explicit_single':
-                            # atom_1.aromatic_system.add_atom(atom_2)
                             bond_type = 'aromatic'
                         else:
-                            # aromatic_system = AromaticSystem(aromatic_system_id)
-                            # aromatic_system.add_atom(atom_2)
-                            # aromatic_system_id += 1
                             bond_type = 'single'
-
-                    # elif atom_2.aromatic:
-                        # aromatic_system = AromaticSystem(aromatic_system_id)
-                        # aromatic_system.add_atom(atom_2)
-                        # aromatic_system_id += 1
 
                     if bond_type == 'single_chiral':
                         bond_type = 'single'
@@ -514,7 +502,8 @@ class Smiles:
     # Auxillary functions to smiles_to_structure
     # =========================================================================
 
-    def add_chiral_atom(self, chiral_dict: Dict['Atom', Dict[str, Any]], last_atom: 'Atom',
+    @staticmethod
+    def add_chiral_atom(chiral_dict: Dict['Atom', Dict[str, Any]], last_atom: 'Atom',
                         current_atom: 'Atom') -> None:
         """Place current_atom in one of the four bond slots of last_atom
 
@@ -529,28 +518,31 @@ class Smiles:
 
         chiral_dict[last_atom].append(current_atom)
 
-    def add_cycle_placeholder(self, chiral_dict, atom, cycle_nr):
+    @staticmethod
+    def add_cycle_placeholder(chiral_dict, atom, cycle_nr):
         chiral_dict[atom].append(cycle_nr)
 
-    def replace_cycle_placeholder(self, chiral_dict, chiral_atom, current_atom, cycle_nr):
+    @staticmethod
+    def replace_cycle_placeholder(chiral_dict, chiral_atom, current_atom, cycle_nr):
         for i, atom in enumerate(chiral_dict[chiral_atom]):
             if type(atom) == int:
                 if atom == cycle_nr:
                     chiral_dict[chiral_atom][i] = current_atom
 
-    def get_chiral_permutations(self, order):
-        permutations = [tuple(order)]
-        permutations.append((order[0], order[3], order[1], order[2]))
-        permutations.append((order[0], order[2], order[3], order[1]))
-        permutations.append((order[1], order[0], order[3], order[2]))
-        permutations.append((order[1], order[2], order[0], order[3]))
-        permutations.append((order[1], order[3], order[2], order[0]))
-        permutations.append((order[2], order[0], order[1], order[3]))
-        permutations.append((order[2], order[3], order[0], order[1]))
-        permutations.append((order[2], order[1], order[3], order[0]))
-        permutations.append((order[3], order[0], order[2], order[1]))
-        permutations.append((order[3], order[1], order[0], order[2]))
-        permutations.append((order[3], order[2], order[1], order[0]))
+    @staticmethod
+    def get_chiral_permutations(order):
+        permutations = [tuple(order),
+                        (order[0], order[3], order[1], order[2]),
+                        (order[0], order[2], order[3], order[1]),
+                        (order[1], order[0], order[3], order[2]),
+                        (order[1], order[2], order[0], order[3]),
+                        (order[1], order[3], order[2], order[0]),
+                        (order[2], order[0], order[1], order[3]),
+                        (order[2], order[3], order[0], order[1]),
+                        (order[2], order[1], order[3], order[0]),
+                        (order[3], order[0], order[2], order[1]),
+                        (order[3], order[1], order[0], order[2]),
+                        (order[3], order[2], order[1], order[0])]
 
         return permutations
 
@@ -584,7 +576,8 @@ class Smiles:
 
         return new_chirality
 
-    def is_new_cycle(self, cyclic_dict: Dict[int, 'Atom'], cycle_nr: int) -> bool:
+    @staticmethod
+    def is_new_cycle(cyclic_dict: Dict[int, 'Atom'], cycle_nr: int) -> bool:
         """Return bool, True if a new cycle is recorded, False if not
 
         Input:
@@ -601,7 +594,9 @@ class Smiles:
         else:
             return True
 
-    def start_cycle(self, cycle_nr: int, atom: 'Atom', cyclic_dict: Dict[int, 'Atom'], bond_type: str) -> None:
+    @staticmethod
+    def start_cycle(cycle_nr: int, atom: 'Atom',
+                    cyclic_dict: Dict[int, Tuple['Atom', str]], bond_type: str) -> None:
         """Add a new atom and corresponding cycle number to cyclic dict
 
         Input:
@@ -613,7 +608,9 @@ class Smiles:
         """
         cyclic_dict[cycle_nr] = (atom, bond_type)
 
-    def end_cycle(self, cycle_nr: int, atom: 'Atom', cyclic_dict: Dict[int, 'Atom']) -> Tuple['Atom']:
+    @staticmethod
+    def end_cycle(cycle_nr: int, atom: 'Atom',
+                  cyclic_dict: Dict[int, 'Atom']) -> Tuple[Union['Atom', None], 'Atom', str]:
         """Return pair of atoms that close a cycle
 
         Input:
@@ -632,8 +629,9 @@ class Smiles:
 
         return atom_old, atom, bond_type
 
-    def track_last_atoms_per_branch(self, new_atom: 'Atom', current_level: int,
-                                    last_atoms_dict: Dict[int, 'Atom']) -> None:
+    @staticmethod
+    def track_last_atoms_per_branch(new_atom: 'Atom', current_level: int,
+                                    last_atoms_dict: Dict[int, Union['Atom', None]]) -> None:
         """Update which atom was the last to occur at the current branch level
 
         Input:
@@ -646,7 +644,8 @@ class Smiles:
         """
         last_atoms_dict[current_level] = new_atom
 
-    def get_last_atom(self, current_level: int, last_atoms_dict: Dict[int, 'Atom']) -> 'Atom':
+    @staticmethod
+    def get_last_atom(current_level: int, last_atoms_dict: Dict[int, Union['Atom', None]]) -> 'Atom':
         """Return the last atom in the current branch level
 
         Input:
@@ -662,24 +661,3 @@ class Smiles:
         """
         last_atom = last_atoms_dict[current_level]
         return last_atom
-
-    def update_structure(self, atom_1: 'Atom', atom_2: 'Atom', structure_graph: Dict['Atom', List['Atom']],
-                         bond_type: str) -> None:
-        """Add an atom to the structure graph
-
-        Input:
-        atom_1: Atom Object
-        atom_2: Atom Object
-        structure_graph: dict of {atom: [atom, ->], ->}, with each atom an
-        Atom Object
-        """
-        if atom_1 in structure_graph:
-            structure_graph[atom_1] += [atom_2]
-        else:
-            structure_graph[atom_1] = [atom_2]
-
-        if atom_2 in structure_graph:
-            structure_graph[atom_2] += [atom_1]
-        else:
-            structure_graph[atom_2] = [atom_1]
-

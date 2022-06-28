@@ -57,7 +57,7 @@ class Path:
         snode = self.nodes.pop(0)
         for node in snode.subnodes:
             if self.nodes[0] in node.neighbors:
-                if node.mate == None:
+                if node.mate is None:
                     self.nodes.insert(0, node)
                 else:
                     for v in snode.circle(node):
@@ -70,7 +70,7 @@ class Path:
         snode = self.nodes.pop()
         for node in snode.subnodes:
             if self.nodes[-1] in node.neighbors:
-                if node.mate == None:
+                if node.mate is None:
                     self.nodes.append(node)
                 else:
                     for v in snode.circle(node):
@@ -149,7 +149,7 @@ class Match:
                         queue.append(snode)
                         break
 
-                elif node.mate == None:
+                elif node.mate is None:
                     node.parent = cur_node
                     return self.construct_augmenting_path(node)
 
@@ -166,7 +166,7 @@ class Match:
 
         count = 0
         for node in self.nodes:
-            if node.mate != None:
+            if node.mate is not None:
                 count += 1
 
         return len(self.nodes) - count
@@ -201,7 +201,7 @@ class Match:
         path.nodes.append(node)
         node = node.parent
         path.nodes.append(node)
-        while node.mate != None:
+        while node.mate is not None:
             node = node.parent
             path.nodes.append(node)
 
@@ -213,10 +213,10 @@ class Match:
             elif snode == path.tail():
                 path.replace_tail()
 
-        while path.nodes[0].mate != None:
+        while path.nodes[0].mate is not None:
             path.nodes.insert(path.nodes[0].parent, 0)
 
-        while path.nodes[-1].mate != None:
+        while path.nodes[-1].mate is not None:
             path.nodes.append(path.nodes[-1].parent)
 
         return path
@@ -224,7 +224,7 @@ class Match:
     def find_cycles(self, node1, node2):
         def find_ancestors(node):
             ancestors = [node]
-            while node.parent != None:
+            while node.parent is not None:
                 node = node.parent
                 ancestors.append(node)
             return ancestors

@@ -21,7 +21,7 @@ class MolFileReader:
                               1: '/',
                               6: '\\'}
 
-    def __init__(self, molfile=False, molfile_str=False):
+    def __init__(self, molfile=None, molfile_str=None):
         # Instantiate MolFileReader with mol_file_str or mol_file_path
         self.molfile_str = molfile_str
         self.molfile_path = molfile

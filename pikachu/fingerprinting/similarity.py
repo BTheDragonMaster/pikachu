@@ -9,6 +9,7 @@ def get_jaccard_index(structure_1, structure_2, fingerprinting_depth=2):
 
     return jaccard_index
 
+
 def get_jaccard_from_ecfp(ecfp_1, ecfp_2):
     jaccard_index = len(ecfp_1.fingerprint.intersection(ecfp_2.fingerprint)) / len(
         ecfp_1.fingerprint.union(ecfp_2.fingerprint))
@@ -16,11 +17,13 @@ def get_jaccard_from_ecfp(ecfp_1, ecfp_2):
 
     return jaccard_distance
 
+
 def get_jaccard_distance(structure_1, structure_2, fingerprinting_depth=2):
     jaccard_index = get_jaccard_index(structure_1, structure_2, fingerprinting_depth=fingerprinting_depth)
     jaccard_distance = 1 - jaccard_index
 
     return jaccard_distance
+
 
 def get_jaccard_matrix(name_to_compound, fingerprinting_depth=2):
     name_to_ecfp = {}

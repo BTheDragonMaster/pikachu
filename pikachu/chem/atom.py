@@ -25,7 +25,7 @@ class Atom:
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__
-        return (self.type, self.nr, self.chiral, self.charge, self.aromatic)
+        return self.type, self.nr, self.chiral, self.charge, self.aromatic
 
     def __init__(self, atom_type, atom_nr, chiral, charge, aromatic):
 
@@ -251,7 +251,7 @@ class Atom:
             for bond in self.bonds:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
-                #if not bond.has_neighbour('H'):
+                # if not bond.has_neighbour('H'):
                 bond_weights.append(BOND_PROPERTIES.bond_type_to_weight[bond.type])
 
             # If odd number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
@@ -271,7 +271,6 @@ class Atom:
 
             bonding_electrons = self.get_bonding_electrons()
 
-
             if nr_of_nonH_bonds > bonding_electrons:
                 if self.excitable:
                     self.excite()
@@ -287,7 +286,6 @@ class Atom:
 
                 else:
                     raise StructureError('violated_bonding_laws')
-
 
     def get_bonding_electrons(self):
         counter = 0
@@ -494,16 +492,17 @@ class Atom:
         for orbital in self.valence_shell.orbitals:
             if orbital.electron_nr == 2:
                 # Any orbitals that are already bonded will become sp2 orbitals
-                if orbital.electrons[0].atom != orbital.electrons[1].atom and (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
+                if orbital.electrons[0].atom != orbital.electrons[1].atom and \
+                        (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
                     sp2_orbitals.append(orbital)
                 # Any orbitals that are not bonded yet will become p orbitals
-                elif orbital.electrons[0].atom == orbital.electrons[1].atom == self and (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
+                elif orbital.electrons[0].atom == orbital.electrons[1].atom == self and \
+                        (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
                     p_orbitals.append(orbital)
             else:
                 if orbital.orbital_type == 's' or orbital.orbital_type == 'p':
                     sp2_orbitals.append(orbital)
 
-                    
         # Should more than one p-orbital be found, make sure we only use 1.
 
         if len(p_orbitals) > 1:
@@ -756,4 +755,3 @@ class AtomAnnotations:
     def print_annotations(self):
         for annotation in self.annotations:
             print(annotation)
-
