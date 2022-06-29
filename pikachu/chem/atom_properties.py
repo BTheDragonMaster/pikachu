@@ -49,7 +49,7 @@ class AtomProperties:
             if info_dict_name[0] != '_':
                 info_dict = getattr(self, info_dict_name)
                 if type(info_dict) == dict:
-                    if 'Xe' in info_dict.keys():
+                    if 'C' in info_dict.keys():
                         r_group_dict = {symbol: info_dict['C']
                                         for symbol
                                         in r_group_symbols_with_indices}
