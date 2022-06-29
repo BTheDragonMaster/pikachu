@@ -1548,14 +1548,10 @@ class Drawer:
                              color=atom.draw.colour)
 
     def set_r_group_indices_subscript(self, atom_text: str) -> str:
-        # Takes atom type text and adapts it so that R group indices are
-        # drawn as subscript characters
+        # Take str and return the same str with subscript digits
+        # (the only atom_types that contain digits are R groups)
         sub_translation = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-        match = re.search('[RXZ]\d+', atom_text)
-        if match:
-            matched_pattern = match.group()
-            adapted_pattern = matched_pattern.translate(sub_translation)
-            atom_text = atom_text.replace(matched_pattern, adapted_pattern)
+        atom_text = atom_text.translate(sub_translation)
         return atom_text
 
     @staticmethod
