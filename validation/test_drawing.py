@@ -7,20 +7,16 @@ class TestDrawer:
         # Test that only R group indices are returned as subscript
         dummy_structure = read_smiles("CC")
         drawer = Drawer(dummy_structure)
-        test_str = ['c1',
-                    'C1',
+        test_str = ['Xe',
                     'C',
                     'O',
-                    '13',
                     'R',
                     'R1',
                     'X23',
                     'Z54']
-        expected_str = ['c1',
-                        'C1',
+        expected_str = ['Xe',
                         'C',
                         'O',
-                        '13',
                         'R',
                         'R₁',
                         'X₂₃',
