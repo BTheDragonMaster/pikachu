@@ -9,6 +9,7 @@ class TestDrawer:
         drawer = Drawer(dummy_structure)
         test_str = ['Xe',
                     'C',
+                    '13C',
                     'O',
                     'R',
                     'R1',
@@ -16,6 +17,7 @@ class TestDrawer:
                     'Z54']
         expected_str = ['Xe',
                         'C',
+                        '13C',
                         'O',
                         'R',
                         'R₁',
