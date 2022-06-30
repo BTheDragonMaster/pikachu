@@ -36,11 +36,15 @@ def parse_explicit(component):
     chirals = []
 
     for i, character in enumerate(informative):
+        last = informative[i-1]
+        if len(informative) > 2 and i > 1:
+            second_last = informative[i-2]
+        else:
+            second_last = ''
         if skip:
             skip = False
             continue
         if character.isupper():
-
             if character == 'H':
                 if not (len(informative) >= 2 and informative[1] in {'o', 'e', 'f', 's'}):
                     hydrogen = i
@@ -60,6 +64,11 @@ def parse_explicit(component):
                 except IndexError:
                     element.append(i)
         elif character.islower():
+            element.append(i)
+        # Add indices of R groups to the element symbol
+        elif character.isdigit() and informative[i-1] in ['R', 'X', 'Z']:
+            element.append(i)
+        elif (character + last).isdigit() and second_last in ['R', 'X', 'Z']:
             element.append(i)
         elif character.isdigit():
             numbers.append(i)
