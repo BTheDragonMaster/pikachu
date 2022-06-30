@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import copy
 import math
+import numpy as np
 from matplotlib import pyplot as plt
 from io import StringIO
 import re
@@ -1071,6 +1072,15 @@ class Drawer:
                 [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness)
 
     @staticmethod
+    def get_image_as_array() -> np.ndarray:
+        # Return image as np.ndarray that represents RGB image
+        canvas = plt.gca().figure.canvas
+        canvas.draw()
+        image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+        image = image.reshape(canvas.get_width_height()[::-1] + (3,))
+        return image
+
+    @staticmethod
     def save_svg(out_file):
         if out_file.endswith('.svg'):
             pass
@@ -1090,7 +1100,6 @@ class Drawer:
         plt.clf()
         plt.close(plt.gcf())
         plt.close('all')
-        
         return svg
 
     @staticmethod
