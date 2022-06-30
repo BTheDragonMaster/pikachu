@@ -1,18 +1,14 @@
 #!/usr/bin/env python
-import time
 import copy
 import math
-import matplotlib
 from matplotlib import pyplot as plt
-from pprint import pprint
 from io import StringIO
 import re
 
-from pikachu.drawing.sssr import SSSR
 from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge, \
     find_bridged_systems
-from pikachu.math_functions import Vector, Polygon, Line, Permutations
-from pikachu.chem.chirality import find_chirality_from_nonh, get_chiral_permutations, get_chiral_permutations_lonepair
+from pikachu.math_functions import Vector, Polygon, Line
+from pikachu.chem.chirality import get_chiral_permutations, get_chiral_permutations_lonepair
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.errors import DrawingError
 
@@ -22,7 +18,7 @@ def draw_multiple(structure, coords_only=False, options=None):
         options = Options()
     options_main = Options()
     options_main.finetune = False
-        
+
     drawer = Drawer(structure, options=options_main, coords_only=True, multiple=True)
     structures = structure.split_disconnected_structures()
     max_x = -100000000
