@@ -1078,6 +1078,7 @@ class Drawer:
         canvas.draw()
         image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
         image = image.reshape(canvas.get_width_height()[::-1] + (3,))
+        plt.close('all')
         return image
 
     @staticmethod
