@@ -2,7 +2,8 @@ import copy
 from pprint import pprint
 import sys
 
-from pikachu.chem.bond_properties import BOND_PROPERTIES, ATOM_PROPERTIES
+from pikachu.chem.bond_properties import BOND_PROPERTIES
+from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.errors import StructureError, KekulisationError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
