@@ -2,7 +2,7 @@ import copy
 from pprint import pprint
 import sys
 
-from pikachu.chem.bond_properties import BOND_PROPERTIES
+from pikachu.chem.bond_properties import BOND_PROPERTIES, ATOM_PROPERTIES
 from pikachu.errors import StructureError, KekulisationError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
@@ -152,6 +152,49 @@ class Structure:
             new_structure.annotations.add((annotation, default))
 
         return new_structure
+
+    def get_priority_groups(self, priority_groups):
+        ordered_priorities = sorted(priorities, reverse=True)
+        priority_groups = {0: [],
+                           1: [],
+                           2: [],
+                           3: []}
+
+        previous_priority = None
+        previous_priority_idx = 0
+
+        for i, priority in enumerate(ordered_priorities):
+            if priority != previous_priority:
+                previous_priority = priority
+                previous_priority_idx = i
+                priority_groups[i] = [priority]
+            else:
+                priority_groups[previous_priority_idx].append(priority)
+
+
+    def get_absolute_chirality(self, chiral_center):
+        assert chiral_center.chiral
+
+        chiral_atom = self.get_atom(chiral_center)
+        priorities = []
+        next_atoms = []
+        masked_atoms = {chiral_atom}
+        for atom in chiral_atom.neighbours:
+            priorities.append((ATOM_PROPERTIES.element_to_atomic_nr[atom.type], 1))
+            next_atoms.append(atom)
+
+
+
+        unresolved_priority_groups = []
+
+
+
+        while len(set(priorities)) != len(priorities):
+
+
+            for priority in priorities:
+                pass
+
 
     def copy(self):
         new_graph = {}
