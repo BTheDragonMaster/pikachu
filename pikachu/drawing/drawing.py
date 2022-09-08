@@ -1,17 +1,15 @@
 #!/usr/bin/env python
-import time
 import copy
 import math
-import matplotlib
+import numpy as np
 from matplotlib import pyplot as plt
-from pprint import pprint
 from io import StringIO
+import re
 
-from pikachu.drawing.sssr import SSSR
 from pikachu.drawing.rings import Ring, RingOverlap, find_neighbouring_rings, rings_connected_by_bridge, \
     find_bridged_systems
-from pikachu.math_functions import Vector, Polygon, Line, Permutations
-from pikachu.chem.chirality import find_chirality_from_nonh, get_chiral_permutations, get_chiral_permutations_lonepair
+from pikachu.math_functions import Vector, Polygon, Line
+from pikachu.chem.chirality import get_chiral_permutations, get_chiral_permutations_lonepair
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.errors import DrawingError
 
@@ -21,7 +19,7 @@ def draw_multiple(structure, coords_only=False, options=None):
         options = Options()
     options_main = Options()
     options_main.finetune = False
-        
+
     drawer = Drawer(structure, options=options_main, coords_only=True, multiple=True)
     structures = structure.split_disconnected_structures()
     max_x = -100000000
@@ -1074,6 +1072,16 @@ class Drawer:
                 [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness)
 
     @staticmethod
+    def get_image_as_array() -> np.ndarray:
+        # Return image as np.ndarray that represents RGB image
+        canvas = plt.gca().figure.canvas
+        canvas.draw()
+        image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+        image = image.reshape(canvas.get_width_height()[::-1] + (3,))
+        plt.close('all')
+        return image
+
+    @staticmethod
     def save_svg(out_file):
         if out_file.endswith('.svg'):
             pass
@@ -1093,7 +1101,6 @@ class Drawer:
         plt.clf()
         plt.close(plt.gcf())
         plt.close('all')
-        
         return svg
 
     @staticmethod
@@ -1382,7 +1389,7 @@ class Drawer:
                     if atom.type == 'C':
                         text = '.'
                     else:
-                        text = atom.type
+                        text = self.set_r_group_indices_subscript(atom.type)
                 else:
                     text = ''
 
@@ -1545,6 +1552,17 @@ class Drawer:
                              horizontalalignment='center',
                              verticalalignment='center',
                              color=atom.draw.colour)
+
+    def set_r_group_indices_subscript(self, atom_text: str) -> str:
+        # Take str and return the same str with subscript digits
+        # (pattern is necessary to not to get confused with isotopes)
+        sub_translation = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+        match = re.search('[RXZ]\d+', atom_text)
+        if match:
+            matched_pattern = match.group()
+            adapted_pattern = matched_pattern.translate(sub_translation)
+            atom_text = atom_text.replace(matched_pattern, adapted_pattern)
+        return atom_text
 
     @staticmethod
     def is_terminal(atom):

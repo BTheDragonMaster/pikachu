@@ -35,6 +35,27 @@ class AtomProperties:
         orbital number the number of orbitals of that type an atom has
 
     """
+
+    def __init__(self):
+        # Define R group variables as '[RXZ][0-99]?'
+        indices = [str(index) for index in range(100)]
+        r_group_symbols = ['R', 'X', 'Z']
+        r_group_symbols_with_indices = ['R', 'X', 'Z']
+        for symbol in r_group_symbols:
+            for index in indices:
+                r_group_symbols_with_indices.append(symbol + index)
+        # Add R group variables and treat them like "C"
+        for info_dict_name in dir(self):
+            if info_dict_name[0] != '_':
+                info_dict = getattr(self, info_dict_name)
+                if type(info_dict) == dict:
+                    if 'C' in info_dict.keys():
+                        r_group_dict = {symbol: info_dict['C']
+                                        for symbol
+                                        in r_group_symbols_with_indices}
+                        info_dict.update(r_group_dict)
+                        setattr(self, info_dict_name, info_dict)
+
     element_to_valences = {'C': [4],
                            'O': [2],
                            'N': [3],
@@ -611,7 +632,8 @@ class AtomProperties:
               'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
               'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv'}
 
-    organic = {'C', 'O', 'N', 'P', 'H', 'S', 'Cl', 'Br', 'I', 'F', '*'}
+    organic = {'C', 'O', 'N', 'P', 'H', 'S',
+               'Cl', 'Br', 'I', 'F', '*'}
 
     element_to_atomic_group = {'H': 1,
                                '*': 1,
