@@ -1302,6 +1302,7 @@ class Drawer:
 
         return svg_string
 
+
     def draw(self, coords_only=False):
 
         if not self.options.draw_hydrogens:

@@ -1,11 +1,35 @@
 from pikachu.fingerprinting.similarity import get_jaccard_matrix
-from pikachu.general import read_smiles
+from pikachu.general import read_smiles, svg_from_structure
 
 from sys import argv
+import os
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
 from sklearn.manifold import TSNE
+
+PROTEINOGENIC = {"alanine",
+                 "cysteine",
+                 "aspartate",
+                 "glutamate"
+                 "aspartic acid",
+                 "glutamic acid",
+                 "phenylalanine",
+                 "glycine",
+                 "histidine",
+                 "isoleucine",
+                 "lysine",
+                 "leucine",
+                 "methionine",
+                 "asparagine",
+                 "proline",
+                 "glutamine",
+                 "arginine",
+                 "serine",
+                 "threonine",
+                 "valine",
+                 "tryptophan",
+                 "tyrosine"}
 
 
 def plot_tanimoto_distances(matrix):
@@ -128,32 +152,73 @@ def plot_tsne(tsne_vals):
 def parse_smiles(tbd_file):
     name_to_compound = {}
     with open(tbd_file, 'r') as tbd:
+        tbd.readline()
         for line in tbd:
             line = line.strip()
             if line:
                 compound_name, smiles = line.split('\t')
-                structure = read_smiles(smiles)
+                try:
+                    structure = read_smiles(smiles)
+                except Exception:
+                    print(f"Couldn't convert {compound_name}.")
                 if structure:
                     name_to_compound[compound_name] = structure
                 else:
                     print(f"Couldn't convert {compound_name}.")
     return name_to_compound
 
-#def get_jaccard_matrix(name_to_compound):
-#    matrix = {}
- #   for name_1, compound_1 in name_to_compound.items():
-  #      if name_1 not in matrix:
-  #          matrix[name_1] = {}
-  #      for name_2, compound_2 in name_to_compound.items():
-  #          jaccard_distance = get_jaccard_distance(compound_1, compound_2)
-  #          matrix[name_1][name_2] = jaccard_distance
+def write_network(matrix, out_file):
+    with open(out_file, 'w') as out:
+        out.write("Compound 1\tDistance\tCompound 2\n")
+        for compound_1 in matrix:
+            for compound_2 in matrix[compound_1]:
+                if compound_1 != compound_2:
+                    out.write(f"{compound_1.title()}\t{1 - matrix[compound_1][compound_2]}\t{compound_2.title()}\n")
 
- #   return matrix
+def is_amino_acid(name_to_compound, out_dir):
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    out_file = os.path.join(out_dir, "substrate_identities.txt")
+    with open(out_file, 'w') as out:
+        out.write("Substrate\tamino acid\n")
+        for name, structure in name_to_compound.items():
+            is_amino_acid = False
+            is_beta_amino_acid = False
+            amino_acid = read_smiles("NCC(O)=O")
+            beta_amino_acid = read_smiles("NCCC(O)=O")
+            if structure.find_substructures(amino_acid):
+                is_amino_acid = True
+            elif structure.find_substructures(beta_amino_acid):
+                is_beta_amino_acid = True
+
+            if is_amino_acid:
+                if name.lower() in PROTEINOGENIC:
+                    out.write(f"{name.title()}\tproteinogenic\n")
+                else:
+                    out.write(f"{name.title()}\tamino_acid\n")
+            elif is_beta_amino_acid:
+                out.write(f"{name.title()}\tbeta_amino_acid\n")
+            else:
+                out.write(f"{name.title()}\tno_amino_acid\n")
+
+            svg_from_structure(structure, os.path.join(out_dir, f"{name}.svg"))
+
+
+
+
+
+
 
 if __name__ == "__main__":
     tbd_file = argv[1]
+    out_file = argv[2]
+    out_2 = argv[3]
     name_to_compound = parse_smiles(tbd_file)
     matrix = get_jaccard_matrix(name_to_compound)
+    write_network(matrix, out_file)
+    is_amino_acid(name_to_compound, out_2)
+
    # plot_tanimoto_distances(matrix)
-    tsne_dict = make_tsne_matrix(matrix)
-    plot_tsne(tsne_dict)
+    # tsne_dict = make_tsne_matrix(matrix)
+    # plot_tsne(tsne_dict)
