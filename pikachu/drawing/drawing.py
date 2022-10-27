@@ -998,9 +998,6 @@ class Drawer:
         return svg_text
 
     def draw_svg(self, annotation=None):
-        self.flip_y_axis()
-        self.move_to_positive_coords()
-        self.convert_to_int()
 
         self.set_annotation_for_grouping(annotation)
 
@@ -1258,6 +1255,11 @@ class Drawer:
         return svg
 
     def write_svg(self, out_file, annotation=None):
+
+        self.flip_y_axis()
+        self.move_to_positive_coords()
+        self.convert_to_int()
+
         min_x = 100000000
         max_x = -100000000
         min_y = 100000000
@@ -1277,8 +1279,8 @@ class Drawer:
         width = max_x - min_x + 2 * self.options.padding
         height = max_y - min_y + 2 * self.options.padding
 
-        x1 = min(0, min_x - self.options.padding)
-        y1 = min(0, min_y - self.options.padding)
+        x1 = max(0, min_x - self.options.padding)
+        y1 = max(0, min_y - self.options.padding)
         x2 = max_x + self.options.padding
         y2 = max_y + self.options.padding
 
