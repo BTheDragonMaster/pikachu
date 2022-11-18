@@ -12,6 +12,7 @@ class ECFP:
         self.identifiers = {}
         self.bonds = {}
         self.fingerprint = set()
+        self.disambiguated_chiral = {}
         self.seen_atoms = {}
         self.features = {}
         self.hash_to_feature = {}
@@ -22,6 +23,9 @@ class ECFP:
     def set_initial_identifiers(self):
         for atom in self.structure.graph:
             if atom.type != 'H' and atom.type != '*':
+                if atom.chiral:
+                    self.disambiguated_chiral[atom] = False
+
                 self.identifiers[atom] = {}
                 self.seen_atoms[atom] = {}
                 self.seen_atoms[atom][0] = {atom}
@@ -43,6 +47,7 @@ class ECFP:
         for i in range(self.iterations):
             new_features = []
             for atom in self.identifiers:
+
                 identifier = self.identifiers[atom][i]
                 array = [i + 1, identifier]
 
@@ -76,13 +81,30 @@ class ECFP:
                     array.append(atom_id)
                     attachment_order.append(neighbour)
 
-                # TODO: implement absolute chirality
-                if atom.chiral:
-                    chirality = find_chirality_from_nonh(atom.neighbours, attachment_order, atom.chiral)
-                    if chirality == 'clockwise':
-                        array.append(1)
-                    else:
-                        array.append(0)
+                if atom.chiral and not self.disambiguated_chiral[atom]:
+                    neighbour_identifiers = []
+                    neighbour_identifiers_sorted = []
+                    for neighbour in attachment_order:
+                        neighbour_identifier = self.identifiers[neighbour][i]
+                        neighbour_identifiers_sorted.append(neighbour_identifier)
+
+                    if len(neighbour_identifiers_sorted) == len(set(neighbour_identifiers_sorted)):
+
+                        for neighbour in atom.neighbours:
+                            if neighbour.type == 'H':
+                                neighbour_identifier = 'dummy'
+                            else:
+                                neighbour_identifier = self.identifiers[neighbour][i]
+                            neighbour_identifiers.append(neighbour_identifier)
+
+                        chirality = find_chirality_from_nonh(neighbour_identifiers, neighbour_identifiers_sorted,
+                                                             atom.chiral)
+                        if chirality == 'clockwise':
+                            array.append(1)
+                        else:
+                            array.append(0)
+
+                        self.disambiguated_chiral[atom] = True
 
                 new_identifier = hash_32_bit_integer(array)
 
@@ -105,12 +127,14 @@ class ECFP:
             previous_atom = None
 
             for new_feature, identifier, atom in new_features:
+                # TODO: Make a better feature representation, perhaps as SMILES string
+                self.fingerprint.add(identifier)
                 if new_feature == previous_feature:
                     continue
                 else:
                     self.features[new_feature] = (identifier, i + 1, atom)
                     self.hash_to_feature[identifier] = new_feature
-                    self.fingerprint.add(identifier)
+
                     previous_feature = new_feature
                     previous_atom = atom
 
