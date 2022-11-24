@@ -16,19 +16,19 @@ from pikachu.chem.structure import Structure
 
 def smiles_from_file(smiles_file, read_all=False):
     if not read_all:
-        with open(smiles_file, 'r') as smiles:
+        with open(smiles_file, "r") as smiles:
             smiles_string = smiles.readline().strip()
 
         return smiles_string
     else:
         smiles_strings = []
-        with open(smiles_file, 'r') as smiles:
+        with open(smiles_file, "r") as smiles:
             for line in smiles:
                 smiles_string = line.strip()
                 smiles_strings.append(smiles_string)
 
         return smiles_strings
-    
+
 
 def read_smiles(smiles_string: str) -> Structure:
     """
@@ -49,7 +49,9 @@ def read_smiles(smiles_string: str) -> Structure:
         smiles = Smiles(smiles_string)
         structure = smiles.smiles_to_structure()
         if not structure:
-            raise ValueError(f"Could not produce structure for SMILES: {smiles_string}.")
+            raise ValueError(
+                f"Could not produce structure for SMILES: {smiles_string}."
+            )
         return structure
 
 
@@ -103,7 +105,7 @@ def position_smiles(smiles):
 
     """
     structure = read_smiles(smiles)
-    if '.' in smiles:
+    if "." in smiles:
         drawer = draw_multiple(structure, coords_only=True)
     else:
         drawer = Drawer(structure, coords_only=True)
@@ -124,13 +126,13 @@ def draw_smiles(smiles, options=None):
         options = Options()
 
     structure = read_smiles(smiles)
-    if '.' in smiles:
+    if "." in smiles:
         drawer = draw_multiple(structure, options=options)
 
     else:
 
         drawer = Drawer(structure, options=options)
-    
+
     drawer.show_molecule()
 
 
@@ -139,8 +141,10 @@ def smiles_to_molfile(smiles, molfile, options=None):
         options = Options()
 
     structure = read_smiles(smiles)
-    if '.' in smiles:
-        MolFileWriter(structure, molfile, drawing_options=options, multiple=True).write_mol_file()
+    if "." in smiles:
+        MolFileWriter(
+            structure, molfile, drawing_options=options, multiple=True
+        ).write_mol_file()
     else:
         MolFileWriter(structure, molfile, drawing_options=options).write_mol_file()
 
@@ -223,7 +227,7 @@ def svg_from_smiles(smiles, svg_out, options=None):
     if not options:
         options = Options()
 
-    if '.' in smiles:
+    if "." in smiles:
         drawer = draw_multiple(structure, options=options)
     else:
         drawer = Drawer(structure, options=options, coords_only=True)
@@ -246,12 +250,16 @@ def png_from_smiles(smiles, png_out, options=None):
     drawer.save_png(png_out)
 
 
-def highlight_substructure(substructure_smiles, parent_smiles, search_mode='all',
-                           colour=None,
-                           check_chiral_centres=True,
-                           check_bond_chirality=True,
-                           visualisation='show',
-                           out_file=None):
+def highlight_substructure(
+    substructure_smiles,
+    parent_smiles,
+    search_mode="all",
+    colour=None,
+    check_chiral_centres=True,
+    check_bond_chirality=True,
+    visualisation="show",
+    out_file=None,
+):
     """
     Find occurrences of (a) substructure(s) in a parent structure and highlight it in a drawing
 
@@ -274,43 +282,59 @@ def highlight_substructure(substructure_smiles, parent_smiles, search_mode='all'
     out_file: str, output file of png or svg drawing
 
     """
-    assert search_mode in {'all', 'single', 'multiple'}
+    assert search_mode in {"all", "single", "multiple"}
 
-    if search_mode == 'all' or search_mode == 'single':
+    if search_mode == "all" or search_mode == "single":
         assert type(substructure_smiles) == str
         if colour:
             assert type(colour) in {str}
         else:
             colour = RASPBERRY
-    elif search_mode == 'multiple':
+    elif search_mode == "multiple":
         assert type(substructure_smiles) in {list, tuple, set}
         assert type(colour) in {list, tuple, set}
 
-    if search_mode == 'all':
-        highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=colour,
-                                check_chiral_centres=check_chiral_centres,
-                                check_bond_chirality=check_bond_chirality,
-                                visualisation=visualisation,
-                                out_file=out_file)
-    elif search_mode == 'multiple':
-        highlight_subsmiles_multiple(substructure_smiles, parent_smiles, colours=colour,
-                                     check_chiral_centres=check_chiral_centres,
-                                     check_bond_chirality=check_bond_chirality,
-                                     visualisation=visualisation,
-                                     out_file=out_file)
-    elif search_mode == 'single':
-        highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=colour,
-                                   check_chiral_centres=check_chiral_centres,
-                                   check_bond_chirality=check_bond_chirality,
-                                   visualisation=visualisation,
-                                   out_file=out_file)
+    if search_mode == "all":
+        highlight_subsmiles_all(
+            substructure_smiles,
+            parent_smiles,
+            colour=colour,
+            check_chiral_centres=check_chiral_centres,
+            check_bond_chirality=check_bond_chirality,
+            visualisation=visualisation,
+            out_file=out_file,
+        )
+    elif search_mode == "multiple":
+        highlight_subsmiles_multiple(
+            substructure_smiles,
+            parent_smiles,
+            colours=colour,
+            check_chiral_centres=check_chiral_centres,
+            check_bond_chirality=check_bond_chirality,
+            visualisation=visualisation,
+            out_file=out_file,
+        )
+    elif search_mode == "single":
+        highlight_subsmiles_single(
+            substructure_smiles,
+            parent_smiles,
+            colour=colour,
+            check_chiral_centres=check_chiral_centres,
+            check_bond_chirality=check_bond_chirality,
+            visualisation=visualisation,
+            out_file=out_file,
+        )
 
 
-def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBERRY,
-                               check_chiral_centres=True,
-                               check_bond_chirality=True,
-                               visualisation='show',
-                               out_file=None):
+def highlight_subsmiles_single(
+    substructure_smiles,
+    parent_smiles,
+    colour=RASPBERRY,
+    check_chiral_centres=True,
+    check_bond_chirality=True,
+    visualisation="show",
+    out_file=None,
+):
     """
     Draw structure with a single occurrence of substructure_smiles highlighted with colour
 
@@ -332,29 +356,36 @@ def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBE
     child_structure = read_smiles(substructure_smiles)
     parent_structure = read_smiles(parent_smiles)
 
-    if not colour.startswith('#'):
+    if not colour.startswith("#"):
         colour = get_hex(colour)
-        
-    parent_structure.colour_substructure_single(child_structure, colour=colour,
-                                                check_chiral_centres=check_chiral_centres,
-                                                check_bond_chirality=check_bond_chirality)
+
+    parent_structure.colour_substructure_single(
+        child_structure,
+        colour=colour,
+        check_chiral_centres=check_chiral_centres,
+        check_bond_chirality=check_bond_chirality,
+    )
 
     drawer = Drawer(parent_structure)
-    if visualisation == 'show':
+    if visualisation == "show":
         drawer.show_molecule()
-    elif visualisation == 'svg':
+    elif visualisation == "svg":
         assert out_file
         drawer.save_svg(out_file)
-    elif visualisation == 'png':
+    elif visualisation == "png":
         assert out_file
         drawer.save_png(out_file)
 
 
-def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY,
-                            check_chiral_centres=True,
-                            check_bond_chirality=True,
-                            visualisation='show',
-                            out_file=None):
+def highlight_subsmiles_all(
+    substructure_smiles,
+    parent_smiles,
+    colour=RASPBERRY,
+    check_chiral_centres=True,
+    check_bond_chirality=True,
+    visualisation="show",
+    out_file=None,
+):
     """
     Draw structure with all occurrences of substructure_smiles highlighted with colour
 
@@ -376,29 +407,36 @@ def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY
     child_structure = read_smiles(substructure_smiles)
     parent_structure = read_smiles(parent_smiles)
 
-    if not colour.startswith('#'):
+    if not colour.startswith("#"):
         colour = get_hex(colour)
 
-    parent_structure.colour_substructure_all(child_structure, colour=colour,
-                                             check_chiral_centres=check_chiral_centres,
-                                             check_bond_chirality=check_bond_chirality)
+    parent_structure.colour_substructure_all(
+        child_structure,
+        colour=colour,
+        check_chiral_centres=check_chiral_centres,
+        check_bond_chirality=check_bond_chirality,
+    )
 
     drawer = Drawer(parent_structure)
-    if visualisation == 'show':
+    if visualisation == "show":
         drawer.show_molecule()
-    elif visualisation == 'svg':
+    elif visualisation == "svg":
         assert out_file
         drawer.save_svg(out_file)
-    elif visualisation == 'png':
+    elif visualisation == "png":
         assert out_file
         drawer.save_png(out_file)
 
 
-def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colours=None,
-                                 check_chiral_centres=True,
-                                 check_bond_chirality=True,
-                                 visualisation='show',
-                                 out_file=None):
+def highlight_subsmiles_multiple(
+    substructure_smiles_list,
+    parent_smiles,
+    colours=None,
+    check_chiral_centres=True,
+    check_bond_chirality=True,
+    visualisation="show",
+    out_file=None,
+):
     """
     Draw structure with all occurrences of all substructure_smiles highlighted in different colours
 
@@ -437,21 +475,24 @@ def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colour
     try:
         assert len(colour_list) == smiles_nr
     except AssertionError:
-        raise ColourError('too few colours')
+        raise ColourError("too few colours")
 
     for i, smiles in enumerate(substructure_smiles_list):
         child_structure = read_smiles(smiles)
         colour = colour_list[i]
-        parent_structure.colour_substructure_all(child_structure, colour=colour,
-                                                 check_chiral_centres=check_chiral_centres,
-                                                 check_bond_chirality=check_bond_chirality)
+        parent_structure.colour_substructure_all(
+            child_structure,
+            colour=colour,
+            check_chiral_centres=check_chiral_centres,
+            check_bond_chirality=check_bond_chirality,
+        )
 
     drawer = Drawer(parent_structure)
-    if visualisation == 'show':
+    if visualisation == "show":
         drawer.show_molecule()
-    elif visualisation == 'svg':
+    elif visualisation == "svg":
         assert out_file
         drawer.save_svg(out_file)
-    elif visualisation == 'png':
+    elif visualisation == "png":
         assert out_file
         drawer.save_png(out_file)

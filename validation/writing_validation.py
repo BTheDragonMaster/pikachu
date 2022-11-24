@@ -54,6 +54,3 @@ def assess_writing_accuracy(smiles_strings):
 if __name__ == "__main__":
     smiles = smiles_from_file(argv[1], all=True)
     assess_writing_accuracy(smiles)
-
-
-

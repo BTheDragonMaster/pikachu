@@ -22,7 +22,6 @@ class Node:
 
 
 class SuperNode(Node):
-
     def __init__(self):
         Node.__init__(self)
         self.subnodes = []
@@ -34,15 +33,18 @@ class SuperNode(Node):
                 break
         assert i < len(self.subnodes)
 
-        if i > 0 and self.subnodes[i].mate == self.subnodes[i - 1] or i == 0 and self.subnodes[i].mate == self.subnodes[
-            -1]:
+        if (
+            i > 0
+            and self.subnodes[i].mate == self.subnodes[i - 1]
+            or i == 0
+            and self.subnodes[i].mate == self.subnodes[-1]
+        ):
             return self.subnodes[i::-1] + self.subnodes[:i:-1]
         else:
             return self.subnodes[i::] + self.subnodes[:i]
 
 
 class Path:
-
     def __init__(self):
         self.nodes = []
 
@@ -83,7 +85,6 @@ class Path:
 
 
 class Match:
-
     def __init__(self, nodes):
         self.nodes = nodes
         self.freenodes = []
@@ -137,7 +138,7 @@ class Match:
                 elif node.is_visited:
                     cycle = self.find_cycles(node, cur_node)
                     if len(cycle) % 2 == 1:
-                        logging.debug('blossom: {}'.format(cycle))
+                        logging.debug("blossom: {}".format(cycle))
                         snode = self.shrink_blossom(cycle)
                         self.supernodes.append(snode)
                         for v in cycle:
@@ -159,7 +160,7 @@ class Match:
                     node.parent = cur_node
                     node.mate.parent = node
                     queue.append(node.mate)
-        raise Exception('cannot find an augmenting path')
+        raise Exception("cannot find an augmenting path")
 
     def unmatched_nodes(self):
         self.maximum_matching()
@@ -173,12 +174,12 @@ class Match:
 
     def maximum_matching(self):
         while len(self.freenodes) > 0:
-            logging.debug('freenodes: {}'.format(self.freenodes))
+            logging.debug("freenodes: {}".format(self.freenodes))
 
             for node in self.freenodes:
                 try:
                     path = self.find_augmenting_path(node)
-                    logging.debug('augmenting path: {}'.format(path.nodes))
+                    logging.debug("augmenting path: {}".format(path.nodes))
                     self.invert_path(path)
                     self.freenodes.remove(path.nodes[0])
                     self.freenodes.remove(path.nodes[-1])
@@ -186,7 +187,7 @@ class Match:
                 except Exception as e:
                     logging.info(e)
             else:
-                logging.info('Tried all free nodes, no more augmenting path.')
+                logging.info("Tried all free nodes, no more augmenting path.")
 
                 break
 
@@ -237,7 +238,7 @@ class Match:
             i -= 1
             j -= 1
 
-        cycle = ancestors1[:i + 1] + ancestors2[j + 1::-1]
+        cycle = ancestors1[: i + 1] + ancestors2[j + 1 :: -1]
         return cycle
 
     def shrink_blossom(self, blossom):

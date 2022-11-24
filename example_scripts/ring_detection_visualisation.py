@@ -5,9 +5,32 @@ vancomycin = r"C[C@H]1[C@H]([C@@](C[C@@H](O1)O[C@@H]2[C@H]([C@@H]([C@H](O[C@H]2O
 
 s = read_smiles(vancomycin)
 print(s.aromatic_cycles)
-daptomycin_substructures = ["c1ccccc1", "c1c[nH]c2c1cccc2", "C1CNCCNCCNCCNCCNCCNCCNCCNCCNCCOC1"]
-vancomycin_substructures = ["C1CCCCO1", "C(Cc1ccc(O)cc1)CNC", "CNC(c1ccccc1)", "CNCCNC(c1ccccc1)", "NC(c1ccccc1)"]  #"C(Cc1ccc2cc1)CNCCNC(c3cc(O2)cc4c3)CNC(c5cccc6c5)CNC(Cc7ccc(O4)cc7)CNCc8c6cccc8"]
+daptomycin_substructures = [
+    "c1ccccc1",
+    "c1c[nH]c2c1cccc2",
+    "C1CNCCNCCNCCNCCNCCNCCNCCNCCNCCOC1",
+]
+vancomycin_substructures = [
+    "C1CCCCO1",
+    "C(Cc1ccc(O)cc1)CNC",
+    "CNC(c1ccccc1)",
+    "CNCCNC(c1ccccc1)",
+    "NC(c1ccccc1)",
+]  # "C(Cc1ccc2cc1)CNCCNC(c3cc(O2)cc4c3)CNC(c5cccc6c5)CNC(Cc7ccc(O4)cc7)CNCc8c6cccc8"]
 
-highlight_subsmiles_multiple(daptomycin_substructures, daptomycin, colours=['blue', 'hot pink', 'blue'], visualisation='svg', out_file='daptomycin_rings.svg', check_chiral_centres=False)
-highlight_subsmiles_multiple(vancomycin_substructures, vancomycin, colours=['blue', 'pink', 'pink', 'pink', 'pink'], visualisation='svg', out_file='vancomycin_rings.svg', check_chiral_centres=False)
-
+highlight_subsmiles_multiple(
+    daptomycin_substructures,
+    daptomycin,
+    colours=["blue", "hot pink", "blue"],
+    visualisation="svg",
+    out_file="daptomycin_rings.svg",
+    check_chiral_centres=False,
+)
+highlight_subsmiles_multiple(
+    vancomycin_substructures,
+    vancomycin,
+    colours=["blue", "pink", "pink", "pink", "pink"],
+    visualisation="svg",
+    out_file="vancomycin_rings.svg",
+    check_chiral_centres=False,
+)

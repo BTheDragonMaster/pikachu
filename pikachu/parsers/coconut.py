@@ -3,7 +3,7 @@ from sys import argv
 
 def parse_coconut(coconut_file):
     smiles_strings = []
-    with open(coconut_file, 'r') as coconut:
+    with open(coconut_file, "r") as coconut:
         for line in coconut:
             line = line.strip()
             smiles, identifier = line.split()
@@ -13,7 +13,7 @@ def parse_coconut(coconut_file):
 
 
 def write_smiles(smiles, out_file):
-    with open(out_file, 'w') as out:
+    with open(out_file, "w") as out:
         for smi in smiles:
             out.write(f"{smi}\n")
 

@@ -1,5 +1,11 @@
 from pikachu.general import read_smiles, draw_structure
-from pikachu.reactions.functional_groups import find_bonds, BondDefiner, combine_structures, GroupDefiner, find_atoms
+from pikachu.reactions.functional_groups import (
+    find_bonds,
+    BondDefiner,
+    combine_structures,
+    GroupDefiner,
+    find_atoms,
+)
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
 
 
@@ -9,13 +15,15 @@ def internal_condensation(structure, oh_bond, h_bond):
     o_neighbour = None
 
     for atom in oh_bond.neighbours:
-        if not o_atom and atom.type == 'O' and atom.has_neighbour('H'):
+        if not o_atom and atom.type == "O" and atom.has_neighbour("H"):
             o_atom = atom
         else:
             o_neighbour = atom
 
     if not o_atom:
-        raise Exception(f"The selected bond {oh_bond} does not attach to an -OH leaving group.")
+        raise Exception(
+            f"The selected bond {oh_bond} does not attach to an -OH leaving group."
+        )
 
     # Ensure that the defined H-bond actually has an -H leaving group
 
@@ -23,13 +31,15 @@ def internal_condensation(structure, oh_bond, h_bond):
     h_neighbour = None
 
     for atom in h_bond.neighbours:
-        if not h_atom and atom.type == 'H':
+        if not h_atom and atom.type == "H":
             h_atom = atom
         else:
             h_neighbour = atom
 
     if not h_atom:
-        raise Exception(f"The selected bond {h_bond} does not attach to an -H leaving group.")
+        raise Exception(
+            f"The selected bond {h_bond} does not attach to an -H leaving group."
+        )
 
     # Break the bonds between the leaving groups and the rest of the product
 
@@ -112,8 +122,12 @@ def hydrolysis(structure, bond):
     hydrolysed_structure.break_bond(water_bond)
     hydrolysed_structure.break_bond(bond)
 
-    hydrolysed_structure.make_bond(hydrogen, h_acceptor, hydrolysed_structure.find_next_bond_nr())
-    hydrolysed_structure.make_bond(oxygen, oh_acceptor, hydrolysed_structure.find_next_bond_nr())
+    hydrolysed_structure.make_bond(
+        hydrogen, h_acceptor, hydrolysed_structure.find_next_bond_nr()
+    )
+    hydrolysed_structure.make_bond(
+        oxygen, oh_acceptor, hydrolysed_structure.find_next_bond_nr()
+    )
 
     structures = hydrolysed_structure.split_disconnected_structures()
     if len(structures) == 1:
@@ -145,13 +159,15 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
     o_neighbour = None
 
     for atom in oh_bond.neighbours:
-        if not o_atom and atom.type == 'O' and atom.has_neighbour('H'):
+        if not o_atom and atom.type == "O" and atom.has_neighbour("H"):
             o_atom = atom
         else:
             o_neighbour = atom
 
     if not o_atom:
-        raise Exception(f"The selected bond {oh_bond} does not attach to an -OH leaving group.")
+        raise Exception(
+            f"The selected bond {oh_bond} does not attach to an -OH leaving group."
+        )
 
     # Ensure that the defined H-bond actually has an -H leaving group
 
@@ -159,13 +175,15 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
     h_neighbour = None
 
     for atom in h_bond.neighbours:
-        if not h_atom and atom.type == 'H':
+        if not h_atom and atom.type == "H":
             h_atom = atom
         else:
             h_neighbour = atom
 
     if not h_atom:
-        raise Exception(f"The selected bond {h_bond} does not attach to an -H leaving group.")
+        raise Exception(
+            f"The selected bond {h_bond} does not attach to an -H leaving group."
+        )
 
     # Break the bonds between the leaving groups and the rest of the product
 
@@ -206,6 +224,7 @@ def condensation(structure_1, structure_2, oh_bond, h_bond):
             product = structure
 
     return [product, water]
+
 
 #
 # if __name__ == "__main__":

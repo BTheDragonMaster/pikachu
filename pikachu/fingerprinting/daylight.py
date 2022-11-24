@@ -33,8 +33,8 @@ class Daylight:
             daylight_hash.update(str(attribute).encode())
 
         # return int.from_bytes(hashlib.sha256(b"H").digest()[:4], 'little')
-        #print(hash(tuple(self.daylight)))
-       # print(hash(tuple(self.daylight)))
+        # print(hash(tuple(self.daylight)))
+        # print(hash(tuple(self.daylight)))
         return hash(tuple(self.daylight))
 
     def atom_in_cycle(self):
@@ -49,14 +49,14 @@ class Daylight:
     def get_heavy_neighbours(self):
         heavy_neighbours = 0
         for atom in self.atom.neighbours:
-            if atom.type != 'H':
+            if atom.type != "H":
                 heavy_neighbours += 1
         return heavy_neighbours
 
     def get_hydrogen_number(self):
         hydrogen_nr = 0
         for atom in self.atom.neighbours:
-            if atom.type == 'H':
+            if atom.type == "H":
                 hydrogen_nr += 1
         return hydrogen_nr
 

@@ -16,33 +16,33 @@ class BondProperties:
         the number of p orbitals involved in the formation of that bond
     """
 
-    type_to_dash2d_input = {'single': 1,
-                            'double': 2,
-                            'triple': 3,
-                            'quadruple': 4}
+    type_to_dash2d_input = {"single": 1, "double": 2, "triple": 3, "quadruple": 4}
 
-    bond_type_to_weight = {'single': 1,
-                           'double': 2,
-                           'triple': 3,
-                           'quadruple': 4,
-                           'aromatic': 1}
+    bond_type_to_weight = {
+        "single": 1,
+        "double": 2,
+        "triple": 3,
+        "quadruple": 4,
+        "aromatic": 1,
+    }
 
-    bond_type_to_symbol = {'single': '',
-                           'double': '=',
-                           'triple': '#',
-                           'aromatic': ''}
+    bond_type_to_symbol = {"single": "", "double": "=", "triple": "#", "aromatic": ""}
 
-    bond_type_to_p_orbitals = {'single': 0,
-                               'double': 1,
-                               'triple': 2,
-                               'quadruple': 3,
-                               'aromatic': 1}
+    bond_type_to_p_orbitals = {
+        "single": 0,
+        "double": 1,
+        "triple": 2,
+        "quadruple": 3,
+        "aromatic": 1,
+    }
 
-    bond_type_to_order = {'single': 1,
-                          'double': 2,
-                          'triple': 3,
-                          'aromatic': 4,
-                          'quadruple': 5}
+    bond_type_to_order = {
+        "single": 1,
+        "double": 2,
+        "triple": 3,
+        "aromatic": 4,
+        "quadruple": 5,
+    }
 
 
 BOND_PROPERTIES = BondProperties()

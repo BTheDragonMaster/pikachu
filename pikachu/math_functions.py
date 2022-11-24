@@ -1,74 +1,60 @@
 #!/usr/bin/env python
 import math
 import matplotlib
-#matplotlib.use('TkAgg')
+
+# matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
 
 class Permutations:
 
-    permutation_mapping = {0: {0: 0,
-                               1: 1,
-                               2: 2,
-                               3: 3},
-                           1: {0: 0,
-                               1: 1,
-                               2: 3,
-                               3: 2},
-                           2: {0: 0,
-                               1: 2,
-                               2: 1,
-                               3: 3},
-                           3: {0: 0,
-                               1: 2,
-                               2: 3,
-                               3: 1},
-                           4: {0: 0,
-                               1: 3,
-                               2: 1,
-                               3: 2},
-                           5: {0: 0,
-                               1: 3,
-                               2: 2,
-                               3: 1}}
+    permutation_mapping = {
+        0: {0: 0, 1: 1, 2: 2, 3: 3},
+        1: {0: 0, 1: 1, 2: 3, 3: 2},
+        2: {0: 0, 1: 2, 2: 1, 3: 3},
+        3: {0: 0, 1: 2, 2: 3, 3: 1},
+        4: {0: 0, 1: 3, 2: 1, 3: 2},
+        5: {0: 0, 1: 3, 2: 2, 3: 1},
+    }
 
-    permutation_mapping = {0: [0, 1, 2, 3],
-                           1: [0, 1, 3, 2],
-                           2: [0, 2, 1, 3],
-                           3: [0, 2, 3, 1],
-                           4: [0, 3, 1, 2],
-                           5: [0, 3, 2, 1]}
+    permutation_mapping = {
+        0: [0, 1, 2, 3],
+        1: [0, 1, 3, 2],
+        2: [0, 2, 1, 3],
+        3: [0, 2, 3, 1],
+        4: [0, 3, 1, 2],
+        5: [0, 3, 2, 1],
+    }
 
-    triplet_mapping = {0: {0: 0,
-                           1: 1,
-                           2: 2},
-                       1: {0: 1,
-                           1: 2,
-                           2: 3},
-                       2: {0: 2,
-                           2: 3,
-                           3: 0},
-                       3: {0: 3,
-                           1: 0,
-                           2: 1}}
+    triplet_mapping = {
+        0: {0: 0, 1: 1, 2: 2},
+        1: {0: 1, 1: 2, 2: 3},
+        2: {0: 2, 2: 3, 3: 0},
+        3: {0: 3, 1: 0, 2: 1},
+    }
+
     def __init__(self):
         pass
 
     @staticmethod
     def get_circular_permutations_4(order):
-        return [(order[0], order[1], order[2], order[3]),
-                (order[0], order[1], order[3], order[2]),
-                (order[0], order[2], order[1], order[3]),
-                (order[0], order[2], order[3], order[1]),
-                (order[0], order[3], order[1], order[2]),
-                (order[0], order[3], order[2], order[1])]
+        return [
+            (order[0], order[1], order[2], order[3]),
+            (order[0], order[1], order[3], order[2]),
+            (order[0], order[2], order[1], order[3]),
+            (order[0], order[2], order[3], order[1]),
+            (order[0], order[3], order[1], order[2]),
+            (order[0], order[3], order[2], order[1]),
+        ]
 
     @staticmethod
     def get_node_triplet_arcs(quadruplet):
-        return [(quadruplet[0], quadruplet[1], quadruplet[2]),
-                (quadruplet[1], quadruplet[2], quadruplet[3]),
-                (quadruplet[2], quadruplet[3], quadruplet[0]),
-                (quadruplet[3], quadruplet[0], quadruplet[1])]
+        return [
+            (quadruplet[0], quadruplet[1], quadruplet[2]),
+            (quadruplet[1], quadruplet[2], quadruplet[3]),
+            (quadruplet[2], quadruplet[3], quadruplet[0]),
+            (quadruplet[3], quadruplet[0], quadruplet[1]),
+        ]
 
 
 class SimpleLine:
@@ -107,18 +93,24 @@ class HalfLine:
         dx = abs(math.sin(angle) * distance)
         dy = abs(math.cos(angle) * distance)
 
-        point_1 = Vector(dx * direction_combinations[0][0] + point.x,
-                         dy * direction_combinations[0][1] + point.y)
+        point_1 = Vector(
+            dx * direction_combinations[0][0] + point.x,
+            dy * direction_combinations[0][1] + point.y,
+        )
 
-        point_2 = Vector(dx * direction_combinations[1][0] + point.x,
-                         dy * direction_combinations[1][1] + point.y)
+        point_2 = Vector(
+            dx * direction_combinations[1][0] + point.x,
+            dy * direction_combinations[1][1] + point.y,
+        )
 
         return point_1, point_2
 
     def get_bond_wedge_front(self, width, chiral_centre):
         half_width = width * 0.5
 
-        point_1_mid, point_2_mid = self.get_perpendicular_points(half_width, self.point_2)
+        point_1_mid, point_2_mid = self.get_perpendicular_points(
+            half_width, self.point_2
+        )
         if self.atom == chiral_centre:
             return self.point_1, point_1_mid, point_2_mid
         else:
@@ -134,8 +126,12 @@ class HalfLine:
         widths = []
 
         for i in range(6):
-            points_along_line.append(Vector(self.point_1.x + i * segment_size_x,
-                                            self.point_1.y + i * segment_size_y))
+            points_along_line.append(
+                Vector(
+                    self.point_1.x + i * segment_size_x,
+                    self.point_1.y + i * segment_size_y,
+                )
+            )
 
             widths.append(i * segment_width_increase)
 
@@ -151,7 +147,11 @@ class HalfLine:
             line = SimpleLine(point_1, point_2)
             lines.append(line)
 
-        if self.atom.type == 'C' and not self.atom.charge and not self.atom.draw.draw_explicit:
+        if (
+            self.atom.type == "C"
+            and not self.atom.charge
+            and not self.atom.draw.draw_explicit
+        ):
             return lines[:3]
         else:
             return [lines[2]]
@@ -173,22 +173,40 @@ class HalfLine:
         new_point_1_y = self.point_1.y
 
         if self.point_1.x > self.point_2.x:
-            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
+            if (
+                self.atom.type != "C"
+                or self.atom.charge
+                or self.atom.draw.draw_explicit
+            ):
                 new_point_1_x = self.point_1.x - truncation_x
 
         else:
-            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
+            if (
+                self.atom.type != "C"
+                or self.atom.charge
+                or self.atom.draw.draw_explicit
+            ):
                 new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
+            if (
+                self.atom.type != "C"
+                or self.atom.charge
+                or self.atom.draw.draw_explicit
+            ):
                 new_point_1_y = self.point_1.y - truncation_y
 
         else:
-            if self.atom.type != 'C' or self.atom.charge or self.atom.draw.draw_explicit:
+            if (
+                self.atom.type != "C"
+                or self.atom.charge
+                or self.atom.draw.draw_explicit
+            ):
                 new_point_1_y = self.point_1.y + truncation_y
 
-        truncated_line = HalfLine(Vector(new_point_1_x, new_point_1_y), self.point_2, self.atom, self.angle)
+        truncated_line = HalfLine(
+            Vector(new_point_1_x, new_point_1_y), self.point_2, self.atom, self.angle
+        )
         return truncated_line
 
 
@@ -237,11 +255,15 @@ class Line:
         dx = abs(math.sin(angle) * distance)
         dy = abs(math.cos(angle) * distance)
 
-        point_1 = Vector(dx * direction_combinations[0][0] + point.x,
-                         dy * direction_combinations[0][1] + point.y)
+        point_1 = Vector(
+            dx * direction_combinations[0][0] + point.x,
+            dy * direction_combinations[0][1] + point.y,
+        )
 
-        point_2 = Vector(dx * direction_combinations[1][0] + point.x,
-                         dy * direction_combinations[1][1] + point.y)
+        point_2 = Vector(
+            dx * direction_combinations[1][0] + point.x,
+            dy * direction_combinations[1][1] + point.y,
+        )
 
         return point_1, point_2
 
@@ -257,17 +279,25 @@ class Line:
         dx = abs(math.sin(angle) * distance)
         dy = abs(math.cos(angle) * distance)
 
-        point_1 = Vector(dx * direction_combinations[0][0] + self.point_1.x,
-                         dy * direction_combinations[0][1] + self.point_1.y)
+        point_1 = Vector(
+            dx * direction_combinations[0][0] + self.point_1.x,
+            dy * direction_combinations[0][1] + self.point_1.y,
+        )
 
-        point_2 = Vector(dx * direction_combinations[1][0] + self.point_1.x,
-                         dy * direction_combinations[1][1] + self.point_1.y)
+        point_2 = Vector(
+            dx * direction_combinations[1][0] + self.point_1.x,
+            dy * direction_combinations[1][1] + self.point_1.y,
+        )
 
-        point_3 = Vector(dx * direction_combinations[0][0] + self.point_2.x,
-                         dy * direction_combinations[0][1] + self.point_2.y)
+        point_3 = Vector(
+            dx * direction_combinations[0][0] + self.point_2.x,
+            dy * direction_combinations[0][1] + self.point_2.y,
+        )
 
-        point_4 = Vector(dx * direction_combinations[1][0] + self.point_2.x,
-                         dy * direction_combinations[1][1] + self.point_2.y)
+        point_4 = Vector(
+            dx * direction_combinations[1][0] + self.point_2.x,
+            dy * direction_combinations[1][1] + self.point_2.y,
+        )
 
         line_1 = Line(point_1, point_3, self.atom_1, self.atom_2)
         line_2 = Line(point_2, point_4, self.atom_1, self.atom_2)
@@ -292,8 +322,12 @@ class Line:
         widths = []
 
         for i in range(6):
-            points_along_line.append(Vector(self.point_1.x + i * segment_size_x,
-                                            self.point_1.y + i * segment_size_y))
+            points_along_line.append(
+                Vector(
+                    self.point_1.x + i * segment_size_x,
+                    self.point_1.y + i * segment_size_y,
+                )
+            )
 
             widths.append(i * segment_width_increase)
 
@@ -412,15 +446,21 @@ class Line:
         y_translation = abs(math.sin(right_angle) * distance)
 
         midpoint = self.get_midpoint()
-        translated_midpoint_1 = Vector(direction_combinations[0][0] * x_translation + midpoint.x,
-                                       direction_combinations[0][1] * y_translation + midpoint.y)
+        translated_midpoint_1 = Vector(
+            direction_combinations[0][0] * x_translation + midpoint.x,
+            direction_combinations[0][1] * y_translation + midpoint.y,
+        )
 
-        translated_midpoint_2 = Vector(direction_combinations[1][0] * x_translation + midpoint.x,
-                                       direction_combinations[1][1] * y_translation + midpoint.y)
+        translated_midpoint_2 = Vector(
+            direction_combinations[1][0] * x_translation + midpoint.x,
+            direction_combinations[1][1] * y_translation + midpoint.y,
+        )
 
         directions = direction_combinations[0]
 
-        if center.get_squared_distance(translated_midpoint_1) > center.get_squared_distance(translated_midpoint_2):
+        if center.get_squared_distance(
+            translated_midpoint_1
+        ) > center.get_squared_distance(translated_midpoint_2):
             directions = direction_combinations[1]
 
         x_translation = directions[0] * x_translation
@@ -436,7 +476,7 @@ class Line:
 
         line = Line(new_point_1, new_point_2, self.atom_1, self.atom_2)
 
-        #return line.get_truncated_line(line_ratio)
+        # return line.get_truncated_line(line_ratio)
         return line
 
     def double_line_towards_center(self, center, distance, line_ratio):
@@ -454,20 +494,25 @@ class Line:
         y_translation = abs(math.sin(right_angle) * distance)
 
         midpoint = self.get_midpoint()
-        translated_midpoint_1 = Vector(direction_combinations[0][0] * x_translation + midpoint.x,
-                                       direction_combinations[0][1] * y_translation + midpoint.y)
+        translated_midpoint_1 = Vector(
+            direction_combinations[0][0] * x_translation + midpoint.x,
+            direction_combinations[0][1] * y_translation + midpoint.y,
+        )
 
-        translated_midpoint_2 = Vector(direction_combinations[1][0] * x_translation + midpoint.x,
-                                       direction_combinations[1][1] * y_translation + midpoint.y)
+        translated_midpoint_2 = Vector(
+            direction_combinations[1][0] * x_translation + midpoint.x,
+            direction_combinations[1][1] * y_translation + midpoint.y,
+        )
 
         directions = direction_combinations[0]
 
-        if center.get_squared_distance(translated_midpoint_1) > center.get_squared_distance(translated_midpoint_2):
+        if center.get_squared_distance(
+            translated_midpoint_1
+        ) > center.get_squared_distance(translated_midpoint_2):
             directions = direction_combinations[1]
 
         x_translation = directions[0] * x_translation
         y_translation = directions[1] * y_translation
-
 
         new_x1 = self.point_1.x + x_translation
         new_x2 = self.point_2.x + x_translation
@@ -512,7 +557,12 @@ class Line:
             new_point_2_y = self.point_2.y - truncation_y
             new_point_1_y = self.point_1.y + truncation_y
 
-        truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y), self.atom_1, self.atom_2)
+        truncated_line = Line(
+            Vector(new_point_1_x, new_point_1_y),
+            Vector(new_point_2_x, new_point_2_y),
+            self.atom_1,
+            self.atom_2,
+        )
         return truncated_line
 
     def get_truncated_line(self, ratio):
@@ -532,30 +582,67 @@ class Line:
         new_point_2_y = self.point_2.y
 
         if self.point_1.x > self.point_2.x:
-            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
+            if (
+                self.atom_1.type != "C"
+                or self.atom_1.charge
+                or self.atom_1.draw.draw_explicit
+            ):
                 new_point_1_x = self.point_1.x - truncation_x
-            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
+            if (
+                self.atom_2.type != "C"
+                or self.atom_2.charge
+                or self.atom_2.draw.draw_explicit
+            ):
                 new_point_2_x = self.point_2.x + truncation_x
 
         else:
-            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
+            if (
+                self.atom_2.type != "C"
+                or self.atom_2.charge
+                or self.atom_2.draw.draw_explicit
+            ):
                 new_point_2_x = self.point_2.x - truncation_x
-            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
+            if (
+                self.atom_1.type != "C"
+                or self.atom_1.charge
+                or self.atom_1.draw.draw_explicit
+            ):
                 new_point_1_x = self.point_1.x + truncation_x
 
         if self.point_1.y > self.point_2.y:
-            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
+            if (
+                self.atom_1.type != "C"
+                or self.atom_1.charge
+                or self.atom_1.draw.draw_explicit
+            ):
                 new_point_1_y = self.point_1.y - truncation_y
-            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
+            if (
+                self.atom_2.type != "C"
+                or self.atom_2.charge
+                or self.atom_2.draw.draw_explicit
+            ):
                 new_point_2_y = self.point_2.y + truncation_y
 
         else:
-            if self.atom_2.type != 'C' or self.atom_2.charge or self.atom_2.draw.draw_explicit:
+            if (
+                self.atom_2.type != "C"
+                or self.atom_2.charge
+                or self.atom_2.draw.draw_explicit
+            ):
                 new_point_2_y = self.point_2.y - truncation_y
-            if self.atom_1.type != 'C' or self.atom_1.charge or self.atom_1.draw.draw_explicit:
+            if (
+                self.atom_1.type != "C"
+                or self.atom_1.charge
+                or self.atom_1.draw.draw_explicit
+            ):
                 new_point_1_y = self.point_1.y + truncation_y
 
-        truncated_line = Line(Vector(new_point_1_x, new_point_1_y), Vector(new_point_2_x, new_point_2_y), self.atom_1, self.atom_2)
+        truncated_line = Line(
+            Vector(new_point_1_x, new_point_1_y),
+            Vector(new_point_2_x, new_point_2_y),
+            self.atom_1,
+            self.atom_2,
+        )
         return truncated_line
 
 
@@ -565,7 +652,7 @@ class Vector:
         self.y = float(y)
 
     def __repr__(self):
-        return str(self.x) + ', ' + str(self.y)
+        return str(self.x) + ", " + str(self.y)
 
     def copy(self):
         return Vector(self.x, self.y)
@@ -637,7 +724,7 @@ class Vector:
             return 1
 
     def get_squared_length(self):
-        return self.x ** 2 + self.y ** 2
+        return self.x**2 + self.y**2
 
     def get_squared_distance(self, vector):
         return (vector.x - self.x) ** 2 + (vector.y - self.y) ** 2
@@ -674,11 +761,11 @@ class Vector:
         b = self.x * vector.y
 
         if a > b:
-            return 'clockwise'
+            return "clockwise"
         elif a == b:
-            return 'neutral'
+            return "neutral"
         else:
-            return 'counterclockwise'
+            return "counterclockwise"
 
     def mirror_about_line(self, line_point_1, line_point_2):
 
@@ -688,15 +775,25 @@ class Vector:
         a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
         b = 2 * dx * dy / (dx * dx + dy * dy)
 
-        new_x = a * (self.x - line_point_1.x) + b * (self.y - line_point_1.y) + line_point_1.x
-        new_y = b * (self.x - line_point_1.x) - a * (self.y - line_point_1.y) + line_point_1.y
+        new_x = (
+            a * (self.x - line_point_1.x)
+            + b * (self.y - line_point_1.y)
+            + line_point_1.x
+        )
+        new_y = (
+            b * (self.x - line_point_1.x)
+            - a * (self.y - line_point_1.y)
+            + line_point_1.y
+        )
 
         self.x = new_x
         self.y = new_y
 
     @staticmethod
     def get_position_relative_to_line(vector_start, vector_end, vector):
-        d = (vector.x - vector_start.x) * (vector_end.y - vector_start.y) - (vector.y - vector_start.y) * (vector_end.x - vector_start.x)
+        d = (vector.x - vector_start.x) * (vector_end.y - vector_start.y) - (
+            vector.y - vector_start.y
+        ) * (vector_end.x - vector_start.x)
         if d > 0:
             return 1
         elif d < 0:
@@ -707,15 +804,16 @@ class Vector:
     @staticmethod
     def get_directionality_triangle(vector_a, vector_b, vector_c):
 
-        determinant = (vector_b.x - vector_a.x) * (vector_c.y - vector_a.y) - \
-                      (vector_c.x - vector_a.x) * (vector_b.y - vector_a.y)
+        determinant = (vector_b.x - vector_a.x) * (vector_c.y - vector_a.y) - (
+            vector_c.x - vector_a.x
+        ) * (vector_b.y - vector_a.y)
 
         if determinant < 0:
-            return 'clockwise'
+            return "clockwise"
         elif determinant == 0:
             return None
         else:
-            return 'counterclockwise'
+            return "counterclockwise"
 
     @staticmethod
     def mirror_vector_about_line(line_point_1, line_point_2, point):
@@ -725,8 +823,16 @@ class Vector:
         a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
         b = 2 * dx * dy / (dx * dx + dy * dy)
 
-        x_new = a * (point.x - line_point_1.x) + b * (point.y - line_point_1.y) + line_point_1.x
-        y_new = b * (point.x - line_point_1.x) - a * (point.y - line_point_1.y) + line_point_1.y
+        x_new = (
+            a * (point.x - line_point_1.x)
+            + b * (point.y - line_point_1.y)
+            + line_point_1.x
+        )
+        y_new = (
+            b * (point.x - line_point_1.x)
+            - a * (point.y - line_point_1.y)
+            + line_point_1.y
+        )
 
         return Vector(x_new, y_new)
 
@@ -774,8 +880,16 @@ class Vector:
 
     @staticmethod
     def get_angle_between_vectors(vector_1, vector_2, origin):
-        return math.acos(((vector_1.x - origin.x) * (vector_2.x - origin.x) + (vector_1.y - origin.y) * (vector_2.y - origin.y)) /
-                         (math.sqrt((vector_1.x - origin.x)**2 + (vector_1.y - origin.y)**2) * math.sqrt((vector_2.x - origin.x)**2 + (vector_2.y - origin.y)**2)))
+        return math.acos(
+            (
+                (vector_1.x - origin.x) * (vector_2.x - origin.x)
+                + (vector_1.y - origin.y) * (vector_2.y - origin.y)
+            )
+            / (
+                math.sqrt((vector_1.x - origin.x) ** 2 + (vector_1.y - origin.y) ** 2)
+                * math.sqrt((vector_2.x - origin.x) ** 2 + (vector_2.y - origin.y) ** 2)
+            )
+        )
         # difference = Vector.subtract_vectors(vector_2, vector_1)
 
         # return difference.angle()
@@ -785,6 +899,7 @@ class Triangle:
     """
     The Awesome Triangle Class, dedicated to Jay
     """
+
     def __init__(self, point_1, point_2, point_3):
         self.point_1 = point_1
         self.point_2 = point_2
@@ -797,7 +912,12 @@ class Triangle:
         self.s = (self.edge_length_1 + self.edge_length_2 + self.edge_length_3) / 2.0
 
     def get_squared_area(self):
-        return self.s * (self.s - self.edge_length_1) * (self.s - self.edge_length_2) * (self.s - self.edge_length_3)
+        return (
+            self.s
+            * (self.s - self.edge_length_1)
+            * (self.s - self.edge_length_2)
+            * (self.s - self.edge_length_3)
+        )
 
     def get_area(self):
         return math.sqrt(self.get_squared_area())
@@ -832,14 +952,11 @@ if __name__ == "__main__":
     vector_4 = Vector(82.01933537136128, 44.58050841492202)
 
     vector_4.mirror_about_line(vector_1, vector_2)
-    labels = ['1', '2', '3', '4']
+    labels = ["1", "2", "3", "4"]
     vectors = [vector_1, vector_2, vector_3, vector_4]
-    plt.gca().set_aspect('equal')
-    plt.scatter([vector.x for vector in vectors], [vector.y for vector in vectors], label=labels)
+    plt.gca().set_aspect("equal")
+    plt.scatter(
+        [vector.x for vector in vectors], [vector.y for vector in vectors], label=labels
+    )
 
     plt.show()
-
-
-
-
-

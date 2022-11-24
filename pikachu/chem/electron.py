@@ -13,16 +13,18 @@ class Electron:
     def __repr__(self):
 
         if self.aromatic:
-            aromatic_string = '*'
+            aromatic_string = "*"
         else:
-            aromatic_string = ''
+            aromatic_string = ""
         if self.orbital_nr:
-            return f'{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}{self.orbital_nr}_{self.spin}{aromatic_string}'
+            return f"{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}{self.orbital_nr}_{self.spin}{aromatic_string}"
         else:
-            return f'{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}_{self.spin}{aromatic_string}'
+            return f"{self.atom}_{self.id}_{self.shell_nr}{self.orbital_type}_{self.spin}{aromatic_string}"
 
     def __eq__(self, other):
-        if type(self) == type(other) and hash((self.id, self.atom.nr)) == hash((other.id, other.atom.nr)):
+        if type(self) == type(other) and hash((self.id, self.atom.nr)) == hash(
+            (other.id, other.atom.nr)
+        ):
             return True
 
         return False

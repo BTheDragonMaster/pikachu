@@ -58,7 +58,8 @@ def simple_cycles(G):
                 blocked.remove(node)
                 stack.update(B[node])
                 B[node].clear()
-    G = {v: set(nbrs) for (v, nbrs) in G.items()} # make a copy of the graph
+
+    G = {v: set(nbrs) for (v, nbrs) in G.items()}  # make a copy of the graph
     sccs = strongly_connected_components(G)
     while sccs:
         scc = sccs.pop()
@@ -68,7 +69,7 @@ def simple_cycles(G):
         closed = set()
         blocked.add(startnode)
         B = defaultdict(set)
-        stack = [ (startnode, list(G[startnode])) ]
+        stack = [(startnode, list(G[startnode]))]
         while stack:
             thisnode, nbrs = stack[-1]
             if nbrs:
@@ -78,13 +79,13 @@ def simple_cycles(G):
                     closed.update(path)
                 elif nextnode not in blocked:
                     path.append(nextnode)
-                    stack.append( (nextnode,list(G[nextnode])) )
+                    stack.append((nextnode, list(G[nextnode])))
                     closed.discard(nextnode)
                     blocked.add(nextnode)
                     continue
             if not nbrs:
                 if thisnode in closed:
-                    _unblock(thisnode,blocked,B)
+                    _unblock(thisnode, blocked, B)
                 else:
                     for nbr in G[thisnode]:
                         if thisnode not in B[nbr]:
@@ -107,20 +108,20 @@ def strongly_connected_components(graph):
     lowlink = {}
     index = {}
     result = []
-    
+
     def _strong_connect(node):
         index[node] = index_counter[0]
         lowlink[node] = index_counter[0]
         index_counter[0] += 1
         stack.append(node)
-    
+
         successors = graph[node]
         for successor in successors:
             if successor not in index:
                 _strong_connect(successor)
-                lowlink[node] = min(lowlink[node],lowlink[successor])
+                lowlink[node] = min(lowlink[node], lowlink[successor])
             elif successor in stack:
-                lowlink[node] = min(lowlink[node],index[successor])
+                lowlink[node] = min(lowlink[node], index[successor])
 
         if lowlink[node] == index[node]:
             connected_component = []
@@ -128,13 +129,14 @@ def strongly_connected_components(graph):
             while True:
                 successor = stack.pop()
                 connected_component.append(successor)
-                if successor == node: break
+                if successor == node:
+                    break
             result.append(connected_component[:])
-    
+
     for node in graph:
         if node not in index:
             _strong_connect(node)
-    
+
     return result
 
 
@@ -196,7 +198,7 @@ class Cycles:
                     break
             if add_cycle:
                 sssr.append(cycle)
-                
+
             for atom in cycle:
                 atoms.add(atom)
 
@@ -215,7 +217,7 @@ class Cycles:
                 cycle_components = tuple(cycle_components)
                 if len(cycle_components) < 10:
                     unique_cycles.add(cycle_components)
-        
+
         self.unique_cycles = unique_cycles
 
     def make_microcycle_graph(self):
@@ -311,14 +313,14 @@ class Cycles:
         bond_dict: dict of {atom: remaining_bonds, ->}, with atom tuple of
             (str, int), with str atom type and int atom number, and remaining
             bonds int
-            
+
         Output:
         start_atoms: list of [atom, ->], with each atom a tuple of (str, int),
             with str atom type and int atom number
 
 
         """
-        
+
         start_atoms = []
         for path in paths:
             for atom in path:
@@ -345,14 +347,13 @@ class Cycles:
         """
 
         nodes = list(self.graph.keys())
-        
+
         current_atom = start_atom
         path = [current_atom]
 
         if len(self.graph[current_atom]) == 0:
             path = [current_atom]
             return path
-
 
         # keep trying to extend the path until there are no bonds to traverse
         while True:
@@ -379,10 +380,10 @@ class Cycles:
 
                 if not self.graph[current_atom]:
                     del self.graph[current_atom]
-                
+
             except KeyError:
                 break
-            
+
         return path
 
     def remove_connectors(self):
@@ -450,4 +451,3 @@ class Cycles:
                 start_nodes.append(atom)
 
         return start_nodes
-        

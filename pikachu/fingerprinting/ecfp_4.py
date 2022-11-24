@@ -22,7 +22,7 @@ class ECFP:
 
     def set_initial_identifiers(self):
         for atom in self.structure.graph:
-            if atom.type != 'H' and atom.type != '*':
+            if atom.type != "H" and atom.type != "*":
                 if atom.chiral:
                     self.disambiguated_chiral[atom] = False
 
@@ -38,7 +38,9 @@ class ECFP:
                 bonds = set(atom.get_non_hydrogen_bonds())
                 self.bonds[initial_identifier] = bonds
 
-                feature = tuple(sorted(list(bonds) + [atom], key=lambda x: (x.nr, x.type)))
+                feature = tuple(
+                    sorted(list(bonds) + [atom], key=lambda x: (x.nr, x.type))
+                )
                 self.features[feature] = (initial_identifier, 0, atom)
                 self.hash_to_feature[initial_identifier] = feature
 
@@ -88,18 +90,23 @@ class ECFP:
                         neighbour_identifier = self.identifiers[neighbour][i]
                         neighbour_identifiers_sorted.append(neighbour_identifier)
 
-                    if len(neighbour_identifiers_sorted) == len(set(neighbour_identifiers_sorted)):
+                    if len(neighbour_identifiers_sorted) == len(
+                        set(neighbour_identifiers_sorted)
+                    ):
 
                         for neighbour in atom.neighbours:
-                            if neighbour.type == 'H':
-                                neighbour_identifier = 'dummy'
+                            if neighbour.type == "H":
+                                neighbour_identifier = "dummy"
                             else:
                                 neighbour_identifier = self.identifiers[neighbour][i]
                             neighbour_identifiers.append(neighbour_identifier)
 
-                        chirality = find_chirality_from_nonh(neighbour_identifiers, neighbour_identifiers_sorted,
-                                                             atom.chiral)
-                        if chirality == 'clockwise':
+                        chirality = find_chirality_from_nonh(
+                            neighbour_identifiers,
+                            neighbour_identifiers_sorted,
+                            atom.chiral,
+                        )
+                        if chirality == "clockwise":
                             array.append(1)
                         else:
                             array.append(0)
@@ -116,13 +123,18 @@ class ECFP:
                 bond_set = bond_set.union(neighbouring_bonds)
                 self.bonds[new_identifier] = bond_set
 
-                feature = tuple(sorted(list(bond_set) + list(self.seen_atoms[atom][i + 1]), key=lambda x: (x.nr, x.type)))
+                feature = tuple(
+                    sorted(
+                        list(bond_set) + list(self.seen_atoms[atom][i + 1]),
+                        key=lambda x: (x.nr, x.type),
+                    )
+                )
 
                 if feature not in self.features:
                     new_features.append((feature, new_identifier, atom))
 
             new_features.sort(key=lambda x: tuple([y.nr for y in x[0]] + [x[1]]))
-            #new_features.sort()
+            # new_features.sort()
             previous_feature = None
             previous_atom = None
 
@@ -156,14 +168,12 @@ def build_ecfp_bitvector(structures, depth=2, bits=1024):
                 substructure_to_count[identifier] = 0
             substructure_to_count[identifier] += 1
 
-    substructures = sorted(list(substructure_to_count.items()), key=lambda x: x[1], reverse=True)
+    substructures = sorted(
+        list(substructure_to_count.items()), key=lambda x: x[1], reverse=True
+    )
     bitvector_substructures = [x[0] for x in substructures[:bits]]
     bitvector_mapping = {}
     for substructure in bitvector_substructures:
         bitvector_mapping[substructure] = identifier_to_feature[substructure]
 
     return bitvector_substructures, bitvector_mapping
-
-
-
-

@@ -100,8 +100,9 @@ def find_clashes_rdkit(smiles):
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
 
     if av_bond_length:
-        clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
-
+        clashes = find_steric_clashes(
+            atoms, atom_positions, av_bond_length, bond_lookup
+        )
 
     # Only happens if there are no bonds in the structure.
     else:
@@ -117,7 +118,9 @@ def find_clashes_pikachu(smiles):
     av_bond_length = find_average_bond_length(atoms, atom_positions, bond_lookup)
 
     if av_bond_length:
-        clashes = find_steric_clashes(atoms, atom_positions, av_bond_length, bond_lookup)
+        clashes = find_steric_clashes(
+            atoms, atom_positions, av_bond_length, bond_lookup
+        )
 
     # Only happens if there are no bonds in the structure.
     else:
@@ -137,9 +140,9 @@ def assess_tools(smiles_file, failed_out, clashes_out):
 
     failed_smiles_rdkit = 0
     failed_smiles_pikachu = 0
-    clashes = open(clashes_out, 'w')
-    failed = open(failed_out, 'w')
-    with open(smiles_file, 'r') as smi:
+    clashes = open(clashes_out, "w")
+    failed = open(failed_out, "w")
+    with open(smiles_file, "r") as smi:
         for i, line in enumerate(smi):
             smiles = line.strip()
             # try:
@@ -174,8 +177,8 @@ def assess_tools(smiles_file, failed_out, clashes_out):
                 print(f"Clashing structures PIKAChU: {clashing_structures_pikachu}")
                 # print(f"Failed SMILES RDKit: {failed_smiles_rdkit}")
                 print(f"Failed SMILES PIKAChU: {failed_smiles_pikachu}")
-                print('\n')
-                
+                print("\n")
+
             if i == 100000:
 
                 break
@@ -192,10 +195,6 @@ def assess_tools(smiles_file, failed_out, clashes_out):
 
 if __name__ == "__main__":
     smiles_file = argv[1]
-    failed = smiles_file.split('.')[0] + '_failed_steric.txt'
-    clashing = smiles_file.split('.')[0] + '_clashing_steric.txt'
+    failed = smiles_file.split(".")[0] + "_failed_steric.txt"
+    clashing = smiles_file.split(".")[0] + "_clashing_steric.txt"
     assess_tools(smiles_file, failed, clashing)
-
-
-
-
