@@ -4,22 +4,11 @@ from pikachu.math_functions import Vector
 
 
 class MolFileReader:
-    value_to_charge = {7: -3,
-                       6: -2,
-                       5: -1,
-                       0: 0,
-                       3: 1,
-                       2: 2,
-                       1: 3}
+    value_to_charge = {7: -3, 6: -2, 5: -1, 0: 0, 3: 1, 2: 2, 1: 3}
 
-    value_to_bond = {1: 'single',
-                     2: 'double',
-                     3: 'triple',
-                     4: 'aromatic'}
+    value_to_bond = {1: "single", 2: "double", 3: "triple", 4: "aromatic"}
 
-    value_to_chiral_symbol = {0: None,
-                              1: '/',
-                              6: '\\'}
+    value_to_chiral_symbol = {0: None, 1: "/", 6: "\\"}
 
     def __init__(self, molfile=None, molfile_str=None):
         # Instantiate MolFileReader with mol_file_str or mol_file_path
@@ -31,7 +20,7 @@ class MolFileReader:
             raise ValueError(err)
         # Raise error when too many arguments were given
         if not molfile and not molfile_str:
-            raise ValueError(f'{err} (both were given)')
+            raise ValueError(f"{err} (both were given)")
         self.molfile_lines = self.get_molfile_lines()
         self.structure = Structure()
 
@@ -72,11 +61,11 @@ class MolFileReader:
     def get_molfile_lines(self):
         # Access lines of molfile
         if self.molfile_str:
-            molfile_lines = self.molfile_str.split('\n')
+            molfile_lines = self.molfile_str.split("\n")
         else:
-            with open(self.molfile_path, 'r') as mol_file:
+            with open(self.molfile_path, "r") as mol_file:
                 molfile_lines = mol_file.read()
-                molfile_lines = molfile_lines.split('\n')
+                molfile_lines = molfile_lines.split("\n")
         return molfile_lines
 
     def get_molfile_components(self):

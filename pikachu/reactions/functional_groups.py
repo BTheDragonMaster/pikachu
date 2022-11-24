@@ -4,7 +4,6 @@ from pikachu.chem.bond import Bond
 
 
 class IndexTracker:
-
     def __init__(self):
         self.atoms = {}
         self.bonds = {}
@@ -24,26 +23,26 @@ def find_bonds(bond_neighbourhood, structure):
 
     locations = structure.find_substructures(bond_neighbourhood.structure)
     bonds = []
-    
+
     for match in locations:
         atom_1 = None
         atom_2 = None
 
-        if bond_neighbourhood.atom_1.type != 'H':
+        if bond_neighbourhood.atom_1.type != "H":
             atom_1 = match.atoms[bond_neighbourhood.atom_1]
-        elif bond_neighbourhood.atom_2.type != 'H':
+        elif bond_neighbourhood.atom_2.type != "H":
             atom_2 = match.atoms[bond_neighbourhood.atom_2]
-            if atom_2.has_neighbour('H'):
-                atom_1 = atom_2.get_neighbour('H')
+            if atom_2.has_neighbour("H"):
+                atom_1 = atom_2.get_neighbour("H")
             else:
                 continue
 
-        if bond_neighbourhood.atom_2.type != 'H':
+        if bond_neighbourhood.atom_2.type != "H":
             atom_2 = match.atoms[bond_neighbourhood.atom_2]
-        elif bond_neighbourhood.atom_1.type != 'H':
+        elif bond_neighbourhood.atom_1.type != "H":
             atom_1 = match.atoms[bond_neighbourhood.atom_1]
-            if atom_1.has_neighbour('H'):
-                atom_2 = atom_1.get_neighbour('H')
+            if atom_1.has_neighbour("H"):
+                atom_2 = atom_1.get_neighbour("H")
             else:
                 continue
         if atom_1 and atom_2:
@@ -67,14 +66,14 @@ def find_atoms(atom_neighbourhood, structure):
     locations = structure.find_substructures(atom_neighbourhood.structure)
     atoms = []
     for match in locations:
-        if atom_neighbourhood.atom_1.type != 'H':
+        if atom_neighbourhood.atom_1.type != "H":
             atom = match.atoms[atom_neighbourhood.atom_1]
             atoms.append(atom)
         else:
             neighbour = atom_neighbourhood.atom_1.neighbours[0]
-            if neighbour.type != 'H':
+            if neighbour.type != "H":
                 neighbouring_atom = match.atoms[neighbour]
-                atom = neighbouring_atom.get_neighbour('H')
+                atom = neighbouring_atom.get_neighbour("H")
                 atoms.append(atom)
 
     return list(set(atoms))
@@ -91,6 +90,7 @@ class BondDefiner:
     atom_1: int, index of atom 1 in the bond in the smiles string
     atom_2: int, index of atom 2 in the bond in the smiles string
     """
+
     def __init__(self, name, smiles, atom_nr_1, atom_nr_2):
         self.name = name
         self.smiles = Smiles(smiles)
@@ -205,10 +205,10 @@ def combine_structures(structures):
         new_bonds.update(structure.bonds)
 
     new_structure = Structure(new_graph, new_bonds)
-    
+
     for new_annotation, default in new_annotations:
         new_structure.add_attribute(new_annotation, default)
-        
+
     new_structure.make_bond_lookup()
     new_structure.refresh_structure(find_cycles=True)
 

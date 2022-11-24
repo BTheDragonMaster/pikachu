@@ -41,7 +41,7 @@ class AromaticSystem:
     def set_electrons(self):
         for atom in self.atoms:
 
-            p_orbital = atom.get_orbitals('p')[0]
+            p_orbital = atom.get_orbitals("p")[0]
             electrons_participate_in_system = True
             for electron in p_orbital.electrons:
                 if electron.atom not in self.atoms:
@@ -59,7 +59,7 @@ class AromaticSystem:
 
     def relocalise_electrons(self):
         for atom in self.atoms:
-            p_orbital = atom.get_orbitals('p')[0]
+            p_orbital = atom.get_orbitals("p")[0]
             electrons = self.get_contributed_electrons(atom)
             for electron in electrons:
                 p_orbital.add_electron(electron)

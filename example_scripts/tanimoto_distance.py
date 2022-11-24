@@ -8,28 +8,29 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
 from sklearn.manifold import TSNE
 
-PROTEINOGENIC = {"alanine",
-                 "cysteine",
-                 "aspartate",
-                 "glutamate"
-                 "aspartic acid",
-                 "glutamic acid",
-                 "phenylalanine",
-                 "glycine",
-                 "histidine",
-                 "isoleucine",
-                 "lysine",
-                 "leucine",
-                 "methionine",
-                 "asparagine",
-                 "proline",
-                 "glutamine",
-                 "arginine",
-                 "serine",
-                 "threonine",
-                 "valine",
-                 "tryptophan",
-                 "tyrosine"}
+PROTEINOGENIC = {
+    "alanine",
+    "cysteine",
+    "aspartate",
+    "glutamate" "aspartic acid",
+    "glutamic acid",
+    "phenylalanine",
+    "glycine",
+    "histidine",
+    "isoleucine",
+    "lysine",
+    "leucine",
+    "methionine",
+    "asparagine",
+    "proline",
+    "glutamine",
+    "arginine",
+    "serine",
+    "threonine",
+    "valine",
+    "tryptophan",
+    "tyrosine",
+}
 
 
 def plot_tanimoto_distances(matrix):
@@ -50,16 +51,18 @@ def plot_tanimoto_distances(matrix):
     coords = results.embedding_
 
     plt.subplots_adjust(bottom=0.1)
-    plt.scatter(
-        coords[:, 0], coords[:, 1], marker='o'
-        )
+    plt.scatter(coords[:, 0], coords[:, 1], marker="o")
     for label, x, y in zip(sorted_compounds, coords[:, 0], coords[:, 1]):
         plt.annotate(
             label,
-            xy=(x, y), xytext=(0, 20),
-            textcoords='offset points', ha='right', va='bottom',
-            bbox=dict(boxstyle='round,pad=0.5', fc='grey', alpha=0.2),
-            arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+            xy=(x, y),
+            xytext=(0, 20),
+            textcoords="offset points",
+            ha="right",
+            va="bottom",
+            bbox=dict(boxstyle="round,pad=0.5", fc="grey", alpha=0.2),
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=0"),
+        )
 
     plt.savefig("tanimoto.svg")
 
@@ -109,8 +112,9 @@ def make_tsne_matrix(matrix):
 
     tsne_dict = {}
 
-    res_tsne = TSNE(n_components=2, metric='precomputed',
-                    random_state=0).fit_transform(distances)
+    res_tsne = TSNE(n_components=2, metric="precomputed", random_state=0).fit_transform(
+        distances
+    )
 
     for i in range(len(sorted_compounds)):
         tsne_dict[sorted_compounds[i]] = list(res_tsne[i, :])
@@ -140,23 +144,29 @@ def plot_tsne(tsne_vals):
     for label, x, y in zip(sorted_compounds, x_coors, y_coors):
         plt.annotate(
             label,
-            xy=(x, y), xytext=(0, 20),
-            textcoords='offset points', ha='right', va='bottom',
-            bbox=dict(boxstyle='round,pad=0.5', fc='grey', alpha=0.2),
-            arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+            xy=(x, y),
+            xytext=(0, 20),
+            textcoords="offset points",
+            ha="right",
+            va="bottom",
+            bbox=dict(boxstyle="round,pad=0.5", fc="grey", alpha=0.2),
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=0"),
+        )
 
     plt.savefig("tanimoto.svg")
- #   plt.show()
+
+
+#   plt.show()
 
 
 def parse_smiles(tbd_file):
     name_to_compound = {}
-    with open(tbd_file, 'r') as tbd:
+    with open(tbd_file, "r") as tbd:
         tbd.readline()
         for line in tbd:
             line = line.strip()
             if line:
-                compound_name, smiles = line.split('\t')
+                compound_name, smiles = line.split("\t")
                 try:
                     structure = read_smiles(smiles)
                 except Exception:
@@ -167,20 +177,24 @@ def parse_smiles(tbd_file):
                     print(f"Couldn't convert {compound_name}.")
     return name_to_compound
 
+
 def write_network(matrix, out_file):
-    with open(out_file, 'w') as out:
+    with open(out_file, "w") as out:
         out.write("Compound 1\tDistance\tCompound 2\n")
         for compound_1 in matrix:
             for compound_2 in matrix[compound_1]:
                 if compound_1 != compound_2:
-                    out.write(f"{compound_1.title()}\t{1 - matrix[compound_1][compound_2]}\t{compound_2.title()}\n")
+                    out.write(
+                        f"{compound_1.title()}\t{1 - matrix[compound_1][compound_2]}\t{compound_2.title()}\n"
+                    )
+
 
 def is_amino_acid(name_to_compound, out_dir):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
     out_file = os.path.join(out_dir, "substrate_identities.txt")
-    with open(out_file, 'w') as out:
+    with open(out_file, "w") as out:
         out.write("Substrate\tamino acid\n")
         for name, structure in name_to_compound.items():
             is_amino_acid = False
@@ -205,11 +219,6 @@ def is_amino_acid(name_to_compound, out_dir):
             svg_from_structure(structure, os.path.join(out_dir, f"{name}.svg"))
 
 
-
-
-
-
-
 if __name__ == "__main__":
     tbd_file = argv[1]
     out_file = argv[2]
@@ -219,6 +228,6 @@ if __name__ == "__main__":
     write_network(matrix, out_file)
     is_amino_acid(name_to_compound, out_2)
 
-   # plot_tanimoto_distances(matrix)
-    # tsne_dict = make_tsne_matrix(matrix)
-    # plot_tsne(tsne_dict)
+# plot_tanimoto_distances(matrix)
+# tsne_dict = make_tsne_matrix(matrix)
+# plot_tsne(tsne_dict)

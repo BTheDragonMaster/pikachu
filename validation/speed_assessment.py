@@ -34,7 +34,9 @@ def substructure_matching_speed_pikachu(smiles, subsmiles):
             has_substructure.append(len(matches))
 
     time_1 = time.time()
-    print(f'Time spent by PIKAChU finding {len(subsmiles)} substructures in {len(smiles)} structures: {time_1 - start_time}')
+    print(
+        f"Time spent by PIKAChU finding {len(subsmiles)} substructures in {len(smiles)} structures: {time_1 - start_time}"
+    )
 
     return has_substructure
 
@@ -58,13 +60,15 @@ def drawing_speed_pikachu(smiles, measuring_points):
 
         if drawn_smiles in measuring_points:
             time_1 = time.time()
-            print(f'Time spent by PIKAChU drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+            print(
+                f"Time spent by PIKAChU drawing {drawn_smiles} SMILES: {time_1 - start_time}"
+            )
             print(f"Failed smiles: {failed_smiles}")
 
         if drawn_smiles == measuring_points[-1]:
             break
 
-    print(f'Time spent by PIKAChU drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+    print(f"Time spent by PIKAChU drawing {drawn_smiles} SMILES: {time_1 - start_time}")
     print(f"Failed smiles: {failed_smiles}")
 
 
@@ -88,12 +92,14 @@ def reading_speed_pikachu(smiles, measuring_points):
 
         if r_smiles in measuring_points:
             time_1 = time.time()
-            print(f'Time spent by PIKAChU reading {r_smiles} SMILES: {time_1 - start_time}')
+            print(
+                f"Time spent by PIKAChU reading {r_smiles} SMILES: {time_1 - start_time}"
+            )
             print(f"Failed smiles: {failed_smiles}")
         if r_smiles == measuring_points[-1]:
             break
 
-    print(f'Time spent by PIKAChU reading {r_smiles} SMILES: {time_1 - start_time}')
+    print(f"Time spent by PIKAChU reading {r_smiles} SMILES: {time_1 - start_time}")
     print(f"Failed smiles: {failed_smiles}")
 
 
@@ -108,7 +114,9 @@ def substructure_matching_speed_rdkit(smiles, subsmiles):
             has_substructure.append(len(matches))
 
     time_1 = time.time()
-    print(f'Time spent by RDKit finding {len(subsmiles)} substructures in {len(smiles)} structures: {time_1 - start_time}')
+    print(
+        f"Time spent by RDKit finding {len(subsmiles)} substructures in {len(smiles)} structures: {time_1 - start_time}"
+    )
 
     return has_substructure
 
@@ -123,14 +131,16 @@ def drawing_speed_rdkit(smiles, measuring_points):
 
         if drawn_smiles in measuring_points:
             time_1 = time.time()
-            print(f'Time spent by RDKit drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+            print(
+                f"Time spent by RDKit drawing {drawn_smiles} SMILES: {time_1 - start_time}"
+            )
 
         if drawn_smiles == measuring_points[-1]:
             break
 
     time_1 = time.time()
 
-    print(f'Time spent by RDKit drawing {drawn_smiles} SMILES: {time_1 - start_time}')
+    print(f"Time spent by RDKit drawing {drawn_smiles} SMILES: {time_1 - start_time}")
 
 
 def reading_speed_rdkit(smiles, measuring_points):
@@ -139,7 +149,7 @@ def reading_speed_rdkit(smiles, measuring_points):
         x = MolFromSmiles(s)
 
     time_1 = time.time()
-    print(f'Time spent by RDKit reading {len(smiles)} SMILES: {time_1 - start_time}')
+    print(f"Time spent by RDKit reading {len(smiles)} SMILES: {time_1 - start_time}")
 
 
 def compare_substructure_matching_outcomes(pikachu_list, rdkit_list):
@@ -160,12 +170,12 @@ def compare_substructure_matching_outcomes(pikachu_list, rdkit_list):
 
 def read_smiles_file(smiles_file):
     smiles_strings = []
-    with open(smiles_file, 'r') as s_file:
+    with open(smiles_file, "r") as s_file:
         for line in s_file:
             smiles = line.strip()
             if smiles:
                 smiles_strings.append(smiles)
-                
+
     seed(11)
     shuffle(smiles_strings)
     return smiles_strings
@@ -187,7 +197,7 @@ if __name__ == "__main__":
     # drawing_speed_pikachu(smiles_strings, measuring_points)
 
     print("Reading")
-    #reading_speed_pikachu(smiles_strings, measuring_points)
+    # reading_speed_pikachu(smiles_strings, measuring_points)
     drawing_speed_rdkit(smiles_strings, measuring_points)
 
     # drawing_speed_rdkit(smiles_strings)
@@ -197,7 +207,3 @@ if __name__ == "__main__":
     # rdkit_list = substructure_matching_speed_pikachu(supersmiles_strings, subsmiles_strings)
     #
     # correct, incorrect, mistake_indices = compare_substructure_matching_outcomes(pikachu_list, rdkit_list)
-
-    
-
-

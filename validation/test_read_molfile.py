@@ -9,8 +9,8 @@ Unit tests for MolFileReader class
 class TestMolFileReader:
     # Define test molfile_path and molefile_str
     test_dir = os.path.split(__file__)[0]
-    molfile_path = os.path.join(test_dir, 'temp.mol')
-    with open(molfile_path, 'r') as molfile:
+    molfile_path = os.path.join(test_dir, "temp.mol")
+    with open(molfile_path, "r") as molfile:
         molfile_str = molfile.read()
 
     def test_constructor(self):

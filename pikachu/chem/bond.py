@@ -3,7 +3,15 @@ from pikachu.errors import StructureError
 
 
 class Bond:
-    bond_types = {'single', 'double', 'triple', 'quadruple', 'aromatic', 'ionic', 'dummy'}
+    bond_types = {
+        "single",
+        "double",
+        "triple",
+        "quadruple",
+        "aromatic",
+        "ionic",
+        "dummy",
+    }
 
     def __init__(self, atom_1, atom_2, bond_type, bond_nr):
         atoms = [atom_1, atom_2]
@@ -24,16 +32,16 @@ class Bond:
         self.type = bond_type
         self.nr = bond_nr
         self.aromatic = False
-        if bond_type == 'aromatic':
+        if bond_type == "aromatic":
             self.aromatic = True
         self.electrons = []
-        self.bond_summary = ''
+        self.bond_summary = ""
         self.set_bond_summary()
 
         self.chiral = False
         self.chiral_dict = {}
 
-        if self.type == 'dummy':
+        if self.type == "dummy":
             self.cbond = 0.3
 
         else:
@@ -52,7 +60,7 @@ class Bond:
         return self.nr
 
     def __repr__(self):
-        return f'{self.type}_{self.nr}:{self.atom_1}_{self.atom_2}'
+        return f"{self.type}_{self.nr}:{self.atom_1}_{self.atom_2}"
 
     def get_connected_atom(self, atom):
         assert atom in self.neighbours
@@ -99,12 +107,12 @@ class Bond:
 
     def set_bond_summary(self):
         atom_types = sorted([atom.type for atom in self.neighbours])
-        self.bond_summary = '_'.join([atom_types[0], self.type, atom_types[1]])
+        self.bond_summary = "_".join([atom_types[0], self.type, atom_types[1]])
 
     def remove_pi_bond_electrons(self):
         electrons_to_remove = []
         for electron in self.electrons:
-            if electron.orbital.bonding_orbital == 'pi':
+            if electron.orbital.bonding_orbital == "pi":
                 electrons_to_remove.append(electron)
 
         for electron in electrons_to_remove:
@@ -117,10 +125,10 @@ class Bond:
         TODO: Keep track of the ids of aromatic systems
 
         """
-        if self.type == 'double':
+        if self.type == "double":
             self.remove_pi_bond_electrons()
 
-        self.type = 'aromatic'
+        self.type = "aromatic"
 
         self.atom_1.aromatic = True
         self.atom_2.aromatic = True
@@ -146,13 +154,15 @@ class Bond:
         """
         same_chirality = True
         for atom in self.chiral_dict:
-            if atom.type != 'H':
+            if atom.type != "H":
                 parent_atom = match[atom]
                 for atom_2 in self.chiral_dict[atom]:
-                    if atom_2.type != 'H':
+                    if atom_2.type != "H":
                         parent_atom_2 = match[atom_2]
                         orientation = self.chiral_dict[atom][atom_2]
-                        parent_orientation = parent_bond.chiral_dict[parent_atom][parent_atom_2]
+                        parent_orientation = parent_bond.chiral_dict[parent_atom][
+                            parent_atom_2
+                        ]
                         if orientation != parent_orientation:
                             same_chirality = False
                             break
@@ -167,7 +177,7 @@ class Bond:
 
         Note: the products left behind will be radicals!
         """
-        assert self.type == 'single'
+        assert self.type == "single"
 
         electron_1, electron_2 = self.electrons
         orbital_1 = electron_1.orbital
@@ -193,7 +203,7 @@ class Bond:
         s_bonding_orbital_1 = None
         s_bonding_orbital_2 = None
 
-        s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals('s')
+        s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals("s")
         for orbital in s_bonding_orbitals_1:
             if orbital.electron_nr == 1:
                 s_bonding_orbital_1 = orbital
@@ -201,7 +211,7 @@ class Bond:
         if not s_bonding_orbital_1:
             if self.atom_1.is_promotable():
                 self.atom_1.promote_pi_bond_to_d_orbital()
-                s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals('s')
+                s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals("s")
 
                 for orbital in s_bonding_orbitals_1:
                     if orbital.electron_nr == 1:
@@ -212,7 +222,7 @@ class Bond:
                 self.atom_1.valence_shell.print_shell()
                 raise StructureError("sigma bond")
 
-        s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals('s')
+        s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals("s")
         for orbital in s_bonding_orbitals_2:
             if orbital.electron_nr == 1:
                 s_bonding_orbital_2 = orbital
@@ -220,7 +230,7 @@ class Bond:
         if not s_bonding_orbital_2:
             if self.atom_2.is_promotable():
                 self.atom_2.promote_pi_bond_to_d_orbital()
-                s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals('s')
+                s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals("s")
 
                 for orbital in s_bonding_orbitals_2:
                     if orbital.electron_nr == 1:
@@ -240,17 +250,17 @@ class Bond:
         s_bonding_orbital_1.add_electron(electron_2)
         s_bonding_orbital_2.add_electron(electron_1)
 
-        s_bonding_orbital_1.set_bond(self, 'sigma')
-        s_bonding_orbital_2.set_bond(self, 'sigma')
+        s_bonding_orbital_1.set_bond(self, "sigma")
+        s_bonding_orbital_2.set_bond(self, "sigma")
 
     def make_single(self):
 
-        assert self.type == 'double'
+        assert self.type == "double"
 
         double_bond_electrons = []
 
         for electron in self.electrons:
-            if electron.orbital.bonding_orbital == 'pi':
+            if electron.orbital.bonding_orbital == "pi":
                 double_bond_electrons.append(electron)
 
         assert len(double_bond_electrons) == 2
@@ -269,11 +279,11 @@ class Bond:
         self.electrons.remove(electron_1)
         self.electrons.remove(electron_2)
 
-        self.type = 'single'
+        self.type = "single"
         self.set_bond_summary()
 
     def make_double(self):
-        assert self.type == 'single'
+        assert self.type == "single"
 
         electron_1 = None
         electron_2 = None
@@ -296,19 +306,19 @@ class Bond:
         orbital_1.add_electron(electron_2)
         orbital_2.add_electron(electron_1)
 
-        orbital_1.set_bond(self, 'pi')
-        orbital_2.set_bond(self, 'pi')
+        orbital_1.set_bond(self, "pi")
+        orbital_2.set_bond(self, "pi")
 
         self.electrons.append(electron_1)
         self.electrons.append(electron_2)
-        self.type = 'double'
+        self.type = "double"
 
         self.atom_1.reset_hybridisation()
         self.atom_2.reset_hybridisation()
 
         self.atom_1.chiral = None
         self.atom_2.chiral = None
-        
+
         self.set_bond_summary()
 
     def combine_p_orbitals(self):
@@ -316,15 +326,21 @@ class Bond:
         Combine the electrons of two p-orbitals to form a pi-bond
         """
 
-        assert self.type != 'single'
+        assert self.type != "single"
 
-        if self.atom_1.pyrrole or self.atom_2.pyrrole or self.atom_1.thiophene or self.atom_2.thiophene or \
-                self.atom_1.furan or self.atom_2.furan:
+        if (
+            self.atom_1.pyrrole
+            or self.atom_2.pyrrole
+            or self.atom_1.thiophene
+            or self.atom_2.thiophene
+            or self.atom_1.furan
+            or self.atom_2.furan
+        ):
             pass
         else:
             p_bonding_orbitals_1 = []
             electrons_found = 0
-            p_orbitals_1 = self.atom_1.get_orbitals('p')
+            p_orbitals_1 = self.atom_1.get_orbitals("p")
 
             for p_orbital in p_orbitals_1:
                 if p_orbital.electron_nr == 1:
@@ -333,12 +349,15 @@ class Bond:
 
                     # Look up how many p orbitals are required for the formation of a certain type of bond
 
-                    if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
+                    if (
+                        electrons_found
+                        == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]
+                    ):
                         break
 
             p_bonding_orbitals_2 = []
             electrons_found = 0
-            p_orbitals_2 = self.atom_2.get_orbitals('p')
+            p_orbitals_2 = self.atom_2.get_orbitals("p")
 
             for p_orbital in p_orbitals_2:
                 if p_orbital.electron_nr == 1:
@@ -347,15 +366,18 @@ class Bond:
 
                     # Look up how many p orbitals are required for the formation of a certain type of bond
 
-                    if electrons_found == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]:
+                    if (
+                        electrons_found
+                        == BOND_PROPERTIES.bond_type_to_p_orbitals[self.type]
+                    ):
                         break
-            
-            if not len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2):
-                raise StructureError('pi bond')
 
-            if self.type == 'aromatic':
+            if not len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2):
+                raise StructureError("pi bond")
+
+            if self.type == "aromatic":
                 if not len(p_bonding_orbitals_1) == len(p_bonding_orbitals_2) == 1:
-                    raise StructureError('pi bond')
+                    raise StructureError("pi bond")
 
             else:
 
@@ -369,8 +391,8 @@ class Bond:
                     self.electrons.append(electron_1)
                     self.electrons.append(electron_2)
 
-                    p_bonding_orbitals_1[i].set_bond(self, 'pi')
-                    p_bonding_orbitals_2[i].set_bond(self, 'pi')
+                    p_bonding_orbitals_1[i].set_bond(self, "pi")
+                    p_bonding_orbitals_2[i].set_bond(self, "pi")
 
 
 class BondDrawProperties:

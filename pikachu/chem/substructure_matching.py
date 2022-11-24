@@ -24,15 +24,15 @@ class SubstructureMatch:
 
     def initialise_match(self):
         for atom in self.child.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 self.atoms[atom] = None
 
         for bond in self.child.bonds.values():
-            if not bond.has_neighbour('H'):
+            if not bond.has_neighbour("H"):
                 self.bonds[bond] = None
 
         for atom in self.parent.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 self.parent_atom_to_bonds[atom] = []
 
     def initialise_seed(self, child_seed, parent_seed):
@@ -48,15 +48,39 @@ class SubstructureMatch:
             counter += 1
             next_child_bond = self.get_next_child_bond()
             if next_child_bond:
-                next_child_atom, next_parent_atom, next_parent_bond = self.find_next_matching_atoms(next_child_bond)
+                (
+                    next_child_atom,
+                    next_parent_atom,
+                    next_parent_bond,
+                ) = self.find_next_matching_atoms(next_child_bond)
 
                 if next_child_atom and next_parent_atom and next_parent_bond:
-                    self.add_match(next_child_atom, next_parent_atom, next_child_bond, next_parent_bond)
+                    self.add_match(
+                        next_child_atom,
+                        next_parent_atom,
+                        next_child_bond,
+                        next_parent_bond,
+                    )
                 else:
                     self.failed_attempted_paths.add(tuple(self.current_attempted_path))
-                    next_child_atom, next_parent_atom, next_child_bond, next_parent_bond = self.traceback()
-                    if next_child_atom and next_parent_atom and next_child_bond and next_parent_bond:
-                        self.add_match(next_child_atom, next_parent_atom, next_child_bond, next_parent_bond)
+                    (
+                        next_child_atom,
+                        next_parent_atom,
+                        next_child_bond,
+                        next_parent_bond,
+                    ) = self.traceback()
+                    if (
+                        next_child_atom
+                        and next_parent_atom
+                        and next_child_bond
+                        and next_parent_bond
+                    ):
+                        self.add_match(
+                            next_child_atom,
+                            next_parent_atom,
+                            next_child_bond,
+                            next_parent_bond,
+                        )
                     else:
                         self.active = False
             else:
@@ -70,7 +94,7 @@ class SubstructureMatch:
             current_parent_atom = self.current_attempted_path[i]
             previous_parent_atom = self.current_attempted_path[i - 1]
 
-            if current_parent_atom == 'hop' or previous_parent_atom == 'hop':
+            if current_parent_atom == "hop" or previous_parent_atom == "hop":
                 self.failed_attempted_paths.add(tuple(self.current_attempted_path[:i]))
                 continue
 
@@ -91,7 +115,9 @@ class SubstructureMatch:
             if not self.child.bond_exists(current_child_atom, previous_child_atom):
                 continue
             else:
-                next_child_bond = self.child.bond_lookup[current_child_atom][previous_child_atom]
+                next_child_bond = self.child.bond_lookup[current_child_atom][
+                    previous_child_atom
+                ]
                 self.remove_match(current_child_atom, next_child_bond)
 
                 new_path = self.current_attempted_path[:i]
@@ -105,18 +131,28 @@ class SubstructureMatch:
 
                         # Make sure that we did not try this route before
 
-                        if tuple(new_path + [next_parent_atom]) not in self.failed_attempted_paths:
+                        if (
+                            tuple(new_path + [next_parent_atom])
+                            not in self.failed_attempted_paths
+                        ):
                             self.current_child_atom = previous_child_atom
                             self.current_parent_atom = previous_parent_atom
                             next_parent_bond = bond
                             self.current_attempted_path = new_path
-                            return next_child_atom, next_parent_atom, next_child_bond, next_parent_bond
+                            return (
+                                next_child_atom,
+                                next_parent_atom,
+                                next_child_bond,
+                                next_parent_bond,
+                            )
 
                 self.failed_attempted_paths.add(tuple(new_path))
 
         return None, None, None, None
 
-    def add_match(self, next_child_atom, next_parent_atom, next_child_bond, next_parent_bond):
+    def add_match(
+        self, next_child_atom, next_parent_atom, next_child_bond, next_parent_bond
+    ):
         self.atoms[next_child_atom] = next_parent_atom
         self.bonds[next_child_bond] = next_parent_bond
 
@@ -142,16 +178,27 @@ class SubstructureMatch:
         for parent_bond in candidate_parent_bonds:
             if parent_bond.bond_summary == child_bond.bond_summary:
                 next_child_atom = child_bond.get_connected_atom(self.current_child_atom)
-                next_parent_atom = parent_bond.get_connected_atom(self.current_parent_atom)
+                next_parent_atom = parent_bond.get_connected_atom(
+                    self.current_parent_atom
+                )
 
                 # Make sure the atom matching is possible: either the match must already exist, or if it doesn't,
                 # both parent atom and child atom must be free to match to one another.
-                if self.atoms[next_child_atom] == next_parent_atom or \
-                        (not self.atoms[next_child_atom] and next_parent_atom not in self.atoms.values()):
+                if self.atoms[next_child_atom] == next_parent_atom or (
+                    not self.atoms[next_child_atom]
+                    and next_parent_atom not in self.atoms.values()
+                ):
 
-                    if next_parent_atom.potential_same_connectivity(next_child_atom.connectivity):
-                        if parent_bond not in self.parent_atom_to_bonds[self.current_parent_atom]:
-                            self.parent_atom_to_bonds[self.current_parent_atom].append(parent_bond)
+                    if next_parent_atom.potential_same_connectivity(
+                        next_child_atom.connectivity
+                    ):
+                        if (
+                            parent_bond
+                            not in self.parent_atom_to_bonds[self.current_parent_atom]
+                        ):
+                            self.parent_atom_to_bonds[self.current_parent_atom].append(
+                                parent_bond
+                            )
 
                         return next_child_atom, next_parent_atom, parent_bond
 
@@ -164,9 +211,13 @@ class SubstructureMatch:
         for parent_bond in self.current_parent_atom.bonds:
             # Ignore bonds that are attached to a hydrogen
             # Only consider bonds that haven't been matched to another bond already
-            if parent_bond not in self.bonds.values() and not parent_bond.has_neighbour('H'):
+            if parent_bond not in self.bonds.values() and not parent_bond.has_neighbour(
+                "H"
+            ):
                 # makes sure a matching attempt wasn't made before between parent bond and child bond.
-                next_parent_atom = parent_bond.get_connected_atom(self.current_parent_atom)
+                next_parent_atom = parent_bond.get_connected_atom(
+                    self.current_parent_atom
+                )
                 attempted_path = tuple(self.current_attempted_path + [next_parent_atom])
                 if attempted_path not in self.failed_attempted_paths:
                     candidate_parent_bonds.append(parent_bond)
@@ -175,7 +226,7 @@ class SubstructureMatch:
 
     def get_next_child_bond(self):
         for child_bond in self.current_child_atom.bonds:
-            if not child_bond.has_neighbour('H') and not self.bonds[child_bond]:
+            if not child_bond.has_neighbour("H") and not self.bonds[child_bond]:
                 return child_bond
 
         # Happens if one or multiple cycles need closing somewhere.
@@ -187,7 +238,7 @@ class SubstructureMatch:
                     self.current_child_atom = child_bond.atom_1
                     self.current_parent_atom = self.atoms[self.current_child_atom]
 
-                    self.current_attempted_path.append('hop')
+                    self.current_attempted_path.append("hop")
 
                     self.current_attempted_path.append(self.current_parent_atom)
 
@@ -208,7 +259,7 @@ class SubstructureMatch:
                             self.current_child_atom = child_bond.atom_2
 
                         self.current_parent_atom = self.atoms[self.current_child_atom]
-                        self.current_attempted_path.append('hop')
+                        self.current_attempted_path.append("hop")
                         self.current_attempted_path.append(self.current_parent_atom)
 
                         return child_bond
@@ -297,9 +348,9 @@ def filter_duplicate_matches(matches):  # refactor to 'filter_duplicate_matches'
 def check_same_chirality(atom_1, atom_2, match):
     equivalent_atom_list = []
     for atom in atom_1.neighbours:
-        if atom.type == 'H':
+        if atom.type == "H":
             for atom_b in atom_2.neighbours:
-                if atom_b.type == 'H':
+                if atom_b.type == "H":
                     equivalent_atom_list.append(atom_b)
                     break
         else:
@@ -313,7 +364,7 @@ def check_same_chirality(atom_1, atom_2, match):
         try:
             assert len(equivalent_atom_list) + len(lone_pairs) == 4
         except AssertionError:
-            raise StructureError('chiral centre')
+            raise StructureError("chiral centre")
 
         permutation += lone_pairs
 
@@ -333,11 +384,14 @@ def check_same_chirality(atom_1, atom_2, match):
 
 def find_substructures(structure, child):
     atom_connectivities_child = child.get_connectivities()
-    atom_connectivities_parent = structure.get_substructure_connectivities(atom_connectivities_child)
+    atom_connectivities_parent = structure.get_substructure_connectivities(
+        atom_connectivities_child
+    )
     # Sort based on the complexity of the connectivity
 
-    connectivities = sorted(list(atom_connectivities_child.keys()),
-                            key=lambda x: len(set(x)), reverse=True)
+    connectivities = sorted(
+        list(atom_connectivities_child.keys()), key=lambda x: len(set(x)), reverse=True
+    )
 
     starting_connectivity = connectivities[0]
 

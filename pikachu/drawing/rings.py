@@ -3,6 +3,7 @@
 from pikachu.math_functions import Vector
 import math
 
+
 def ring_groups_have_overlap(group_1, group_2, ring_overlaps):
     for ring_1 in group_1:
         for ring_2 in group_2:
@@ -28,7 +29,9 @@ def get_ring_groups(rings, ring_overlaps):
             ring_group_1_found = False
             for j, ring_group_2 in enumerate(ring_groups):
                 if i != j:
-                    if ring_groups_have_overlap(ring_group_1, ring_group_2, ring_overlaps):
+                    if ring_groups_have_overlap(
+                        ring_group_1, ring_group_2, ring_overlaps
+                    ):
                         indices = [i, j]
                         new_group = list(set(ring_group_1 + ring_group_2))
                         ring_group_1_found = True
@@ -51,7 +54,10 @@ def get_group_overlap_nr(ring_group, ring_overlaps):
     overlaps = 0
     ring_group = set(ring_group)
     for ring_overlap in ring_overlaps:
-        if ring_overlap.ring_id_1 in ring_group and ring_overlap.ring_id_2 in ring_group:
+        if (
+            ring_overlap.ring_id_1 in ring_group
+            and ring_overlap.ring_id_2 in ring_group
+        ):
             overlaps += 1
 
     return overlaps
@@ -93,8 +99,8 @@ class Ring:
         return self.id == other.id
 
     def __repr__(self):
-        return str(self.id) + ' ' + '-'.join([atom.__repr__() for atom in self.members])
-        
+        return str(self.id) + " " + "-".join([atom.__repr__() for atom in self.members])
+
     def get_angle(self):
         return math.pi - self.central_angle
 
@@ -105,12 +111,16 @@ class Ring:
             atoms = RingOverlap.get_vertices(ring_overlaps, self.id, neighbour_id)
             ordered_neighbours_and_atom_nrs.append((len(atoms), neighbour_id))
 
-        ordered_neighbours_and_atom_nrs = sorted(ordered_neighbours_and_atom_nrs, key=lambda x: x[0], reverse=True)
+        ordered_neighbours_and_atom_nrs = sorted(
+            ordered_neighbours_and_atom_nrs, key=lambda x: x[0], reverse=True
+        )
         ordered_neighbour_ids = [x[1] for x in ordered_neighbours_and_atom_nrs]
 
         return ordered_neighbour_ids
 
-    def set_member_positions(self, structure, start_atom, previous_atom, center, a, radius, angle):
+    def set_member_positions(
+        self, structure, start_atom, previous_atom, center, a, radius, angle
+    ):
         current_atom = start_atom
         iteration = 0
 
@@ -177,15 +187,17 @@ class RingOverlap:
 
         return False
 
-
     @staticmethod
     def get_vertices(ring_overlaps, ring_id_1, ring_id_2):
         for ring_overlap in ring_overlaps:
-            if (ring_overlap.ring_id_1 == ring_id_1 and ring_overlap.ring_id_2 == ring_id_2) or\
-                    (ring_overlap.ring_id_1 == ring_id_2 and ring_overlap.ring_id_2 == ring_id_1):
+            if (
+                ring_overlap.ring_id_1 == ring_id_1
+                and ring_overlap.ring_id_2 == ring_id_2
+            ) or (
+                ring_overlap.ring_id_1 == ring_id_2
+                and ring_overlap.ring_id_2 == ring_id_1
+            ):
                 return ring_overlap.atoms
-
-
 
 
 def find_neighbouring_rings(ring_overlaps, ring_id):
@@ -199,6 +211,7 @@ def find_neighbouring_rings(ring_overlaps, ring_id):
 
     return neighbouring_rings
 
+
 def rings_connected_by_bridge(ring_overlaps, ring_id_1, ring_id_2):
     for ring_overlap in ring_overlaps:
         if ring_id_1 == ring_overlap.ring_id_1 and ring_id_2 == ring_overlap.ring_id_2:
@@ -207,5 +220,3 @@ def rings_connected_by_bridge(ring_overlaps, ring_id_1, ring_id_2):
             return ring_overlap.is_bridge()
 
     return False
-
-

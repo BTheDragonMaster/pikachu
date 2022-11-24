@@ -11,6 +11,6 @@ def hash_32_bit_integer(iterable):
     for attribute in iterable:
         hash.update(str(attribute).encode())
 
-    hash_32 = int.from_bytes(hash.digest()[:4], byteorder='little')
+    hash_32 = int.from_bytes(hash.digest()[:4], byteorder="little")
 
     return hash_32
