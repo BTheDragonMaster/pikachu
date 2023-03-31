@@ -493,6 +493,9 @@ class Smiles:
                 bond_type = 'single_chiral'
                 bond_chiral_symbol = component
 
+            if bond_type == 'explicit_single':
+                bond_type = 'single'
+
         structure.refine_structure()
         structure.set_double_bond_chirality()
 
