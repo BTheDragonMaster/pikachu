@@ -348,7 +348,7 @@ class Smiles:
                         else:
                             bond_type = 'single'
 
-                    if bond_type == 'single_chiral':
+                    if bond_type == 'single_chiral' or bond_type == 'explicit_single':
                         bond_type = 'single'
 
                     structure.add_bond(atom_1, atom_2, bond_type, bond_nr, bond_chiral_symbol)
@@ -425,7 +425,7 @@ class Smiles:
                     if atom in chiral_dict:
                         self.add_cycle_placeholder(chiral_dict, atom, cycle_nr)
 
-                    if bond_type == 'single_chiral':
+                    if bond_type == 'single_chiral' or bond_type == 'explicit_single':
                         cycle_to_chiral_symbol[cycle_nr] = bond_chiral_symbol
 
                 # Otherwise look up the atom that the cycle closes on
@@ -450,7 +450,7 @@ class Smiles:
                     #     aromatic_system.add_atom(atom_2)
                     #     aromatic_system_id += 1
 
-                    if bond_type == 'single_chiral':
+                    if bond_type == 'single_chiral' or bond_type == 'explicit_single':
                         bond_type = 'single'
 
                         # We have to flip the symbol here, as the previous atom occurred before the double bond
@@ -492,9 +492,6 @@ class Smiles:
             elif label == 'chiral_double_bond':
                 bond_type = 'single_chiral'
                 bond_chiral_symbol = component
-
-            if bond_type == 'explicit_single':
-                bond_type = 'single'
 
         structure.refine_structure()
         structure.set_double_bond_chirality()
