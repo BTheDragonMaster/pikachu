@@ -2685,6 +2685,31 @@ class Drawer:
                 if anchored_ring.center:
                     anchored_ring.center.rotate_around_vector(angle, center)
 
+    def get_average_position(self):
+        sum_x = 0.0
+        sum_y = 0.0
+
+        for atom in self.drawn_atoms:
+            sum_x += atom.draw.position.x
+            sum_y += atom.draw.position.y
+
+        nr_atoms = len(self.drawn_atoms)
+
+        return Vector(sum_x / nr_atoms, sum_y / nr_atoms)
+
+
+    def rotate_structure(self, angle, midpoint=None):
+
+        if midpoint is None:
+            midpoint = self.get_average_position()
+
+        for atom in self.drawn_atoms:
+            atom.draw.position.rotate_around_vector(angle, midpoint)
+            for anchored_ring in atom.draw.anchored_rings:
+                if anchored_ring.center:
+                    anchored_ring.center.rotate_around_vector(angle, midpoint)
+
+
     def rotate_subtree_independent(self, root: Atom, root_parent: Atom, masked_atoms: List[Atom],
                                    angle: float, center: Vector) -> None:
 
