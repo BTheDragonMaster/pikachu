@@ -210,6 +210,9 @@ class Line:
         self.length = self.get_length()
         self.get_angle()
 
+    def __repr__(self):
+        return f"{self.atom_1}_{self.point_1}|{self.atom_2}_{self.point_2}"
+
     def divide_in_two(self, point):
 
         halfline_1 = HalfLine(self.point_1, point, self.atom_1, self.get_angle())

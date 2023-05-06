@@ -185,6 +185,9 @@ class Bond:
         self.atom_1.remove_bond(self)
         self.atom_2.remove_bond(self)
 
+        self.atom_1.chiral = None
+        self.atom_2.chiral = None
+
     def combine_hybrid_orbitals(self):
         """
         Combine the electrons of two s-hybrid orbitals to form a sigma bond
@@ -268,6 +271,11 @@ class Bond:
 
         self.electrons.remove(electron_1)
         self.electrons.remove(electron_2)
+
+        if self.chiral_dict:
+            self.chiral_dict = {}
+        if self.chiral:
+            self.chiral = False
 
         self.type = 'single'
         self.set_bond_summary()

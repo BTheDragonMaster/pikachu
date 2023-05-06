@@ -339,7 +339,7 @@ class Drawer:
         self.svg_groups = {}
         self.annotation = annotation
 
-    def find_shortest_path(self, atom_1: Atom, atom_2: Atom) -> List[Bond]:
+    def find_shortest_path(self, atom_1: Atom, atom_2: Atom, path_type='bond') -> List[Union[Bond, Atom]]:
         distances = {}
         previous_hop = {}
         unvisited = set()
@@ -386,7 +386,13 @@ class Drawer:
             bond = self.structure.bond_lookup[atom_1][atom_2]
             path.append(bond)
 
-        return path
+        if path_type == 'bond':
+
+            return path
+        elif path_type == 'atom':
+            return path_atoms
+        else:
+            raise ValueError("Path type must be 'bond' or 'atoms'.")
 
     def finetune_overlap_resolution(self) -> None:
 
@@ -913,7 +919,7 @@ class Drawer:
 
         return svg_text
 
-    def draw_svg(self, annotation: Union[None, str] = None) -> str:
+    def draw_svg(self, annotation: Union[None, str] = None, numbered_atoms: List = None) -> str:
 
         self.set_annotation_for_grouping(annotation)
 
@@ -1169,11 +1175,14 @@ class Drawer:
                         text_group += '\n'
                     text_group += '</g>'
                     self.add_svg_element(text_group, atom)
+                    
+        if numbered_atoms:
+            self.show_atom_numbers(numbered_atoms)
 
         svg = self.assemble_svg()
         return svg
 
-    def write_svg(self, out_file: str, annotation: Union[str, None] = None) -> None:
+    def write_svg(self, out_file: str, annotation: Union[str, None] = None, numbered_atoms: List = None) -> None:
 
         self.flip_y_axis()
         self.move_to_positive_coords()
@@ -1205,7 +1214,7 @@ class Drawer:
 
         svg_string = f"""<svg width="{width}" height="{height}" viewBox="{x1} {y1} {x2} {y2}" xmlns="http://www.w3.org/2000/svg">"""
         svg_string += self.svg_style
-        svg_string += self.draw_svg(annotation=annotation)
+        svg_string += self.draw_svg(annotation=annotation, numbered_atoms=numbered_atoms)
         svg_string += "</svg>"
 
         with open(out_file, 'w') as out:
@@ -2440,6 +2449,18 @@ class Drawer:
                 self.create_next_bond(atom_2, atom, previous_angle + atom_2.draw.angle)
                 self.create_next_bond(atom_3, atom, previous_angle + atom_3.draw.angle)
                 self.create_next_bond(atom_4, atom, previous_angle + atom_4.draw.angle)
+                
+    def show_atom_numbers(self, atom_list):
+        for atom in atom_list:
+            if atom in self.structure.graph:
+                atom_drawing = self.structure.get_atom(atom)
+                atom_string = str(atom)
+                text_x = atom_drawing.draw.position.x + 3
+                text_y = atom_drawing.draw.position.y + 8
+                text = self.draw_text(atom_string, text_x, text_y)
+                self.add_svg_element(text, atom)
+                
+            
 
     def restore_ring_information(self) -> None:
         bridged_rings = self.get_bridged_rings()

@@ -310,6 +310,24 @@ class Atom:
 
         return False
 
+    def get_ring_index(self, structure):
+        cycles = structure.cycles.all_cycles
+
+        for i, cycle in enumerate(cycles):
+            if self in cycle:
+                return i
+
+        return None
+
+    def get_ring(self, structure):
+        cycles = structure.cycles.all_cycles
+
+        for i, cycle in enumerate(cycles):
+            if self in cycle:
+                return cycle
+
+        return None
+
     def adjacent_to_stereobond(self):
         for bond in self.bonds:
             if bond.chiral:
@@ -398,8 +416,9 @@ class Atom:
         unbonded_electrons = electron_nr - bonds_to_make
 
         if unbonded_electrons % 2 != 0:
-            print("Warning! Rogue electron.")
-            print(self)
+            pass
+            # print("Warning! Rogue electron.")
+            # print(self)
             # print(self)
             # print(bond_nr)
             # print(self.bonds)

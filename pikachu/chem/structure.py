@@ -1,6 +1,7 @@
 import copy
 from pprint import pprint
 import sys
+from typing import Set, Generator
 
 from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
@@ -908,6 +909,8 @@ class Structure:
 
         self.sort_by_nr()
 
+
+
         self.form_pi_bonds()
         self.hybridise_atoms()
         self.promote_pi_bonds()
@@ -1787,6 +1790,17 @@ class Structure:
     def get_bond_nr(self, atom_1, atom_2):
         bond_nr = self.structure[atom_1].count(atom_2)
         return bond_nr
+
+    def traverse_substructure(self, atom: Atom, visited: Set[Atom], traverse_h: bool = False) -> Generator[Atom, None, None]:
+        yield atom
+        visited.add(atom)
+        for neighbour in atom.neighbours:
+            if traverse_h:
+                if neighbour not in visited:
+                    yield from self.traverse_substructure(neighbour, visited)
+            else:
+                if neighbour not in visited and neighbour.type != 'H':
+                    yield from self.traverse_substructure(neighbour, visited)
 
     def make_bond_nr_dict(self):
         """
