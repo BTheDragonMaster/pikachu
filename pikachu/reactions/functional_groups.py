@@ -75,7 +75,8 @@ def find_atoms(atom_neighbourhood, structure):
             if neighbour.type != 'H':
                 neighbouring_atom = match.atoms[neighbour]
                 atom = neighbouring_atom.get_neighbour('H')
-                atoms.append(atom)
+                if atom is not None:
+                    atoms.append(atom)
 
     return list(set(atoms))
 

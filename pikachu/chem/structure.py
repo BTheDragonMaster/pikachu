@@ -107,7 +107,7 @@ class Structure:
 
             for atom_1, atoms_and_chirality in bond.chiral_dict.items():
                 new_1 = None
-                if type(atom_1) == Atom:
+                if isinstance(atom_1, Atom):
                     new_1 = new_atoms[atom_1.nr]
                 else:
                     pass
@@ -117,7 +117,7 @@ class Structure:
                 new_bond.chiral_dict[new_1] = {}
 
                 for atom_2, chirality in atoms_and_chirality.items():
-                    if type(atom_2) == Atom:
+                    if isinstance(atom_2, Atom):
                         new_2 = new_atoms[atom_2.nr]
                         new_bond.chiral_dict[new_1][new_2] = chirality
                     else:
@@ -444,7 +444,7 @@ class Structure:
                             first_other_atom = atom_1_2
                             first_chiral_symbol = chiral_1_1
 
-                            if not chiral_1_2 and type(atom_1_2) == Atom:
+                            if not chiral_1_2 and isinstance(atom_1_2, Atom):
                                 # Make sure where chiral symbols are not defined, they are added
 
                                 if (atom_1_1.nr > bond.atom_1.nr and atom_1_2.nr > bond.atom_1.nr) or \
@@ -467,7 +467,7 @@ class Structure:
 
                             # Make sure where chiral symbols are not defined, they are added
 
-                            if type(atom_1_1) == Atom:
+                            if isinstance(atom_1_1, Atom):
 
                                 if (atom_1_1.nr > bond.atom_1.nr and atom_1_2.nr > bond.atom_1.nr) or \
                                    (atom_1_1.nr < bond.atom_1.nr and atom_1_2.nr < bond.atom_1.nr):
@@ -487,7 +487,7 @@ class Structure:
                             second_other_atom = atom_2_2
                             second_chiral_symbol = chiral_2_1
 
-                            if not chiral_2_2 and type(atom_2_2) == Atom:
+                            if not chiral_2_2 and isinstance(atom_2_2, Atom):
 
                                 # Make sure where chiral symbols are not defined, they are added
 
@@ -511,7 +511,7 @@ class Structure:
 
                             # Make sure where chiral symbols are not defined, they are added
 
-                            if type(atom_2_1) == Atom:
+                            if isinstance(atom_2_1, Atom):
                                 if (atom_2_1.nr > bond.atom_2.nr and atom_2_2.nr > bond.atom_2.nr) or \
                                         (atom_2_1.nr < bond.atom_2.nr and atom_2_2.nr < bond.atom_2.nr):
                                     if self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol == '/':
@@ -525,46 +525,46 @@ class Structure:
                                     else:
                                         self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '\\'
 
-                        if type(first_atom) == Atom:
+                        if isinstance(first_atom, Atom):
                             bond.chiral_dict[first_atom] = {}
-                        if type(first_other_atom) == Atom:
+                        if isinstance(first_other_atom, Atom):
                             bond.chiral_dict[first_other_atom] = {}
-                        if type(second_atom) == Atom:
+                        if isinstance(second_atom, Atom):
                             bond.chiral_dict[second_atom] = {}
-                        if type(second_other_atom) == Atom:
+                        if isinstance(second_other_atom, Atom):
                             bond.chiral_dict[second_other_atom] = {}
 
                         if first_chiral_symbol == second_chiral_symbol:
-                            if type(first_atom) == Atom and type(second_atom) == Atom:
+                            if isinstance(first_atom, Atom) and isinstance(second_atom, Atom):
                                 bond.chiral_dict[first_atom][second_atom] = 'cis'
                                 bond.chiral_dict[second_atom][first_atom] = 'cis'
 
-                            if type(first_other_atom) == Atom and type(second_other_atom) == Atom:
+                            if isinstance(first_other_atom, Atom) and isinstance(second_other_atom, Atom):
                                 bond.chiral_dict[first_other_atom][second_other_atom] = 'cis'
                                 bond.chiral_dict[second_other_atom][first_other_atom] = 'cis'
 
-                            if type(first_atom) == Atom and type(second_other_atom) == Atom:
+                            if isinstance(first_atom, Atom) and isinstance(second_other_atom, Atom):
                                 bond.chiral_dict[first_atom][second_other_atom] = 'trans'
                                 bond.chiral_dict[second_other_atom][first_atom] = 'trans'
 
-                            if type(first_other_atom) == Atom and type(second_atom) == Atom:
+                            if isinstance(first_other_atom, Atom) and isinstance(second_atom, Atom):
                                 bond.chiral_dict[first_other_atom][second_atom] = 'trans'
                                 bond.chiral_dict[second_atom][first_other_atom] = 'trans'
 
                         else:
-                            if type(first_atom) == Atom and type(second_atom) == Atom:
+                            if isinstance(first_atom, Atom) and isinstance(second_atom, Atom):
                                 bond.chiral_dict[first_atom][second_atom] = 'trans'
                                 bond.chiral_dict[second_atom][first_atom] = 'trans'
 
-                            if type(first_other_atom) == Atom and type(second_other_atom) == Atom:
+                            if isinstance(first_other_atom, Atom) and isinstance(second_other_atom, Atom):
                                 bond.chiral_dict[first_other_atom][second_other_atom] = 'trans'
                                 bond.chiral_dict[second_other_atom][first_other_atom] = 'trans'
 
-                            if type(first_atom) == Atom and type(second_other_atom) == Atom:
+                            if isinstance(first_atom, Atom) and isinstance(second_other_atom, Atom):
                                 bond.chiral_dict[first_atom][second_other_atom] = 'cis'
                                 bond.chiral_dict[second_other_atom][first_atom] = 'cis'
 
-                            if type(first_other_atom) == Atom and type(second_atom) == Atom:
+                            if isinstance(first_other_atom, Atom) and isinstance(second_atom, Atom):
                                 bond.chiral_dict[first_other_atom][second_atom] = 'cis'
                                 bond.chiral_dict[second_atom][first_other_atom] = 'cis'
 
