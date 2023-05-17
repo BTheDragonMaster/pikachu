@@ -107,7 +107,7 @@ def hydrolysis(structure, bond):
 
     # Break water up into H and OH groups
 
-    hydrolysed_structure = combine_structures([structure, water])
+    hydrolysed_structure = combine_structures([water,structure])
 
     hydrolysed_structure.break_bond(water_bond)
     hydrolysed_structure.break_bond(bond)
