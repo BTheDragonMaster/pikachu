@@ -1182,7 +1182,7 @@ class Drawer:
         svg = self.assemble_svg()
         return svg
 
-    def write_svg(self, out_file: str, annotation: Union[str, None] = None, numbered_atoms: List = None) -> None:
+    def write_svg(self, out_file: Union[str, None] = None, annotation: Union[str, None] = None, numbered_atoms: List = None) -> Union[str, None]:
 
         self.flip_y_axis()
         self.move_to_positive_coords()
@@ -1216,7 +1216,9 @@ class Drawer:
         svg_string += self.svg_style
         svg_string += self.draw_svg(annotation=annotation, numbered_atoms=numbered_atoms)
         svg_string += "</svg>"
-
+        
+        if out_file is None:
+            return svg_string
         with open(out_file, 'w') as out:
             out.write(svg_string)
 
