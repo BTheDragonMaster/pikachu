@@ -1,4 +1,10 @@
-# INSTALLATION
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+<img src="https://github.com/BTheDragonMaster/pikachu/blob/main/logo.png" alt="logo" width="100">
+
+PIKACHU (Python-based Informatics Kit for Analysing CHemical Units) is an easy-to-use cheminformatics kit with few dependencies.
+
+## INSTALLATION
 
 Python-based Informatics Kit for the Analysis of Chemical Units
 
@@ -21,7 +27,7 @@ Step 3: Install PIKAChU:
 pip install pikachu-chem
 ```
 
-# GETTING STARTED
+## GETTING STARTED
 
 Step 1: Open python or initiate an empty .py file.
 
