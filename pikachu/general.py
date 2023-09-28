@@ -181,7 +181,7 @@ def svg_from_structure(structure, svg_out, options=None):
         options = Options()
 
     drawer = Drawer(structure, options=options)
-    drawer.save_svg(svg_out)
+    drawer.write_svg(svg_out)
 
 
 def svg_string_from_structure(structure, options=None):
