@@ -83,7 +83,7 @@ class Token(Enum):
     """
     # Atom qualifier for symbol: 
     # https://www.johndcook.com/blog/2016/02/04/regular-expression-to-match-a-chemical-element/ 
-    ATOM_SYMBOL         = re.compile((
+    ATOM_SYMBOL = re.compile((
         r"A[cglmrstu]"
         r"|B[aehikr]?"
         r"|C[adeflmnorsu]?"
@@ -110,43 +110,42 @@ class Token(Enum):
     ))
 
     # Other atom qualifiers.
-    ATOM_ANY            = re.compile(r"(\*)")   
-    ATOM_AROMATIC       = re.compile(r"(a)")
-    ATOM_ALIPHATIC      = re.compile(r"(A)")
-    ATOM_DEGREE         = re.compile(r"(D)")
-    ATOM_HCOUNT_EXPL    = re.compile(r"(H)")
-    ATOM_HCOUNT_IMPL    = re.compile(r"(h)")
-    ATOM_IN_RING        = re.compile(r"(R)")
-    ATOM_IN_RING_SIZE   = re.compile(r"(r)")
-    ATOM_VALENCE        = re.compile(r"(v)")
-    ATOM_CONN           = re.compile(r"(X)")
-    ATOM_CONN_RING      = re.compile(r"(x)")
+    ATOM_ANY                = re.compile(r"(\*)")   
+    ATOM_AROMATIC           = re.compile(r"(a)")
+    ATOM_ALIPHATIC          = re.compile(r"(A)")
+    ATOM_DEGREE             = re.compile(r"(D)")
+    ATOM_HCOUNT_EXPL        = re.compile(r"(H)")
+    ATOM_HCOUNT_IMPL        = re.compile(r"(h)")
+    ATOM_IN_RING            = re.compile(r"(R)")
+    ATOM_IN_RING_SIZE       = re.compile(r"(r)")
+    ATOM_VALENCE            = re.compile(r"(v)")
+    ATOM_CONN               = re.compile(r"(X)")
+    ATOM_CONN_RING          = re.compile(r"(x)")
 
     # Atom modifiers.
-    MOD_AMPERSAND       = re.compile(r"(&)")
-    MOD_AT              = re.compile(r"(@)")
-    MOD_CARET           = re.compile(r"(\^)")
-    MOD_COMMA           = re.compile(r"(,)")
-    MOD_DOLLAR          = re.compile(r"(\$)")
-    MOD_INT             = re.compile(r"(\d+)")
-    MOD_INT_SIGNED      = re.compile(r"([-+]?\d+)")
+    MOD_AMPERSAND           = re.compile(r"(&)")
+    MOD_AT                  = re.compile(r"(@)")
+    MOD_CARET               = re.compile(r"(\^)")
+    MOD_COMMA               = re.compile(r"(,)")
+    MOD_DOLLAR              = re.compile(r"(\$)")
+    MOD_INT                 = re.compile(r"(\d+)")
 
     # Bonds.
-    BOND_SINGLE         = re.compile(r"(-)")
-    BOND_DOUBLE         = re.compile(r"(=)")
-    BOND_TRIPLE         = re.compile(r"(\#)")
-    BOND_AROMATIC       = re.compile(r"(:)")
-    BOND_UP             = re.compile(r"(/)")
-    BOND_DOWN           = re.compile(r"(\\)")
-    BOND_RING           = re.compile(r"(@)")
-    BOND_ANY            = re.compile(r"(~)")
-    DISCONNECTED        = re.compile(r"(\.)")
+    BOND_SINGLE_OR_MIN      = re.compile(r"(-)")
+    BOND_DOUBLE             = re.compile(r"(=)")
+    BOND_TRIPLE             = re.compile(r"(\#)")
+    BOND_AROMATIC_OR_COLON  = re.compile(r"(:)")
+    BOND_UP                 = re.compile(r"(/)")
+    BOND_DOWN               = re.compile(r"(\\)")
+    BOND_RING               = re.compile(r"(@)")
+    BOND_ANY                = re.compile(r"(~)")
+    DISCONNECTED            = re.compile(r"(\.)")
 
     # Brackets.
-    LPAREN              = re.compile(r"(\()")
-    RPAREN              = re.compile(r"(\))")
-    LSQUARE             = re.compile(r"(\[)")
-    RSQUARE             = re.compile(r"(\])")
+    LPAREN                  = re.compile(r"(\()")
+    RPAREN                  = re.compile(r"(\))")
+    LSQUARE                 = re.compile(r"(\[)")
+    RSQUARE                 = re.compile(r"(\])")
 
     def __eq__(self, other: ty.Union["Token", str]) -> bool:
         """
@@ -202,10 +201,10 @@ class Token(Enum):
         return self.name
     
 BOND_TOKENS = [
-    Token.BOND_SINGLE,
+    Token.BOND_SINGLE_OR_MIN,
     Token.BOND_DOUBLE,
     Token.BOND_TRIPLE,
-    Token.BOND_AROMATIC,
+    Token.BOND_AROMATIC_OR_COLON,
     Token.BOND_UP,
     Token.BOND_DOWN,
     Token.BOND_RING,

@@ -74,7 +74,7 @@ class Literal(Expression):
         elif self.type in BOND_TOKENS:
             return self.value # TODO: Convert to bond type.
         
-        elif self.type in [Token.MOD_INT, Token.MOD_INT_SIGNED]:
+        elif self.type == Token.MOD_INT:
             return int(self.value)
         
         else:
@@ -119,7 +119,7 @@ class NestingStatement(Statement):
     
 class AtomStatement(Statement):
     """
-    An atom statement is a statement that represents an atom.
+    Represents an atom.
     """
     def __init__(self, atom: Literal) -> None:
         """
@@ -145,7 +145,7 @@ class AtomStatement(Statement):
     
 class BondStatement(Statement):
     """
-    A bond statement is a statement that represents a bond.
+    Represents a bond that connects two atoms.
     """
     def __init__(self, bond: Literal) -> None:
         """
@@ -168,3 +168,29 @@ class BondStatement(Statement):
             The representation of the bond statement.
         """
         return f"{self.__class__.__name__}({self.bond})"
+    
+class ConnectivityStatement(Statement):
+    """
+    Represents a non-linear connectivity between atoms.
+    """
+    def __init__(self, connectivity: Literal) -> None:
+        """
+        Initialize the connectivity statement with its connectivity.
+
+        Parameters
+        ----------
+        connectivity: Literal
+            The connectivity of the connectivity statement.
+        """
+        self.connectivity = connectivity.eval()
+
+    def __repr__(self) -> str:
+        """
+        Returns the representation of the connectivity statement.
+        
+        Returns
+        -------
+        str
+            The representation of the connectivity statement.
+        """
+        return f"{self.__class__.__name__}({self.connectivity})"

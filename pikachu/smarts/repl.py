@@ -5,21 +5,18 @@ This module contains the REPL for SMARTS.
 """
 from sys import argv
 
-from tokens import EOL
-from lexing import Lexer 
-from parsing import Parser 
+from smarts import read_smarts
+
 
 def main() -> None:
     """
     The main function for the REPL.
     """
-    src = argv[1]
+    smarts_str = argv[1]
 
-    for node in Parser(Lexer(src)):
-        print(node)
+    smarts_obj = read_smarts(smarts_str)
 
-        if node == EOL:
-            break 
+    print(smarts_obj)
 
     exit(0)
 

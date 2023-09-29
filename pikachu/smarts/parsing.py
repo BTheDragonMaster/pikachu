@@ -13,7 +13,8 @@ from nodes import (
     Statement,
     NestingStatement,
     AtomStatement,
-    BondStatement
+    BondStatement,
+    ConnectivityStatement
 )
 
 class Parser:
@@ -106,8 +107,10 @@ class Parser:
         """
         return (
             self.parse_nesting() 
-            or self.parse_atom() 
+            or self.parse_atom_without_props() 
+            or self.parse_atom_with_props()
             or self.parse_bond()
+            or self.parse_connectivity()
             or self.parse_unknown()
         )
     
@@ -137,25 +140,46 @@ class Parser:
             nested = []
             while self.curr_token != Token.RPAREN:
                 nested.append(self.parse_node())
-
             self.update()
 
             return NestingStatement(nested)
         
-    def parse_atom(self) -> AtomStatement:
+    def parse_atom_without_props(self) -> AtomStatement:
         """
-        Parses an atom node.
+        Parses an atom node without properties.
         
         Returns
         -------
         AtomStatement
             The parsed atom node.
         """
-        if self.curr_token == Token.ATOM_SYMBOL:
+        if self.curr_token in [Token.ATOM_SYMBOL, Token.ATOM_ANY]:
             atom = self.parse_literal()
-
             self.update() 
             
+            return AtomStatement(atom)
+        
+    def parse_atom_with_props(self) -> AtomStatement:
+        """
+        Parses an atom node with properties.
+
+        Returns
+        -------
+        AtomStatement
+            The parsed atom node.
+        """
+        if self.curr_token == Token.LSQUARE:
+            self.is_next([Token.ATOM_SYMBOL, Token.ATOM_ANY]) 
+
+            atom = self.parse_literal()
+            self.update()
+
+            props = dict()
+            while self.curr_token != Token.RSQUARE:
+                # TODO: Parse atom properties.
+                self.update()
+            self.update()
+
             return AtomStatement(atom)
 
     def parse_bond(self) -> BondStatement:
@@ -173,3 +197,59 @@ class Parser:
             self.update() 
             
             return BondStatement(bond)
+        
+    def parse_connectivity(self) -> ConnectivityStatement:
+        """
+        Parses a connectivity node.
+        
+        Returns
+        -------
+        ConnectivityStatement
+            The parsed connectivity node.
+        """
+        if self.curr_token == Token.MOD_INT:
+            connectivity = self.parse_literal()
+            self.update() 
+            
+            return ConnectivityStatement(connectivity)
+
+class AST:
+    """
+    An AST represents a parsed SMARTS.
+    """
+    def __init__(self, root: ty.List[Statement]) -> None:
+        """
+        Initialize the AST with a root node.
+
+        Parameters
+        ----------
+        root: ty.List[Statement]
+            The root node of the AST.
+        """
+        self.root = root
+
+def parse_smarts(src: str) -> AST:
+    """
+    Parses the given SMARTS into an AST.
+
+    Parameters
+    ----------
+    src: str
+        The SMARTS to parse.
+
+    Returns
+    -------
+    AST
+        The parsed AST.
+    """
+    lexer = Lexer(src)
+    parser = Parser(lexer)
+
+    nodes = []
+    for node in parser:
+        if node != EOL:
+            nodes.append(node)
+        else:
+            break 
+    
+    return AST(nodes)
