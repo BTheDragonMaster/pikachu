@@ -7,7 +7,6 @@ from sys import argv
 
 from smarts import read_smarts
 
-
 def main() -> None:
     """
     The main function for the REPL.
