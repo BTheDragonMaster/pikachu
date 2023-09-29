@@ -4,7 +4,7 @@
 
 PIKACHU (Python-based Informatics Kit for Analysing CHemical Units) is an easy-to-use cheminformatics kit with few dependencies.
 
-## INSTALLATION
+## Installation
 
 Python-based Informatics Kit for the Analysis of Chemical Units
 
@@ -27,7 +27,7 @@ Step 3: Install PIKAChU:
 pip install pikachu-chem
 ```
 
-## GETTING STARTED
+## Getting started
 
 Step 1: Open python or initiate an empty .py file.
 
@@ -44,4 +44,12 @@ smiles = draw_smiles("CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@@H](CC(=
 ```
 
 Step 4: Play around with the other functions in pikachu.general. For guidance, refer to documentation in the wiki and function descriptors.
+
+## Running tests
+
+To run the tests, run the following command:
+
+```
+python -m unittest discover
+```
 
