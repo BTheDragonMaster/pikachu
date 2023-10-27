@@ -2,6 +2,104 @@ from pikachu.fingerprinting.daylight import Daylight
 from pikachu.fingerprinting.hashing import hash_32_bit_integer
 from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.chem.chirality import find_chirality_from_nonh
+from pikachu.chem.substructure import Substructure
+from pikachu.chem.atom import Atom
+from pikachu.chem.bond import Bond
+from pikachu.drawing.drawing import Drawer
+
+class Feature:
+    def __init__(self, identifier, features):
+        self.identifier = identifier
+        self.features = features
+        self.substructure = self.to_structure()
+
+    def draw(self, svg_out):
+        drawer = Drawer(self.substructure, options=options, coords_only=True, kekulise=False)
+        drawer.write_svg(svg_out)
+
+    def string_to_atom(self, atom_string, atom_nr_string, aromatic=False):
+        atom_nr = int(atom_nr_string)
+        
+        last_char = type_1[-1]
+        atom_type = ''
+        
+        for char in atom_string:
+            if char.isalpha():
+                atom_type += char
+                
+        charge = 0
+        
+        if last_char in '+-':
+            charge_string = ''
+            for char in atom_string:
+                if char.isdigit():
+                    charge_string += char
+            if not charge_string:
+                if last_char == '+':
+                    charge = 1
+                else:
+                    charge = -1
+            else:
+                if last_char == '+':
+                    charge = int(charge_string)
+                else:
+                    charge = -int(charge_string)
+        
+        atom = Atom(atom_type, atom_nr, None, charge, aromatic)
+        return atom
+
+    def to_structure(self):
+
+        bonds = []
+        atoms = []
+        bond_nr_to_bond = {}
+
+        for component in self.features:
+            if ':' in component:
+                bonds.append(component)
+            else:
+                atoms.append(component)
+        structure_graph = {}
+
+        for atom in atoms:
+            structure_graph[atom] = []
+
+        for i, bond in enumerate(bonds):
+            bond_type = bond.split('_')[0]
+            bond_atoms = bond.split(':')[1]
+            type_1, nr_1, type_2, nr_2 = bond_atoms.split()
+            if bond_type == 'aromatic':
+                aromatic = True
+            else:
+                aromatic = False
+
+            atom_1 = f"{type_1}_{nr_1}"
+            atom_2 = f"{type_2}_{nr_2}"
+            
+            if atom_1 in structure_graph and atom_2 in structure_graph:
+                atom_1 = self.string_to_atom(type_1, nr_1, aromatic)
+                atom_2 = self.string_to_atom(type_2, nr_2, aromatic)
+                
+            elif atom_1 in structure_graph:
+                atom_1 = self.string_to_atom(type_1, nr_1, aromatic)
+                atom_2 = self.string_to_atom('*', nr_2, aromatic)
+                
+            elif atom_2 in structure_graph:
+                atom_1 = self.string_to_atom('*', nr_1, aromatic)
+                atom_2 = self.string_to_atom(type_2, nr_2, aromatic)
+                
+            else:
+                raise ValueError("Can't have a bond between two atoms that don't occur in the structure")
+
+            structure_graph[atom_1].append(atom_2)
+            structure_graph[atom_2].append(atom_1)
+            bond = Bond(atom_1, atom_2, bond_type, i)
+            bond_nr_to_bond[i] = bond
+            
+        substructure = Substructure(structure_graph, bond_nr_to_bond)
+        substructure.make_bond_lookup()
+            
+        return substructure
 
 
 class ECFP:
@@ -81,6 +179,8 @@ class ECFP:
                     array.append(atom_id)
                     attachment_order.append(neighbour)
 
+                # If the atom is chiral, we need to check if the chirality can be disambiguated at this level
+
                 if atom.chiral and not self.disambiguated_chiral[atom]:
                     neighbour_identifiers = []
                     neighbour_identifiers_sorted = []
@@ -88,6 +188,7 @@ class ECFP:
                         neighbour_identifier = self.identifiers[neighbour][i]
                         neighbour_identifiers_sorted.append(neighbour_identifier)
 
+                    # This indicates that any chiral centres should be resolved
                     if len(neighbour_identifiers_sorted) == len(set(neighbour_identifiers_sorted)):
 
                         for neighbour in atom.neighbours:
@@ -106,9 +207,14 @@ class ECFP:
 
                         self.disambiguated_chiral[atom] = True
 
+                # New hash is made from all hashes from all previous states
+
                 new_identifier = hash_32_bit_integer(array)
 
+                # Store the new identifier in dictionary
+
                 self.identifiers[atom][i + 1] = new_identifier
+
                 bonds_core_previous = self.bonds[identifier]
                 bonds_attachment = atom.get_non_hydrogen_bonds()
 
@@ -128,12 +234,14 @@ class ECFP:
 
             for new_feature, identifier, atom in new_features:
                 # TODO: Make a better feature representation, perhaps as SMILES string
+                feature = Feature(identifier, new_feature)
                 self.fingerprint.add(identifier)
+                self.hash_to_feature[identifier] = feature
                 if new_feature == previous_feature:
                     continue
                 else:
                     self.features[new_feature] = (identifier, i + 1, atom)
-                    self.hash_to_feature[identifier] = new_feature
+
 
                     previous_feature = new_feature
                     previous_atom = atom
@@ -147,6 +255,11 @@ def build_ecfp_bitvector(structures, depth=2, bits=1024):
         ecfp = ECFP(structure, iterations=depth)
         fingerprints.append(ecfp.fingerprint)
         identifier_to_feature.update(ecfp.hash_to_feature)
+        if len(ecfp.fingerprint) != len(set(ecfp.hash_to_feature.keys())):
+            print(ecfp.fingerprint)
+            print(set(ecfp.hash_to_feature.keys()))
+            if len(ecfp.fingerprint) != 1 + len(set(ecfp.hash_to_feature.keys())):
+                print("woops")
 
     substructure_to_count = {}
 
@@ -162,7 +275,7 @@ def build_ecfp_bitvector(structures, depth=2, bits=1024):
     for substructure in bitvector_substructures:
         bitvector_mapping[substructure] = identifier_to_feature[substructure]
 
-    return bitvector_substructures, bitvector_mapping
+    return bitvector_substructures, bitvector_mapping, fingerprints
 
 
 

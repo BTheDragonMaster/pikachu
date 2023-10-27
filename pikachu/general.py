@@ -111,7 +111,7 @@ def position_smiles(smiles):
     return drawer
 
 
-def draw_smiles(smiles, options=None):
+def draw_smiles(smiles, options=None, kekulise=True):
     """
     Display structure from SMILES string
 
@@ -129,7 +129,7 @@ def draw_smiles(smiles, options=None):
 
     else:
 
-        drawer = Drawer(structure, options=options)
+        drawer = Drawer(structure, options=options, kekulise=kekulise)
     
     drawer.show_molecule()
 
@@ -210,7 +210,7 @@ def png_from_structure(structure, png_out, options=None):
     drawer.save_png(png_out)
 
 
-def svg_from_smiles(smiles, svg_out, options=None):
+def svg_from_smiles(smiles, svg_out, options=None, kekulise=True):
     """
     Save structure drawing of SMILES string to .svg
 
@@ -224,9 +224,9 @@ def svg_from_smiles(smiles, svg_out, options=None):
         options = Options()
 
     if '.' in smiles:
-        drawer = draw_multiple(structure, options=options)
+        drawer = draw_multiple(structure, options=options, kekulise=kekulise)
     else:
-        drawer = Drawer(structure, options=options, coords_only=True)
+        drawer = Drawer(structure, options=options, coords_only=True, kekulise=kekulise)
     drawer.write_svg(svg_out)
 
 

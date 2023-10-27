@@ -301,14 +301,16 @@ class KKLayout:
 
 class Drawer:
     def __init__(self, structure: Structure, options: Union[Options, None] = None,
-                 coords_only: bool = False, multiple: bool = False) -> None:
+                 coords_only: bool = False, multiple: bool = False, kekulise: bool = True) -> None:
 
         if options is None:
             self.options = Options()
         else:
             self.options = options
-
-        self.structure = structure.kekulise()
+        if kekulise:
+            self.structure = structure.kekulise()
+        else:
+            self.structure = structure
         self.rings = []
         self.ring_overlaps = []
         self.original_rings = []
@@ -944,13 +946,19 @@ class Drawer:
                         self.draw_chiral_bond(orientation, chiral_center, line, midpoint)
                     else:
                         self.draw_halflines(line, midpoint)
-                elif bond.type == 'double':
+                elif bond.type in {'double', 'aromatic'}:
+                    aromatic = False
+                    if bond.type == 'aromatic':
+                        aromatic = True
                     if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
                         self.draw_halflines(line, midpoint)
 
                         common_ring_numbers = self.get_common_rings(bond.atom_1, bond.atom_2)
 
+                        # One bond is as usual, the other is drawn a little to the side
+
                         if common_ring_numbers:
+
                             common_rings = []
                             for ring_nr in common_ring_numbers:
                                 common_rings.append(self.get_ring(ring_nr))
@@ -958,23 +966,27 @@ class Drawer:
                             common_rings.sort(key=lambda x: len(x.members))
                             common_ring = common_rings[0]
                             ring_centre = common_ring.center
+
+                            # If the double bond is in a ring, draw the second line towards the centre of the ring
                             second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing,
                                                                           self.options.double_bond_length)
                             second_line_midpoint = second_line.get_midpoint()
-                            self.draw_halflines_double(second_line, second_line_midpoint)
+                            self.draw_halflines_double(second_line, second_line_midpoint, aromatic)
 
                         else:
+
                             bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
-                            if bond_neighbours:
-                                vectors = [atom.draw.position for atom in bond_neighbours]
-                                gravitational_point = Vector.get_average(vectors)
-                                second_line = line.double_line_towards_center(gravitational_point,
-                                                                              self.options.bond_spacing,
-                                                                              self.options.double_bond_length)
-                                second_line_midpoint = second_line.get_midpoint()
-                                self.draw_halflines_double(second_line, second_line_midpoint)
-                            else:
-                                print("Shouldn't happen!")
+                            assert bond_neighbours
+
+                            vectors = [atom.draw.position for atom in bond_neighbours]
+                            # If the bond is not in a ring, draw the second line where you have more neighbouring bonds
+                            gravitational_point = Vector.get_average(vectors)
+                            second_line = line.double_line_towards_center(gravitational_point,
+                                                                          self.options.bond_spacing,
+                                                                          self.options.double_bond_length)
+                            second_line_midpoint = second_line.get_midpoint()
+                            self.draw_halflines_double(second_line, second_line_midpoint, aromatic)
+
                     else:
                         if self.is_terminal(bond.atom_1) and self.is_terminal(bond.atom_2):
                             dummy_1 = Vector(bond.atom_1.draw.position.x + 1, bond.atom_1.draw.position.y + 1)
@@ -989,7 +1001,7 @@ class Drawer:
                             double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
 
                             self.draw_halflines_double(double_bond_line_1, double_bond_line_1_midpoint)
-                            self.draw_halflines_double(double_bond_line_2, double_bond_line_2_midpoint)
+                            self.draw_halflines_double(double_bond_line_2, double_bond_line_2_midpoint, aromatic)
 
                         else:
 
@@ -1045,7 +1057,7 @@ class Drawer:
                                         double_bond_line_2.point_2 = intersection_2
 
                                 self.draw_halflines(double_bond_line_1, double_bond_line_1_midpoint)
-                                self.draw_halflines(double_bond_line_2, double_bond_line_2_midpoint)
+                                self.draw_halflines(double_bond_line_2, double_bond_line_2_midpoint, aromatic)
 
                             else:
                                 self.draw_halflines(line, midpoint)
@@ -1057,7 +1069,7 @@ class Drawer:
                                     second_line = line.get_parallel_line(gravitational_point,
                                                                          self.options.bond_spacing)
                                     second_line_midpoint = second_line.get_midpoint()
-                                    self.draw_halflines(second_line, second_line_midpoint)
+                                    self.draw_halflines(second_line, second_line_midpoint, aromatic)
                                 else:
                                     print("Shouldn't happen!")
 
@@ -1410,20 +1422,33 @@ class Drawer:
             else:
                 raise ValueError(f"Unrecognised chiral bond orientation: {orientation}.")
 
-    def draw_halflines(self, line: Line, midpoint: Vector) -> None:
+    def draw_halflines(self, line: Line, midpoint: Vector, aromatic=False) -> None:
 
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
             truncated_line = halfline.get_truncated_line(self.options.short_bond_length)
-            svg_line = self.draw_line(truncated_line, color=halfline.atom.draw.colour)
+            if not aromatic:
+                svg_line = self.draw_line(truncated_line, color=halfline.atom.draw.colour)
+            else:
+                svg_line = self.draw_dashed_line(truncated_line, color=halfline.atom.draw.colour)
             self.add_svg_element(svg_line, halfline.atom)
 
-    def draw_halflines_double(self, line: Line, midpoint: Vector) -> None:
+    def draw_halflines_double(self, line: Line, midpoint: Vector, aromatic=False) -> None:
 
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
-            svg_line = self.draw_line(halfline, color=halfline.atom.draw.colour)
+            if not aromatic:
+                svg_line = self.draw_line(halfline, color=halfline.atom.draw.colour)
+            else:
+                svg_line = self.draw_dashed_line(halfline, color=halfline.atom.draw.colour)
             self.add_svg_element(svg_line, halfline.atom)
+
+    def draw_dashed_line(self, line: Line, color: str = 'black') -> str:
+        if color != 'black':
+            svg_line = f'<line x1="{line.point_1.x}" y1="{line.point_1.y}" x2="{line.point_2.x}" y2="{line.point_2.y}" stroke="{color}" stroke-dasharray="3,2"/>'
+        else:
+            svg_line = f'<line x1="{line.point_1.x}" y1="{line.point_1.y}" x2="{line.point_2.x}" y2="{line.point_2.y}" stroke-dasharray="3,2"/>'
+        return svg_line
 
     def draw_line(self, line: Line, color: str = 'black') -> str:
         if color != 'black':
@@ -1432,20 +1457,25 @@ class Drawer:
             svg_line = f'<line x1="{line.point_1.x}" y1="{line.point_1.y}" x2="{line.point_2.x}" y2="{line.point_2.y}" />'
         return svg_line
 
-    def plot_halflines(self, line: Line, ax: Axes, midpoint: Vector) -> None:
+    def plot_halflines(self, line: Line, ax: Axes, midpoint: Vector, aromatic: bool = False) -> None:
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
             truncated_line = halfline.get_truncated_line(self.options.short_bond_length)
-            self.plot_line(truncated_line, ax, color=halfline.atom.draw.colour)
+            self.plot_line(truncated_line, ax, color=halfline.atom.draw.colour, aromatic=aromatic)
 
-    def plot_halflines_double(self, line: Line, ax: Axes, midpoint: Vector) -> None:
+    def plot_halflines_double(self, line: Line, ax: Axes, midpoint: Vector, aromatic: bool = False) -> None:
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
-            self.plot_line(halfline, ax, color=halfline.atom.draw.colour)
+            self.plot_line(halfline, ax, color=halfline.atom.draw.colour, aromatic=aromatic)
 
-    def plot_line(self, line: Line, ax: Axes, color: str = 'black') -> None:
-        ax.plot([line.point_1.x, line.point_2.x],
-                [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness)
+    def plot_line(self, line: Line, ax: Axes, color: str = 'black', aromatic: bool = False) -> None:
+        if not aromatic:
+            ax.plot([line.point_1.x, line.point_2.x],
+                    [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness)
+        else:
+            ax.plot([line.point_1.x, line.point_2.x],
+                    [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness,
+                    linestyle='dashed', dashes=(2, 1))
 
     @staticmethod
     def get_image_as_array() -> np.ndarray:
@@ -1641,7 +1671,11 @@ class Drawer:
                         self.plot_chiral_bond(orientation, chiral_center, line, ax, midpoint)
                     else:
                         self.plot_halflines(line, ax, midpoint)
-                elif bond.type == 'double':
+                elif bond.type in {'double', 'aromatic'}:
+                    aromatic = False
+                    if bond.type == 'aromatic':
+                        aromatic = True
+                    
                     if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
                         self.plot_halflines(line, ax, midpoint)
 
@@ -1657,7 +1691,7 @@ class Drawer:
                             ring_centre = common_ring.center
                             second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length)
                             second_line_midpoint = second_line.get_midpoint()
-                            self.plot_halflines_double(second_line, ax, second_line_midpoint)
+                            self.plot_halflines_double(second_line, ax, second_line_midpoint, aromatic)
 
                         else:
                             bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
@@ -1666,7 +1700,7 @@ class Drawer:
                                 gravitational_point = Vector.get_average(vectors)
                                 second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length)
                                 second_line_midpoint = second_line.get_midpoint()
-                                self.plot_halflines_double(second_line, ax, second_line_midpoint)
+                                self.plot_halflines_double(second_line, ax, second_line_midpoint, aromatic)
                             else:
                                 print("Shouldn't happen!")
                     else:
@@ -1683,7 +1717,7 @@ class Drawer:
                             double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
 
                             self.plot_halflines_double(double_bond_line_1, ax, double_bond_line_1_midpoint)
-                            self.plot_halflines_double(double_bond_line_2, ax, double_bond_line_2_midpoint)
+                            self.plot_halflines_double(double_bond_line_2, ax, double_bond_line_2_midpoint, aromatic)
 
                         else:
 
@@ -1732,7 +1766,7 @@ class Drawer:
                                         double_bond_line_2.point_2 = intersection_2
 
                                 self.plot_halflines(double_bond_line_1, ax, double_bond_line_1_midpoint)
-                                self.plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint)
+                                self.plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint, aromatic)
 
                             else:
                                 self.plot_halflines(line, ax, midpoint)
@@ -1744,7 +1778,7 @@ class Drawer:
                                     second_line = line.get_parallel_line(gravitational_point,
                                                                          self.options.bond_spacing)
                                     second_line_midpoint = second_line.get_midpoint()
-                                    self.plot_halflines(second_line, ax, second_line_midpoint)
+                                    self.plot_halflines(second_line, ax, second_line_midpoint, aromatic)
                                 else:
                                     print("Shouldn't happen!")
 
@@ -3092,7 +3126,7 @@ class Drawer:
 
         for ring_id in involved_ring_ids:
             ring = self.id_to_ring[ring_id]
-            bridged_ring.subrings.append(copy.deepcopy(ring))
+            bridged_ring.subrings.append(ring.copy())
 
         for atom in ring_members:
             atom.draw.bridged_ring = bridged_ring.id
@@ -3117,11 +3151,18 @@ class Drawer:
             neighbour.neighbouring_rings.append(bridged_ring.id)
 
     def backup_ring_info(self):
-        self.original_rings = copy.deepcopy(self.rings)
-        self.original_ring_overlaps = copy.deepcopy(self.ring_overlaps)
+        print(self.rings)
+        self.original_rings = []
+        for ring in self.rings:
+            self.original_rings.append(ring.copy())
+        self.original_ring_overlaps = []
+        for ring_overlap in self.ring_overlaps:
+            self.original_ring_overlaps.append(ring_overlap.copy())
 
         for atom in self.structure.graph:
-            atom.draw.original_rings = copy.deepcopy(atom.draw.rings)
+            atom.draw.original_rings = []
+            for ring in atom.draw.rings:
+                atom.draw.original_rings.append(ring)
 
     def get_ring_index(self, ring_id):
         for i, ring in enumerate(self.rings):
@@ -3220,7 +3261,7 @@ class Drawer:
         return atom_distances
 
 
-def draw_multiple(structure: Structure, coords_only: bool = False, options: Union[None, Options] = None) -> Drawer:
+def draw_multiple(structure: Structure, coords_only: bool = False, options: Union[None, Options] = None, kekulise=True) -> Drawer:
     if not options:
         options = Options()
     options_main = Options()
@@ -3231,7 +3272,7 @@ def draw_multiple(structure: Structure, coords_only: bool = False, options: Unio
     max_x = -100000000
 
     for i, substructure in enumerate(structures):
-        subdrawer = Drawer(substructure, options=options, coords_only=True)
+        subdrawer = Drawer(substructure, options=options, coords_only=True, kekulise=kekulise)
         bounding_box = subdrawer.structure.get_bounding_box()
         min_x = bounding_box[0]
         diff_x = max_x - min_x

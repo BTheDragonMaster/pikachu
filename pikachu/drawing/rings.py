@@ -73,8 +73,6 @@ class Ring:
     def __init__(self, members):
         self.id = None
         self.members = members
-        self.edges = []
-        self.inside_vertices = []
         self.neighbouring_rings = []
         self.positioned = False
         self.center = Vector(0, 0)
@@ -94,7 +92,29 @@ class Ring:
 
     def __repr__(self):
         return str(self.id) + ' ' + '-'.join([atom.__repr__() for atom in self.members])
+
+    def copy(self):
+        new_members = []
+        for atom in self.members:
+            new_members.append(atom.copy())
+
+        new_ring = Ring(new_members)
+        new_ring.id = self.id
+        for ring_id in self.neighbouring_rings:
+            new_ring.neighbouring_rings.append(ring_id)
+
+        new_ring.positioned = self.positioned
+        for subring in self.subrings:
+            new_ring.subrings.append(subring)
+        new_ring.bridged = self.bridged
+        new_ring.subring_of_bridged = self.subring_of_bridged
+        new_ring.spiro = self.spiro
+        new_ring.fused = self.fused
+        new_ring.central_angle = self.central_angle
+        new_ring.flippable = self.flippable
         
+        return new_ring
+
     def get_angle(self):
         return math.pi - self.central_angle
 
@@ -136,7 +156,11 @@ class Ring:
 
             iteration += 1
 
-
+class DummyRing(Ring):
+    def __init__(self, ring_id):
+        super().__init__([])
+        self.id = ring_id
+        
 class RingOverlap:
     def __init__(self, ring_1, ring_2):
         self.id = None
@@ -154,6 +178,19 @@ class RingOverlap:
 
     def __eq__(self, other):
         return self.id == other.id
+    
+    def copy(self):
+        new_overlap = RingOverlap(DummyRing(self.ring_id_1), DummyRing(self.ring_id_2))
+        new_overlap.atoms = set()
+        
+        for atom in self.atoms:
+            new_overlap.atoms.add(atom.copy())
+            
+        new_overlap.id = self.id
+        new_overlap.ring_id_1 = self.ring_id_1
+        new_overlap.ring_id_2 = self.ring_id_2
+        
+        return new_overlap
 
     def involves_ring(self, ring_id):
         if self.ring_id_1 == ring_id or self.ring_id_2 == ring_id:
