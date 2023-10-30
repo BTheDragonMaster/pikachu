@@ -2493,8 +2493,6 @@ class Drawer:
                 text_y = atom_drawing.draw.position.y + 8
                 text = self.draw_text(atom_string, text_x, text_y)
                 self.add_svg_element(text, atom)
-                
-            
 
     def restore_ring_information(self) -> None:
         bridged_rings = self.get_bridged_rings()
@@ -2574,6 +2572,8 @@ class Drawer:
 
     def resolve_primary_overlaps(self) -> None:
         overlaps = []
+
+        # Keep track of which atoms are resolved
         resolved_atoms = {}
         for atom in self.structure.graph:
             if atom.draw.is_drawn:
@@ -2968,7 +2968,8 @@ class Drawer:
             self.add_ring(ring)
 
             for atom in ring_members:
-                atom.draw.rings.append(ring.id)
+                structure_atom = self.structure.get_atom(atom)
+                structure_atom.draw.rings.append(ring.id)
 
         for i, ring_1 in enumerate(self.rings[:-1]):
             for ring_2 in self.rings[i + 1:]:
@@ -3151,15 +3152,17 @@ class Drawer:
             neighbour.neighbouring_rings.append(bridged_ring.id)
 
     def backup_ring_info(self):
-        print(self.rings)
         self.original_rings = []
+
         for ring in self.rings:
             self.original_rings.append(ring.copy())
+
         self.original_ring_overlaps = []
         for ring_overlap in self.ring_overlaps:
             self.original_ring_overlaps.append(ring_overlap.copy())
 
         for atom in self.structure.graph:
+
             atom.draw.original_rings = []
             for ring in atom.draw.rings:
                 atom.draw.original_rings.append(ring)

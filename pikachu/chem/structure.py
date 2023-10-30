@@ -909,8 +909,6 @@ class Structure:
 
         self.sort_by_nr()
 
-
-
         self.form_pi_bonds()
         self.hybridise_atoms()
         self.promote_pi_bonds()
