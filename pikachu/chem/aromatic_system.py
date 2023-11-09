@@ -1,5 +1,20 @@
+from typing import List
+
+from pikachu.chem.atom import Atom
+from pikachu.chem.electron import Electron
+
+
 class AromaticSystem:
-    def __init__(self, aromatic_system_id, atoms):
+    """
+    Class for storing aromatic systems, including bonds, atoms, and involved electrons
+
+    Attributes:
+        id: int, unique identifier of aromatic system
+        atoms: set, atoms involved in aromatic system
+        electrons: set, electrons shared in aromatic system
+        bonds: set, bonds involved in aromatic system
+    """
+    def __init__(self, aromatic_system_id: int, atoms: List[Atom]):
         self.id = aromatic_system_id
         self.atoms = set(atoms)
         for atom in self.atoms:
@@ -15,13 +30,16 @@ class AromaticSystem:
     def __hash__(self):
         return self.id
 
-    def __eq__(self, other):
+    def __eq__(self, other: "AromaticSystem"):
         return self.id == other.id
 
     def __repr__(self):
         return f"Aromatic system {self.id}, members: {', '.join([atom.__repr__() for atom in self.atoms])}"
 
     def set_bonds(self):
+        """
+        Find and store bonds that are part of the aromatic system from involved atoms
+        """
         for atom_1 in self.atoms:
             for atom_2 in self.atoms:
                 if atom_1 != atom_2:
@@ -30,7 +48,15 @@ class AromaticSystem:
                         self.bonds.add(bond)
                         bond.aromatic_system = self
 
-    def get_contributed_electrons(self, atom):
+    def get_contributed_electrons(self, atom: Atom):
+        """
+        Returns electrons that an atom contributes to an aromatic system
+
+        Parameters
+        ----------
+        atom: Atom instance
+
+        """
         contributed_electrons = []
         for electron in self.electrons:
             if electron.atom == atom:
@@ -39,6 +65,9 @@ class AromaticSystem:
         return contributed_electrons
 
     def set_electrons(self):
+        """
+        Move electrons from aromatic atoms from their p-orbital to the aromatic system
+        """
         for atom in self.atoms:
 
             p_orbital = atom.get_orbitals('p')[0]
@@ -51,13 +80,13 @@ class AromaticSystem:
                 electrons = p_orbital.electrons[:]
                 for electron in electrons:
                     p_orbital.remove_electron(electron)
-                    self.electrons.add(electron)
-
-    def add_atom(self, atom):
-        self.atoms.add(atom)
-        atom.aromatic_system = self
+                    self.add_electron(electron)
 
     def relocalise_electrons(self):
+        """
+        Move electrons from the aromatic system back to their p-orbitals - done for kekulisation purposes
+
+        """
         for atom in self.atoms:
             p_orbital = atom.get_orbitals('p')[0]
             electrons = self.get_contributed_electrons(atom)
@@ -65,20 +94,23 @@ class AromaticSystem:
                 p_orbital.add_electron(electron)
                 self.remove_electron(electron)
 
-    def add_electron(self, electron):
+    def add_electron(self, electron: Electron):
+        """
+        Add electron to aromatic system
+
+        Parameters
+        ----------
+        electron: Electron instance
+
+        """
         self.electrons.add(electron)
 
-    def remove_atom(self, atom):
-        self.atoms.remove(atom)
-        atom.aromatic_system = None
+    def remove_electron(self, electron: Electron):
+        """
+        Remove electron from aromatic system
 
-    def remove_electron(self, electron):
+        Parameters
+        ----------
+        electron: Electron instance
+        """
         self.electrons.remove(electron)
-
-    def add_bond(self, bond):
-        self.bonds.add(bond)
-        bond.aromatic_system = self
-
-    def remove_bond(self, bond):
-        self.bonds.remove(bond)
-        bond.aromatic_system = None

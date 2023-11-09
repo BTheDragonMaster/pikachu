@@ -9,6 +9,11 @@ from pikachu.math_functions import Vector
 
 
 class Atom:
+    """
+    Class to store an atom
+
+
+    """
 
     def __new__(cls, atom_type, atom_nr, chiral, charge, aromatic):
         self = super().__new__(cls)  # Must explicitly create the new object

@@ -1,16 +1,13 @@
-import copy
 from pprint import pprint
 import sys
 from typing import Set, Generator
 
 from pikachu.chem.bond_properties import BOND_PROPERTIES
-from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.errors import StructureError, KekulisationError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
-from pikachu.chem.substructure_matching import check_same_chirality, compare_all_matches, SubstructureMatch, \
-    find_substructures
+from pikachu.chem.substructure_matching import check_same_chirality, find_substructures
 from pikachu.chem.rings.ring_identification import is_aromatic
 import pikachu.chem.rings.find_cycles as find_cycles
 from pikachu.chem.aromatic_system import AromaticSystem
@@ -154,49 +151,6 @@ class Structure:
             new_structure.annotations.add((annotation, default))
 
         return new_structure
-
-    def get_priority_groups(self, priority_groups):
-        ordered_priorities = sorted(priorities, reverse=True)
-        priority_groups = {0: [],
-                           1: [],
-                           2: [],
-                           3: []}
-
-        previous_priority = None
-        previous_priority_idx = 0
-
-        for i, priority in enumerate(ordered_priorities):
-            if priority != previous_priority:
-                previous_priority = priority
-                previous_priority_idx = i
-                priority_groups[i] = [priority]
-            else:
-                priority_groups[previous_priority_idx].append(priority)
-
-
-    def get_absolute_chirality(self, chiral_center):
-        assert chiral_center.chiral
-
-        chiral_atom = self.get_atom(chiral_center)
-        priorities = []
-        next_atoms = []
-        masked_atoms = {chiral_atom}
-        for atom in chiral_atom.neighbours:
-            priorities.append((ATOM_PROPERTIES.element_to_atomic_nr[atom.type], 1))
-            next_atoms.append(atom)
-
-
-
-        unresolved_priority_groups = []
-
-
-
-        while len(set(priorities)) != len(priorities):
-
-
-            for priority in priorities:
-                pass
-
 
     def copy(self):
         new_graph = {}
@@ -1642,22 +1596,6 @@ class Structure:
 
         return kekule_structure
 
-    def break_any_bond(self, atom_1, atom_2):
-        """Remove edges from structure to break any bond
-
-        atom_1: tuple of (str, int), with str atom type and int atom number
-        atom_2: tuple of (str, int), with str atom type and int atom number
-
-        """
-        bonds_removed = 0
-        while atom_2 in self.structure[atom_1]:
-            self.structure[atom_1].remove(atom_2)
-            bonds_removed += 1
-        while atom_1 in self.structure[atom_2]:
-            self.structure[atom_2].remove(atom_1)
-
-        self.bonds[atom_1] -= bonds_removed
-        self.bonds[atom_2] -= bonds_removed
 
     def split_disconnected_structures(self):
         """Return list of unconnected structures from structure
@@ -1784,10 +1722,6 @@ class Structure:
                 rest_group_graph = {current_atom: []}
 
         return rest_group_graph
-
-    def get_bond_nr(self, atom_1, atom_2):
-        bond_nr = self.structure[atom_1].count(atom_2)
-        return bond_nr
 
     def traverse_substructure(self, atom: Atom, visited: Set[Atom], traverse_h: bool = False) -> Generator[Atom, None, None]:
         yield atom
