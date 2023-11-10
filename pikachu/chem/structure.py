@@ -56,6 +56,10 @@ class Structure:
 
         self.aromatic_cycles = []
         self.aromatic_systems = []
+        self._atom_index = {}
+
+    def get_atom(self, atom_nr):
+        return self._atom_index[atom_nr]
 
     def get_atoms(self):
         atoms = []
