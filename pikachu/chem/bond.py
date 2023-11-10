@@ -179,8 +179,8 @@ class Bond:
         orbital_1.remove_bond()
         orbital_2.remove_bond()
 
-        self.atom_1.remove_neighbour(self.atom_2)
-        self.atom_2.remove_neighbour(self.atom_1)
+        self.atom_1._remove_neighbour(self.atom_2)
+        self.atom_2._remove_neighbour(self.atom_1)
 
         self.atom_1.remove_bond(self)
         self.atom_2.remove_bond(self)

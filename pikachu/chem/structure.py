@@ -884,7 +884,7 @@ class Structure:
 
     def make_lone_pairs(self):
         for atom in self.graph:
-            atom.make_lone_pairs()
+            atom.set_lone_pairs()
 
     def promote_pi_bonds(self):
         for atom in self.graph:
@@ -985,7 +985,7 @@ class Structure:
 
     def set_atom_neighbours(self):
         for atom in self.graph:
-            atom.set_neighbours(self)
+            atom.set_neighbours(self.graph[atom])
 
     def get_connectivities(self):
         connectivities = {}
@@ -1145,7 +1145,7 @@ class Structure:
             for connectivity in atom_connectivities_child[atom_type]:
                 substructure_connectivity_counts[atom_type][connectivity] = 0
                 for atom in self.graph:
-                    if atom.type == atom_type and atom.potential_same_connectivity(connectivity):
+                    if atom.type == atom_type and atom.has_similar_connectivity(connectivity):
                         substructure_connectivity_counts[atom_type][connectivity] += 1
 
         return substructure_connectivity_counts
@@ -1155,7 +1155,7 @@ class Structure:
         for substructure_connectivity in atom_connectivities_child:
             substructure_connectivities[substructure_connectivity] = []
             for atom in self.graph:
-                if atom.type != 'H' and atom.potential_same_connectivity(substructure_connectivity):
+                if atom.type != 'H' and atom.has_similar_connectivity(substructure_connectivity):
                     substructure_connectivities[substructure_connectivity].append(atom)
 
         return substructure_connectivities
@@ -1230,7 +1230,7 @@ class Structure:
             max_bond_nr = -1
 
         for atom in list(self.graph.keys()):
-            hydrogens_to_add = atom.calc_hydrogens()
+            hydrogens_to_add = atom.get_nr_implicit_hydrogens()
             for i in range(hydrogens_to_add):
                 max_atom_nr += 1
                 max_bond_nr += 1
@@ -1350,8 +1350,8 @@ class Structure:
         bond.electrons.append(electron_1)
         bond.electrons.append(electron_2)
 
-        atom_1.set_neighbours(self)
-        atom_2.set_neighbours(self)
+        atom_1.set_neighbours(self.graph[atom_1])
+        atom_2.set_neighbours(self.graph[atom_2])
 
     def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:

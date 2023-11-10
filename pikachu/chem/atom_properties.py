@@ -1,3 +1,5 @@
+# ToDo: Turn into Enums
+
 class AtomProperties:
     """
     A class storing various properties of atoms
@@ -73,6 +75,13 @@ class AtomProperties:
                            'Na': [1],
                            'Fe': [2, 3],
                            '*': [1]}
+
+    steric_nr_to_hybridisation = {1: 's',
+                                  2: 'sp',
+                                  3: 'sp2',
+                                  4: 'sp3',
+                                  5: 'sp3d',
+                                  6: 'sp3d2'}
 
     group_to_valence = {1: 1,
                         2: 2,

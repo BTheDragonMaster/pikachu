@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from typing import Union, List, Tuple, Dict, Set, Generator
-import copy
 import math
 import numpy as np
 from matplotlib import pyplot as plt

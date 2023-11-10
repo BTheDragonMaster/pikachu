@@ -1,3 +1,5 @@
+from typing import Optional, List, Tuple
+
 import copy
 
 from pikachu.chem.lone_pair import LonePair
@@ -12,10 +14,20 @@ class Atom:
     """
     Class to store an atom
 
+    Attributes:
+        type: str, atom type as represented in the periodic table. * for wildcard atom
+        nr: int, atom index. Must be unique within a structure
+        chiral: Optional[str], 'clockwise' or 'counterclockwise',
+            indicates chirality according to order of neighbouring atoms
+        charge: int, charge of the atom
+        aromatic: bool, True if atom is part of an aromatic system, False if otherwise
+        shells: dict of {shell_nr: Shell, ->}
+
+
 
     """
 
-    def __new__(cls, atom_type, atom_nr, chiral, charge, aromatic):
+    def __new__(cls, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool):
         self = super().__new__(cls)  # Must explicitly create the new object
         # Aside from explicit construction and return, rest of __new__
         # is same as __init__
@@ -32,7 +44,7 @@ class Atom:
         # Return the arguments that *must* be passed to __new__
         return self.type, self.nr, self.chiral, self.charge, self.aromatic
 
-    def __init__(self, atom_type, atom_nr, chiral, charge, aromatic):
+    def __init__(self, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool):
 
         self.type = atom_type
         self.nr = atom_nr
@@ -57,7 +69,7 @@ class Atom:
         self.aromatic_system = None
         self.shell_nr = ATOM_PROPERTIES.element_to_shell_nr[self.type]
 
-    def __eq__(self, atom):
+    def __eq__(self, atom: "Atom"):
         if type(atom) == Atom:
             return self.nr == atom.nr
         else:
@@ -82,7 +94,11 @@ class Atom:
 
         return f'{self.type}{charge_string}_{self.nr}'
 
-    def copy(self):
+    def copy(self) -> "Atom":
+        """
+        Creates and returns a copy of the current atom
+
+        """
         atom_copy = Atom(self.type, self.nr, self.chiral, self.charge, self.aromatic)
         atom_copy.hybridisation = self.hybridisation
         atom_copy.pyrrole = self.pyrrole
@@ -106,7 +122,10 @@ class Atom:
 
         return atom_copy
 
-    def make_lone_pairs(self):
+    def set_lone_pairs(self) -> None:
+        """
+        Find and store lone pairs associated with the atom
+        """
         lone_pairs = self.valence_shell.get_lone_pairs()
 
         # self.valence_shell.get_lone_pair_nr()
@@ -117,29 +136,53 @@ class Atom:
 
             self.lone_pairs.append(lone_pair)
 
-    def get_bond(self, atom):
+    def get_bond(self, atom: "Atom") -> Optional["Bond"]:
+        """
+        Return None if there exists no bond between atom and self; Bond instance if a bond does exist
+
+        Parameters
+        ----------
+        atom: Atom instance
+
+        """
         for bond in self.bonds:
             if bond.atom_1 == atom or bond.atom_2 == atom:
                 return bond
 
         return None
 
-    def get_bonds(self):
-        return self.bonds[:]
+    def set_neighbours(self, atoms: List["Atom"]) -> None:
+        """
+        Set atom neighbours from a list of atoms
 
-    def set_neighbours(self, structure):
-        self.neighbours = structure.graph[self]
+        Parameters
+        ----------
+        atoms: List of Atom instances
 
-    def set_drawn_neighbours(self):
+        """
+        self.neighbours = atoms
+
+    # TODO: Move method to AtomDrawProperties
+    def set_drawn_neighbours(self) -> None:
+        """
+        Store a list of neighbours that will be drawn in visualisation
+        """
         self.drawn_neighbours = []
         for neighbour in self.neighbours:
             if neighbour.draw.is_drawn:
                 self.drawn_neighbours.append(neighbour)
 
-    def remove_neighbour(self, neighbour):
+    def _remove_neighbour(self, neighbour: "Atom") -> None:
+        """
+        Remove a neighbouring atom.
+        """
         self.neighbours.remove(neighbour)
 
-    def get_drawn_neighbours(self):
+    # TODO: Move method to AtomDrawProperties
+    def get_drawn_neighbours(self) -> List["Atom"]:
+        """
+        Returns all neighbours of the atom that are explicitly drawn in the visualisation
+        """
         drawn_neighbours = []
         for neighbour in self.neighbours:
             if neighbour.draw.is_drawn:
@@ -147,43 +190,53 @@ class Atom:
 
         return drawn_neighbours
 
-    def has_neighbour(self, atom_type):
+    def has_neighbour(self, atom_type: str) -> bool:
+        """
+        Return True if atom has a neighbour of a certain atom type, False if not
+        Parameters
+        ----------
+        atom_type: str, atom type
+        """
         for neighbour in self.neighbours:
             if neighbour.type == atom_type:
                 return True
 
         return False
 
-    def set_connectivity(self):
+    def set_connectivity(self) -> None:
+        """
+        Sets the connectivity of an atom (sorted tuple of str, with each string a concatenation of atom type and bond type)
+
+        Example: ('C_single', 'O_double')
+        """
         self.connectivity = self.get_connectivity()
 
-    def get_connectivity(self):
+    def get_connectivity(self) -> Tuple[str]:
+        """
+        Returns a sorted tuple of str, representing atom connectivity
+
+        Example: ('C_single', 'O_double')
+        """
         connectivity = []
 
         for bond in self.bonds:
             for atom in bond.neighbours:
                 if atom.type != 'H' and atom != self:
-                    bond_type = bond.type
-                    connectivity.append(f'{atom.type}_{bond_type}')
+                    connectivity.append(f'{atom.type}_{bond.type}')
 
         connectivity = tuple(sorted(connectivity))
         return connectivity
 
-    def same_connectivity(self, atom):
-        if self.type == atom.type:
-            if len(self.connectivity) == len(atom.connectivity):
-                if set(self.connectivity) == set(atom.connectivity):
-                    return True
-                else:
-                    return False
+    def has_similar_connectivity(self, substructure_connectivity: Tuple[str]) -> bool:
+        """
+        Return True if all bond-atom combinations of the child atom are present in the parent atom, False otherwise
 
-            else:
-                return False
+        Parameters
+        ----------
+        substructure_connectivity: tuple of str, with each str representing the connectivity of an atom
+            Example: ('C_single', 'O_double')
 
-        else:
-            return False
-
-    def potential_same_connectivity(self, substructure_connectivity):
+        """
         parent_connectivity_copy = list(copy.copy(self.connectivity))
         substructure_connectivity_copy = list(copy.copy(substructure_connectivity))
 
@@ -196,12 +249,6 @@ class Atom:
                 same_connectivity = False
 
         return same_connectivity
-
-    def set_order(self):
-        self.order = 0
-        for neighbour in self.neighbours:
-            if neighbour.type != 'H':
-                self.order += 1
 
     def add_electron_shells(self):
 
@@ -631,7 +678,7 @@ class Atom:
         self.valence_shell.dehybridise()
         self.hybridise()
 
-    def calc_hydrogens(self):
+    def get_nr_implicit_hydrogens(self):
         hydrogens = 0
         if self.type in ['B', 'C', 'N', 'O', 'P', 'S', 'F', 'Cl', 'Br', 'I']:
 
@@ -661,53 +708,12 @@ class Atom:
                 break
 
     def get_hybridisation(self):
-        steric_number = self.get_steric_number()
-        # Make dict
-
-        if steric_number == 1:
-            hybridisation = 's'
-        elif steric_number == 2:
-            hybridisation = 'sp'
-        elif steric_number == 3:
-            hybridisation = 'sp2'
-        elif steric_number == 4:
-            hybridisation = 'sp3'
-        elif steric_number == 5:
-            hybridisation = 'sp3d'
-        elif steric_number == 6:
-            hybridisation = 'sp3d2'
-        elif steric_number == 0:
-            hybridisation = None
-        else:
-            hybridisation = None
+        steric_number = self.calc_electron_pair_nr() + len(self.bonds)
+        hybridisation = None
+        if steric_number in ATOM_PROPERTIES.steric_nr_to_hybridisation:
+            hybridisation = ATOM_PROPERTIES.steric_nr_to_hybridisation[steric_number]
 
         return hybridisation
-
-    def get_steric_number(self):
-        return self.calc_electron_pair_nr() + len(self.bonds)
-
-    def get_valence(self):
-        
-        if self.type in ATOM_PROPERTIES.element_to_valences[self.type]:
-            return ATOM_PROPERTIES.element_to_valences[self.type][0]
-        else:
-            if self.type in ATOM_PROPERTIES.element_to_group:
-                group = ATOM_PROPERTIES.element_to_group[self.type]
-                valence = ATOM_PROPERTIES.group_to_valence[group]
-                return valence
-            else:
-                return None
-
-    def get_coords(self):
-        return [self.x, self.y, self.z]
-
-    def get_hydrogen_nr(self, structure):
-        hydrogen_count = 0
-        for atom in structure.graph[self]:
-            if atom.type == 'H':
-                hydrogen_count += 1
-
-        return hydrogen_count
 
 
 class AtomDrawProperties:
@@ -727,6 +733,7 @@ class AtomDrawProperties:
         self.force_positioned = False
         self.connected_to_ring = False
         self.draw_explicit = False
+        self.drawn_neighbours = []
         self.previous_atom = None
         self.colour = 'black'
 
