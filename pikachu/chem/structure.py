@@ -1,6 +1,7 @@
 from pprint import pprint
+from collections import OrderedDict
 import sys
-from typing import Set, Generator
+from typing import Set, Generator, Dict, List
 
 from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.errors import StructureError, KekulisationError
@@ -56,10 +57,39 @@ class Structure:
 
         self.aromatic_cycles = []
         self.aromatic_systems = []
-        self._atom_index = {}
+        self._index_to_atom = OrderedDict()
+        self._index_to_bond = OrderedDict()
+        self._bond_lookup = {}
 
-    def get_atom(self, atom_nr):
-        return self._atom_index[atom_nr]
+    def get_atom(self, atom_nr: int) -> Atom:
+        """
+        Returns an atom object from a corresponding atom number
+
+        Parameters
+        ----------
+        atom_nr: int
+
+        """
+        if atom_nr in self._index_to_atom:
+
+            return self._index_to_atom[atom_nr]
+        else:
+            raise KeyError(f"Atom with nr {atom_nr} not found in structure.")
+
+    def get_bond(self, bond_nr: int) -> Bond:
+        """
+        Returns a bond object from a corresponding bond number
+
+        Parameters
+        ----------
+        bond_nr: int
+
+        """
+        if bond_nr in self._index_to_bond:
+
+            return self._index_to_bond[bond_nr]
+        else:
+            raise KeyError(f"Bond with nr {bond_nr} not found in structure.")
 
     def get_atoms(self):
         atoms = []
