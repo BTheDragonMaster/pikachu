@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import TYPE_CHECKING, Optional, List, Tuple
 
 import copy
 
@@ -8,6 +8,13 @@ from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.errors import StructureError
 from pikachu.chem.shell import Shell
 from pikachu.math_functions import Vector
+
+if TYPE_CHECKING:
+    from pikachu.chem.bond import Bond
+    from pikachu.chem.aromatic_system import AromaticSystem
+    from pikachu.chem.electron import Electron
+    from pikachu.chem.structure import Structure
+    from pikachu.chem.orbital import OrbitalSet
 
 
 class Atom:
@@ -26,59 +33,59 @@ class Atom:
 
 
     """
+    #
+    # def __new__(cls, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool):
+    #     self = super().__new__(cls)  # Must explicitly create the new object
+    #     # Aside from explicit construction and return, rest of __new__
+    #     # is same as __init__
+    #     self.type = atom_type
+    #     self.nr = atom_nr
+    #     self.chiral = chiral
+    #     self.charge = charge
+    #     self.aromatic = aromatic
+    #     self.shells = {}
+    #
+    #     return self  # __new__ returns the new object
+    #
+    # def __getnewargs__(self):
+    #     # Return the arguments that *must* be passed to __new__
+    #     return self.type, self.nr, self.chiral, self.charge, self.aromatic
 
-    def __new__(cls, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool):
-        self = super().__new__(cls)  # Must explicitly create the new object
-        # Aside from explicit construction and return, rest of __new__
-        # is same as __init__
-        self.type = atom_type
-        self.nr = atom_nr
-        self.chiral = chiral
-        self.charge = charge
-        self.aromatic = aromatic
+    def __init__(self, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool) -> None:
+
+        self.type: str = atom_type
+        self.nr: int = atom_nr
+        self.chiral: Optional[str] = chiral
+        self.charge: int = charge
+        self.aromatic: bool = aromatic
+
+        self.pyrrole: bool = False
+        self.furan: bool = False
+        self.thiophene: bool = False
         self.shells = {}
-
-        return self  # __new__ returns the new object
-
-    def __getnewargs__(self):
-        # Return the arguments that *must* be passed to __new__
-        return self.type, self.nr, self.chiral, self.charge, self.aromatic
-
-    def __init__(self, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool):
-
-        self.type = atom_type
-        self.nr = atom_nr
-        self.aromatic = aromatic
-        # self.atomic_nr = ATOM_PROPERTIES.element_to_atomic_nr[self.type]
-        self.bonds = []
-
-        self.chiral = chiral
-        self.charge = charge
-
-        self.pyrrole = False
-        self.furan = False
-        self.thiophene = False
-        self.shells = {}
-        self.lone_pairs = []
+        self.lone_pairs: List[LonePair] = []
         self.draw = AtomDrawProperties()
         self.annotations = AtomAnnotations()
-        self.hybridisation = ''
-        self.connectivity = ()
-        self.neighbours = []
-        self.drawn_neighbours = []
-        self.aromatic_system = None
-        self.shell_nr = ATOM_PROPERTIES.element_to_shell_nr[self.type]
+        self.hybridisation: str = ''
 
-    def __eq__(self, atom: "Atom"):
+        self.bonds: List["Bond"] = []
+        self.neighbours: List["Atom"] = []
+        self.drawn_neighbours: List["Atom"] = []
+        self.aromatic_system: Optional["AromaticSystem"] = None
+        self.connectivity: Optional[Tuple[str]] = None
+
+        self.shell_nr: int = ATOM_PROPERTIES.element_to_shell_nr[self.type]
+
+    def __eq__(self, atom: "Atom") -> bool:
         if type(atom) == Atom:
             return self.nr == atom.nr
         else:
             return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.nr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.charge == 0:
             charge_string = ''
         elif self.charge > 0:
@@ -122,13 +129,12 @@ class Atom:
 
         return atom_copy
 
-    def set_lone_pairs(self) -> None:
+    def _set_lone_pairs(self) -> None:
         """
         Find and store lone pairs associated with the atom
         """
-        lone_pairs = self.valence_shell.get_lone_pairs()
+        lone_pairs: List[Tuple[Electron]] = self.valence_shell.get_lone_pairs()
 
-        # self.valence_shell.get_lone_pair_nr()
         for i, electrons in enumerate(lone_pairs):
             lone_pair = LonePair(self, self.nr * (i + 10000))
             for electron in electrons:
@@ -151,16 +157,16 @@ class Atom:
 
         return None
 
-    def set_neighbours(self, atoms: List["Atom"]) -> None:
+    def _set_neighbours(self, structure: "Structure") -> None:
         """
         Set atom neighbours from a list of atoms
 
         Parameters
         ----------
-        atoms: List of Atom instances
+        structure: Structure instance
 
         """
-        self.neighbours = atoms
+        self.neighbours = structure.graph[self]
 
     # TODO: Move method to AtomDrawProperties
     def set_drawn_neighbours(self) -> None:
@@ -193,6 +199,7 @@ class Atom:
     def has_neighbour(self, atom_type: str) -> bool:
         """
         Return True if atom has a neighbour of a certain atom type, False if not
+
         Parameters
         ----------
         atom_type: str, atom type
@@ -205,7 +212,8 @@ class Atom:
 
     def set_connectivity(self) -> None:
         """
-        Sets the connectivity of an atom (sorted tuple of str, with each string a concatenation of atom type and bond type)
+        Sets the connectivity of an atom (sorted tuple of str, with each string a concatenation of atom type and
+            bond type)
 
         Example: ('C_single', 'O_double')
         """
@@ -227,7 +235,7 @@ class Atom:
         connectivity = tuple(sorted(connectivity))
         return connectivity
 
-    def has_similar_connectivity(self, substructure_connectivity: Tuple[str]) -> bool:
+    def _has_similar_connectivity(self, substructure_connectivity: Tuple[str]) -> bool:
         """
         Return True if all bond-atom combinations of the child atom are present in the parent atom, False otherwise
 
@@ -250,23 +258,27 @@ class Atom:
 
         return same_connectivity
 
-    def add_electron_shells(self):
+    def _add_electron_shells(self) -> None:
+        """
+        Fill all shells with electrons and excite electrons in valence shell
+        """
 
         # Generate empty shells depending on atom type
-        self.make_shells()
+        self.__make_shells()
 
-        double_bonds = 0
-        single_bonds = 0
+        nr_double_bonds: int = 0
+        nr_single_bonds: int = 0
 
         for bond in self.bonds:
             if bond.type == 'double':
-                double_bonds += 1
+                nr_double_bonds += 1
             elif bond.type == 'single':
-                single_bonds += 1
+                nr_single_bonds += 1
 
-        if self.type == 'N' and self.charge == 0 and double_bonds == 2 and single_bonds == 1:
-            oxygen_bonds = []
-            oxygens = []
+        # Deals with nitro-groups defined incorrectly in SMILES strings
+        if self.type == 'N' and self.charge == 0 and nr_double_bonds == 2 and nr_single_bonds == 1:
+            oxygen_bonds: List["Bond"] = []
+            oxygens: List["Atom"] = []
 
             for bond in self.bonds:
                 neighbour = bond.get_connected_atom(self)
@@ -281,80 +293,93 @@ class Atom:
                 bond.set_bond_summary()
                 oxygen.charge = -1
                 self.charge = 1
+
                 if oxygen.shells:
-                    oxygen.add_electron_shells()
+                    oxygen._add_electron_shells()
 
         # Fill them with electrons
         self.fill_shells()
 
         # Check if the total number of electrons can be distributed such that each orbital contains one electron each
-        self.excitable = self.valence_shell.is_excitable()
+        is_excitable = self.valence_shell.is_excitable()
 
         # Can't excite carbon if it has more than 4 electrons
-
-        if (self.type == 'C' or self.type == 'B') and self.excitable:
-            self.excite()
+        if (self.type == 'C' or self.type == 'B') and is_excitable:
+            self._excite()
         else:
-
             # Assigns a value to all bonds: 2 for double bond, 1 for single. The aromatic value depends on the atom
-            bond_weights = []
+            bond_weights: List[int] = []
             aromatic_count = 0
 
             for bond in self.bonds:
                 if bond.type == 'aromatic':
                     aromatic_count += 1
-                # if not bond.has_neighbour('H'):
+
                 bond_weights.append(BOND_PROPERTIES.bond_type_to_weight[bond.type])
 
             # If odd number of aromatic bonds (such as central atoms in Trp), only add 1 'extra' bond for the
             # three outgoing aromatic bonds
 
-            h_bonds = 0
+            nr_h_bonds = 0
             for bond in self.bonds:
                 if bond.get_connected_atom(self).type == 'H':
-                    h_bonds += 1
+                    nr_h_bonds += 1
 
-            nr_of_nonH_bonds = sum(bond_weights) + int(aromatic_count / 2)
+            nr_non_h_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
             if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
-                nr_of_nonH_bonds -= 1
+                nr_non_h_bonds -= 1
 
-            # Does this work for all atoms? Doesn't for carbon. Should this be made general?
+            # TODO: Does this work for all atoms? Doesn't for carbon. Should this be made general?
 
-            bonding_electrons = self.get_bonding_electrons()
+            bonding_electrons = self.__get_bonding_electrons()
 
-            if nr_of_nonH_bonds > bonding_electrons:
-                if self.excitable:
-                    self.excite()
-                elif h_bonds:
+            if nr_non_h_bonds > bonding_electrons:
+                if is_excitable:
+                    self._excite()
 
-                    nr_of_nonH_bonds -= h_bonds
-                    if nr_of_nonH_bonds > bonding_electrons:
-                        if self.excitable:
-                            self.excite()
+                elif nr_h_bonds:
+
+                    nr_non_h_bonds -= nr_h_bonds
+                    if nr_non_h_bonds > bonding_electrons:
+                        if is_excitable:
+                            self._excite()
                         else:
-
                             raise StructureError('violated_bonding_laws')
-
                 else:
                     raise StructureError('violated_bonding_laws')
 
-    def get_bonding_electrons(self):
-        counter = 0
+    def __get_bonding_electrons(self) -> int:
+        """
+        Returns the number of unpaired electrons in the valence shell
+        """
+        nr_unpaired_electrons = 0
         for orbital in self.valence_shell.orbitals:
             if len(orbital.electrons) == 1:
-                counter += 1
-        return counter
+                nr_unpaired_electrons += 1
+        return nr_unpaired_electrons
 
-    def make_shells(self):
+    def __make_shells(self) -> None:
+        """
+        Create electron shells for an atom
+        """
         for i in range(self.shell_nr):
             current_shell = i + 1
             self.shells[current_shell] = Shell(self, current_shell)
 
         self.valence_shell = self.shells[self.shell_nr]
 
-    def in_ring(self, structure):
-        cycles = structure.cycles.all_cycles
+    def in_ring(self, structure: "Structure") -> bool:
+        """
+        Returns True if atom is part of a ring (system), False if otherwise
+
+        Parameters
+        ----------
+        structure: Structure instance. Must contain the atom
+
+        """
+        assert self in structure.graph
+        cycles: List[List["Atom"]] = structure.cycles.all_cycles
 
         for cycle in cycles:
             if self in cycle:
@@ -362,47 +387,36 @@ class Atom:
 
         return False
 
-    def get_ring_index(self, structure):
-        cycles = structure.cycles.all_cycles
-
-        for i, cycle in enumerate(cycles):
-            if self in cycle:
-                return i
-
-        return None
-
-    def get_ring(self, structure):
-        cycles = structure.cycles.all_cycles
-
-        for i, cycle in enumerate(cycles):
-            if self in cycle:
-                return cycle
-
-        return None
-
-    def adjacent_to_stereobond(self):
+    def _adjacent_to_stereobond(self) -> bool:
+        """
+        Returns True if atom is adjacent to a stereochemically restrictive bond, False otherwise
+        """
         for bond in self.bonds:
             if bond.chiral:
                 return True
 
         return False
 
-    def fill_shells(self):
+    # TODO: raise exception if there are more electrons than fit in the orbitals
+    def fill_shells(self) -> None:
+        """
+        Fill electron shells based on atom type
+        """
 
-        electrons_remaining = ATOM_PROPERTIES.element_to_atomic_nr[self.type] - self.charge
-        electron_nr = 1
+        electrons_remaining: int = ATOM_PROPERTIES.element_to_atomic_nr[self.type] - self.charge
+        electron_nr: int = 1
 
         # Iterate over the orbitals in order of them being filled
 
         for orbital in ATOM_PROPERTIES.orbital_order:
             if electrons_remaining > 0:
                 # Find the correct set of orbitals
-                shell = int(orbital[0])
-                orbital_set = self.shells[shell].orbital_sets[orbital]
+                shell: int = int(orbital[0])
+                orbital_set: "OrbitalSet" = self.shells[shell].orbital_sets[orbital]
 
                 # Place either the maximum number of electrons or the number of electrons remaining in the orbital set
 
-                electrons_to_dump = min([electrons_remaining, orbital_set.capacity])
+                electrons_to_dump: int = min([electrons_remaining, orbital_set.capacity])
                 orbital_set.fill_orbitals(electrons_to_dump, electron_nr)
                 electron_nr += electrons_to_dump
 
@@ -411,22 +425,39 @@ class Atom:
                 # All electrons have been placed and we can break out of the loop
                 break
                 
-    def get_neighbour(self, atom_type):
+    def get_neighbour(self, atom_type: str) -> Optional["Atom"]:
+        """
+        Returns the first encountered neighbour of type atom_type if such a neighbour exists, None otherwise
+
+        Parameters
+        ----------
+        atom_type: str, atom type according to periodic table
+
+        """
         for neighbour in self.neighbours:
             if neighbour.type == atom_type:
                 return neighbour
         return None
 
-    def get_neighbours(self, atom_type):
-        neighbours = []
+    def get_neighbours(self, atom_type: str) -> List["Atom"]:
+        """
+        Returns a list of all neighbours of type atom_type
+
+        Parameters
+        ----------
+        atom_type: str, atom type according to periodic table
+
+        """
+        neighbours: List["Atom"] = []
         for neighbour in self.neighbours:
             if neighbour.type == atom_type:
                 neighbours.append(neighbour)
         return neighbours
 
-    def excite(self):
-        assert self.excitable
-
+    def _excite(self) -> None:
+        """
+        Excite electrons in valence shell
+        """
         self.valence_shell.excite()
 
     def get_non_hydrogen_neighbours(self):

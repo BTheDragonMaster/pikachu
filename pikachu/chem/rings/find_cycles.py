@@ -36,7 +36,7 @@ def is_reverse_cycle(cycle_1, cycle_2):
         if atom == cycle_1[0]:
             starting_index = i
 
-    if starting_index == None:
+    if starting_index is None:
         return False
 
     else:
@@ -51,7 +51,7 @@ def simple_cycles(G):
     # Yield every elementary cycle in python graph G exactly once
     # Expects a dictionary mapping from vertices to iterables of vertices
     def _unblock(thisnode, blocked, B):
-        stack = set([thisnode])
+        stack = {thisnode}
         while stack:
             node = stack.pop()
             if node in blocked:

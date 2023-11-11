@@ -9,7 +9,7 @@ from pikachu.chem.bond import Bond
 from pikachu.chem.kekulisation import Match
 from pikachu.chem.substructure_matching import check_same_chirality, find_substructures
 from pikachu.chem.rings.ring_identification import is_aromatic
-import pikachu.chem.rings.find_cycles as find_cycles
+from pikachu.chem.rings.find_cycles import Cycles
 from pikachu.chem.aromatic_system import AromaticSystem
 
 sys.setrecursionlimit(1000000)
@@ -656,7 +656,7 @@ class Structure:
 
         next_atom_nr = self.find_next_atom_nr()
         atom = Atom(atom_type, next_atom_nr, chiral, charge, aromatic)
-        atom.add_electron_shells()
+        atom._add_electron_shells()
 
         for annotation, default in self.annotations:
             atom.annotations.add_annotation(annotation, default)
@@ -675,7 +675,7 @@ class Structure:
         """
         Find all cycles in a structure and store them
         """
-        self.cycles = find_cycles.Cycles(self)
+        self.cycles = Cycles(self)
         self.sssr = self.cycles.find_sssr()
 
     @staticmethod
@@ -884,7 +884,7 @@ class Structure:
 
     def make_lone_pairs(self):
         for atom in self.graph:
-            atom.set_lone_pairs()
+            atom._set_lone_pairs()
 
     def promote_pi_bonds(self):
         for atom in self.graph:
@@ -985,7 +985,7 @@ class Structure:
 
     def set_atom_neighbours(self):
         for atom in self.graph:
-            atom.set_neighbours(self.graph[atom])
+            atom._set_neighbours(self)
 
     def get_connectivities(self):
         connectivities = {}
@@ -1145,7 +1145,7 @@ class Structure:
             for connectivity in atom_connectivities_child[atom_type]:
                 substructure_connectivity_counts[atom_type][connectivity] = 0
                 for atom in self.graph:
-                    if atom.type == atom_type and atom.has_similar_connectivity(connectivity):
+                    if atom.type == atom_type and atom._has_similar_connectivity(connectivity):
                         substructure_connectivity_counts[atom_type][connectivity] += 1
 
         return substructure_connectivity_counts
@@ -1155,7 +1155,7 @@ class Structure:
         for substructure_connectivity in atom_connectivities_child:
             substructure_connectivities[substructure_connectivity] = []
             for atom in self.graph:
-                if atom.type != 'H' and atom.has_similar_connectivity(substructure_connectivity):
+                if atom.type != 'H' and atom._has_similar_connectivity(substructure_connectivity):
                     substructure_connectivities[substructure_connectivity].append(atom)
 
         return substructure_connectivities
@@ -1196,12 +1196,12 @@ class Structure:
     def add_shells_non_hydrogens(self):
         for atom in self.graph:
             if atom.type != 'H':
-                atom.add_electron_shells()
+                atom._add_electron_shells()
 
     def add_shells(self):
         for atom in self.graph:
             if not atom.shells:
-                atom.add_electron_shells()
+                atom._add_electron_shells()
 
     def hybridise_atoms(self, atoms=None):
 
@@ -1350,8 +1350,8 @@ class Structure:
         bond.electrons.append(electron_1)
         bond.electrons.append(electron_2)
 
-        atom_1.set_neighbours(self.graph[atom_1])
-        atom_2.set_neighbours(self.graph[atom_2])
+        atom_1._set_neighbours(self)
+        atom_2._set_neighbours(self)
 
     def add_bond(self, atom_1, atom_2, bond_type, bond_nr, chiral_symbol=None):
         if atom_1 in self.graph:

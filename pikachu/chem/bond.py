@@ -1,6 +1,10 @@
+from typing import TYPE_CHECKING, Optional
+
 from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.errors import StructureError
 
+if TYPE_CHECKING:
+    from pikachu.chem.aromatic_system import AromaticSystem
 
 class Bond:
     bond_types = {'single', 'double', 'triple', 'quadruple', 'aromatic', 'ionic', 'dummy'}
@@ -40,7 +44,7 @@ class Bond:
             self.cbond = 0.1
 
         self.draw = BondDrawProperties()
-        self.aromatic_system = None
+        self.aromatic_system: Optional["AromaticSystem"] = None
 
     def __eq__(self, bond):
         if type(self) != type(bond):

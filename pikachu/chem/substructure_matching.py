@@ -149,7 +149,7 @@ class SubstructureMatch:
                 if self.atoms[next_child_atom] == next_parent_atom or \
                         (not self.atoms[next_child_atom] and next_parent_atom not in self.atoms.values()):
 
-                    if next_parent_atom.has_similar_connectivity(next_child_atom.connectivity):
+                    if next_parent_atom._has_similar_connectivity(next_child_atom.connectivity):
                         if parent_bond not in self.parent_atom_to_bonds[self.current_parent_atom]:
                             self.parent_atom_to_bonds[self.current_parent_atom].append(parent_bond)
 
