@@ -6,6 +6,7 @@ from pikachu.errors import StructureError
 if TYPE_CHECKING:
     from pikachu.chem.aromatic_system import AromaticSystem
 
+
 class Bond:
     bond_types = {'single', 'double', 'triple', 'quadruple', 'aromatic', 'ionic', 'dummy'}
 
@@ -180,14 +181,14 @@ class Bond:
         orbital_1.remove_electron(electron_2)
         orbital_2.remove_electron(electron_1)
 
-        orbital_1.remove_bond()
-        orbital_2.remove_bond()
+        orbital_1._remove_bond()
+        orbital_2._remove_bond()
 
         self.atom_1._remove_neighbour(self.atom_2)
         self.atom_2._remove_neighbour(self.atom_1)
 
-        self.atom_1.remove_bond(self)
-        self.atom_2.remove_bond(self)
+        self.atom_1._remove_bond(self)
+        self.atom_2._remove_bond(self)
 
         self.atom_1.chiral = None
         self.atom_2.chiral = None
@@ -206,7 +207,7 @@ class Bond:
                 s_bonding_orbital_1 = orbital
 
         if not s_bonding_orbital_1:
-            if self.atom_1.is_promotable():
+            if self.atom_1._is_promotable():
                 self.atom_1.promote_pi_bond_to_d_orbital()
                 s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals('s')
 
@@ -225,7 +226,7 @@ class Bond:
                 s_bonding_orbital_2 = orbital
 
         if not s_bonding_orbital_2:
-            if self.atom_2.is_promotable():
+            if self.atom_2._is_promotable():
                 self.atom_2.promote_pi_bond_to_d_orbital()
                 s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals('s')
 
@@ -270,8 +271,8 @@ class Bond:
         orbital_1.remove_electron(electron_2)
         orbital_2.remove_electron(electron_1)
 
-        orbital_1.remove_bond()
-        orbital_2.remove_bond()
+        orbital_1._remove_bond()
+        orbital_2._remove_bond()
 
         self.electrons.remove(electron_1)
         self.electrons.remove(electron_2)

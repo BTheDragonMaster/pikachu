@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from pikachu.chem.aromatic_system import AromaticSystem
     from pikachu.chem.electron import Electron
     from pikachu.chem.structure import Structure
-    from pikachu.chem.orbital import OrbitalSet
+    from pikachu.chem.orbital import OrbitalSet, Orbital
 
 
 class Atom:
@@ -29,9 +29,6 @@ class Atom:
         charge: int, charge of the atom
         aromatic: bool, True if atom is part of an aromatic system, False if otherwise
         shells: dict of {shell_nr: Shell, ->}
-
-
-
     """
     #
     # def __new__(cls, atom_type: str, atom_nr: int, chiral: Optional[str], charge: int, aromatic: bool):
@@ -298,7 +295,7 @@ class Atom:
                     oxygen._add_electron_shells()
 
         # Fill them with electrons
-        self.fill_shells()
+        self.__fill_shells()
 
         # Check if the total number of electrons can be distributed such that each orbital contains one electron each
         is_excitable = self.valence_shell.is_excitable()
@@ -327,7 +324,7 @@ class Atom:
 
             nr_non_h_bonds = sum(bond_weights) + int(aromatic_count / 2)
 
-            if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
+            if self.pyrrole or self.furan or self.thiophene or self.__is_aromatic_nitrogen():
                 nr_non_h_bonds -= 1
 
             # TODO: Does this work for all atoms? Doesn't for carbon. Should this be made general?
@@ -398,7 +395,7 @@ class Atom:
         return False
 
     # TODO: raise exception if there are more electrons than fit in the orbitals
-    def fill_shells(self) -> None:
+    def __fill_shells(self) -> None:
         """
         Fill electron shells based on atom type
         """
@@ -460,45 +457,82 @@ class Atom:
         """
         self.valence_shell.excite()
 
-    def get_non_hydrogen_neighbours(self):
-        neighbours = []
+    def get_non_hydrogen_neighbours(self) -> List["Atom"]:
+        """
+        Returns a list of neighbouring, non-hydrogen atoms
+        """
+        neighbours: List["Atom"] = []
         for atom in self.neighbours:
             if atom.type != 'H' and atom.type != '*':
                 neighbours.append(atom)
         return neighbours
 
-    def get_non_hydrogen_bonds(self):
-        bonds = []
+    def get_non_hydrogen_bonds(self) -> List["Bond"]:
+        """
+        Returns a list of neighbouring bonds that do not neighbour a hydrogen atom
+        """
+        bonds: List["Bond"] = []
         for bond in self.bonds:
-            if bond.atom_1.type != 'H' and bond.atom_2.type != 'H':
+            if bond.atom_1.type != 'H' and bond.atom_2 == self:
+                bonds.append(bond)
+            elif bond.atom_2.type != 'H' and bond.atom_1 == self:
                 bonds.append(bond)
         return bonds
 
-    def remove_bond(self, bond):
+    def _remove_bond(self, bond: "Bond") -> None:
+        """
+        Remove a bond from a list of neighbouring bonds. Does not break the bond!
+
+        To break a bond, use the 'break_bond' method in the Structure instance instead.
+
+        Parameters
+        ----------
+        bond: Bond instance, must be a bond neighbouring the atom
+
+        """
+        assert bond in self.bonds
         self.bonds.remove(bond)
 
-    def calc_electron_pair_nr(self):
+    # TODO: check if the steric number can be determined more cleanly - after all, electrons have already
+    # been dropped at this stage
 
-        bond_nr = self.calc_bond_nr()
-        bonds_accounted_for = 0
+    def __get_nr_electron_pairs(self) -> int:
+        """
+        Returns the number of electron pairs that currently sit in excited orbitals
 
-        electron_nr = 0
+        Returns
+        -------
+        electron_pair_nr: int, number of electron pairs that can be formed from lone electrons currently in
+            excited orbitals.
+        """
+
+        valence: int = self.get_valence()
+        bonds_accounted_for: int = 0
+        electron_nr: int = 0
 
         for orbital in self.valence_shell.orbitals:
 
+            # Count number of unpaired electrons
+
             if orbital.electron_nr == 1:
                 electron_nr += 1
+
+            # Count number of paired electrons
             elif orbital.electron_nr == 2:
+                # Lone pairs
                 if orbital.electrons[0].atom == orbital.electrons[1].atom:
                     electron_nr += 2
+                # Electrons involved in bonds
                 else:
                     bonds_accounted_for += 1
 
-        bonds_to_make = bond_nr - bonds_accounted_for
+        nr_bonds_to_make: int = valence - bonds_accounted_for
 
-        unbonded_electrons = electron_nr - bonds_to_make
+        nr_unbonded_electrons: int = electron_nr - nr_bonds_to_make
 
-        if unbonded_electrons % 2 != 0:
+        # TODO: Implement radicals; check why this code gets flagged when refreshing an aromatic structure
+
+        if nr_unbonded_electrons % 2 != 0:
             pass
             # print("Warning! Rogue electron.")
             # print(self)
@@ -510,94 +544,130 @@ class Atom:
             # print(electron_nr)
             # self.valence_shell.print_shell()
 
-        electron_pair_nr = int(unbonded_electrons / 2)
+        electron_pair_nr: int = int(nr_unbonded_electrons / 2)
 
         return electron_pair_nr
 
-    def drop_electrons(self):
+    def drop_electrons(self) -> None:
+        """
+        Drop excited electrons that did not end up forming pairs with electrons from bonded atoms to lower orbitals
+        """
         if self.valence_shell.get_lone_electrons() > 1:
             self.valence_shell.drop_electrons()
 
-    def calc_bond_nr(self):
+    def get_valence(self) -> int:
+        """
+        Returns the valence of the atom based on its neighbours and attached bonds
+        """
 
-        bond_nr = 0
-        aromatic_bond_nr = 0
+        valence: int = 0
+        aromatic_bond_nr: int = 0
 
         for bond in self.bonds:
             if bond.type == 'single':
-                bond_nr += 1
+                valence += 1
             elif bond.type == 'double':
-                bond_nr += 2
+                valence += 2
             elif bond.type == 'triple':
-                bond_nr += 3
+                valence += 3
             elif bond.type == 'quadruple':
-                bond_nr += 4
+                valence += 4
             elif bond.type == 'aromatic':
                 aromatic_bond_nr += 1
 
         if aromatic_bond_nr == 2:
-            if self.pyrrole or self.furan or self.thiophene or self.is_aromatic_nitrogen():
+            # Pyrrole, furan and thiophene systems have a valence of 2 + the number of non-aromatic bonds
+            if self.pyrrole or self.furan or self.thiophene or self.__is_aromatic_nitrogen():
 
-                bond_nr += 2
+                valence += 2
             elif self.aromatic:
-                oxygen = None
+                oxygen: Optional["Atom"] = None
                 for bond in self.bonds:
-                    connected_atom = bond.get_connected_atom(self)
+                    connected_atom: "Atom" = bond.get_connected_atom(self)
 
                     if bond.type == 'double' and connected_atom.type == 'O':
                         oxygen = connected_atom
 
-                if oxygen and oxygen.resonance_possible(self):
-                    bond_nr += 2
+                # If a double-bonded oxygen can provide resonance, the valence of the atom is 2 +
+                # the number of non-aromatic bonds
+                if oxygen is not None and oxygen.resonance_possible(self):
+                    valence += 2
+                # Otherwise, the valence of the atom is 3 + the number of non-aromatic bonds
                 else:
-                    bond_nr += 3
+                    valence += 3
 
+            # If the atom was not labelled as aromatic in the SMILES, it might still be aromatic.
+            # In this case, label as a valence of 3 + the number of non-aromatic bonds
             else:
-                bond_nr += 3
+                valence += 3
         elif aromatic_bond_nr == 3 and self.type == 'C':
-            bond_nr += 4
+            valence += 4
+        # TODO: Check if this should be generalised for other atom types
         elif aromatic_bond_nr == 3 and self.type == 'N':
             if self.charge == 1:
-                bond_nr += 4
+                valence += 4
             else:
-                bond_nr += 3
+                valence += 3
 
-        return bond_nr
+        return valence
 
-    def is_promotable(self):
-        promotable = False
+    def _is_promotable(self) -> bool:
+        """
+        Returns True if electrons in the valence shell can be promoted to a d-orbital, False if otherwise
+        """
+        promotable: bool = False
         for orbital_set in self.valence_shell.orbital_sets:
             if 'd' in orbital_set:
                 promotable = True
 
         return promotable
 
-    def is_aromatic_nitrogen(self):
+    def __is_aromatic_nitrogen(self) -> bool:
+        """
+        Returns True if the current nitrogen atom is marked as aromatic in the input, False otherwise
+        """
         if self.type == 'N' and len(self.bonds) == 3 and self.aromatic and self.charge == 0:
             return True
         return False
 
-    def resonance_possible(self, neighbour):
+    def resonance_possible(self, neighbour: "Atom") -> bool:
+        """
+        Return True if the current atom can participate in resonance with a neighbouring aromatic system,
+            False otherwise
+
+        Parameters
+        ----------
+        neighbour: Atom instance
+        """
         if self.type == 'O' and len(self.bonds) == 1 and self.bonds[0].type == 'double' and neighbour.aromatic:
             return True
         return False
 
-    def promote_lone_pair_to_p_orbital(self):
-
+    def promote_lone_pair_to_p_orbital(self) -> None:
+        """
+        Promote the electrons of a single lone pair in an aromatic system to a p-orbital,
+            such that they can be delocalised appropriately to participate in the system
+        """
+        # Promotion of lone pairs to p-orbitals can only be done starting from a sp3-hybridised system
         assert self.hybridisation == 'sp3'
 
+        # Remove hybridisation
         self.valence_shell.dehybridise()
+        p_orbital: Optional["Orbital"] = None
+        delocalised_lone_pair = False
 
-        p_orbitals = []
-        sp2_orbitals = []
+        p_orbitals: List["Orbital"] = []
+        sp2_orbitals: List["Orbital"] = []
 
         for orbital in self.valence_shell.orbitals:
             if orbital.electron_nr == 2:
-                # Any orbitals that are already bonded will become sp2 orbitals
+                # Any electrons that are already involved in bonds will localise to sp2 orbitals
+                # Example: the bond between an aromatic carbon and a pyrrole nitrogen
                 if orbital.electrons[0].atom != orbital.electrons[1].atom and \
                         (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
                     sp2_orbitals.append(orbital)
-                # Any orbitals that are not bonded yet will become p orbitals
+                # Any electrons that are not involved in bonds can be delocalised to p orbitals
+                # Example: one of the lone pairs of a furan oxygen
                 elif orbital.electrons[0].atom == orbital.electrons[1].atom == self and \
                         (orbital.orbital_type == 's' or orbital.orbital_type == 'p'):
                     p_orbitals.append(orbital)
@@ -611,10 +681,15 @@ class Atom:
             for i in range(0, len(p_orbitals) - 1):
                 sp2_orbitals.append(p_orbitals[i])
 
+        assert len(p_orbitals) >= 1
         p_orbital = p_orbitals[-1]
+
+        # Change one selected sp3 orbital to a p orbital
 
         p_orbital.orbital_type = 'p'
         p_orbital.orbital_nr = 1
+
+        # Change the
 
         for i, orbital in enumerate(sp2_orbitals):
             orbital.orbital_type = 'sp2'
@@ -645,7 +720,7 @@ class Atom:
                         
     def promote_pi_bonds_to_d_orbitals(self):
 
-        if self.is_promotable() and 'd' in self.hybridisation:
+        if self._is_promotable() and 'd' in self.hybridisation:
             
             donor_orbitals = []
             receiver_orbitals = []
@@ -671,10 +746,10 @@ class Atom:
                 receiver_orbital.add_electron(moved_electron)
 
                 receiver_orbital.set_bond(donor_orbital.bond, 'pi')
-                donor_orbital.remove_bond()
+                donor_orbital._remove_bond()
 
     def promote_pi_bond_to_d_orbital(self):
-        assert self.is_promotable()
+        assert self._is_promotable()
 
         donor_orbitals = []
         receiver_orbitals = []
@@ -699,7 +774,7 @@ class Atom:
         receiver_orbital.add_electron(moved_electron)
 
         receiver_orbital.set_bond(donor_orbital.bond, 'pi')
-        donor_orbital.remove_bond()
+        donor_orbital._remove_bond()
 
         self.valence_shell.dehybridise()
 
@@ -709,16 +784,16 @@ class Atom:
         self.valence_shell.dehybridise()
         self.hybridise()
 
-    def get_nr_implicit_hydrogens(self):
+    def _get_nr_implicit_hydrogens(self):
         hydrogens = 0
         if self.type in ['B', 'C', 'N', 'O', 'P', 'S', 'F', 'Cl', 'Br', 'I']:
 
-            bond_nr = self.calc_bond_nr()
-            if bond_nr in ATOM_PROPERTIES.element_to_valences[self.type]:
+            valence = self.get_valence()
+            if valence in ATOM_PROPERTIES.element_to_valences[self.type]:
                 hydrogens = 0
             else:
                 max_bonds = self.valence_shell.get_lone_electrons()
-                hydrogens = max_bonds - bond_nr
+                hydrogens = max_bonds - valence
 
         return hydrogens
 
@@ -739,7 +814,7 @@ class Atom:
                 break
 
     def get_hybridisation(self):
-        steric_number = self.calc_electron_pair_nr() + len(self.bonds)
+        steric_number = self.__get_nr_electron_pairs() + len(self.bonds)
         hybridisation = None
         if steric_number in ATOM_PROPERTIES.steric_nr_to_hybridisation:
             hybridisation = ATOM_PROPERTIES.steric_nr_to_hybridisation[steric_number]

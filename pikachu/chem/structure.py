@@ -1230,7 +1230,8 @@ class Structure:
             max_bond_nr = -1
 
         for atom in list(self.graph.keys()):
-            hydrogens_to_add = atom.get_nr_implicit_hydrogens()
+            hydrogens_to_add = atom._get_nr_implicit_hydrogens()
+
             for i in range(hydrogens_to_add):
                 max_atom_nr += 1
                 max_bond_nr += 1
