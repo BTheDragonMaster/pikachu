@@ -61,6 +61,6 @@ class Daylight:
         return hydrogen_nr
 
     def get_valence_minus_h(self):
-        valence = self.atom.calc_bond_nr()
+        valence = self.atom.get_valence()
 
         return valence - self.get_hydrogen_number()

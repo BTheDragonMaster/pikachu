@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, List, Tuple
+from typing import TYPE_CHECKING, Optional, List, Tuple, Dict
 
 import copy
 
@@ -59,7 +59,8 @@ class Atom:
         self.pyrrole: bool = False
         self.furan: bool = False
         self.thiophene: bool = False
-        self.shells = {}
+
+        self.shells: Dict[int, "Shell"] = {}
         self.lone_pairs: List[LonePair] = []
         self.draw = AtomDrawProperties()
         self.annotations = AtomAnnotations()
@@ -108,15 +109,19 @@ class Atom:
         atom_copy.pyrrole = self.pyrrole
         atom_copy.furan = self.furan
         atom_copy.thiophene = self.thiophene
+        # TODO: Make proper copy object for AtomDrawProperties
         atom_copy.draw = AtomDrawProperties()
         atom_copy.draw.colour = self.draw.colour
         atom_copy.annotations = self.annotations.copy()
-        connectivity = []
+        if self.connectivity is None:
+            atom_copy.connectivity = None
+        else:
+            connectivity: List[str] = []
 
-        for connection in self.connectivity:
-            connectivity.append(connection)
+            for connection in self.connectivity:
+                connectivity.append(connection)
 
-        atom_copy.connectivity = tuple(connectivity)
+            atom_copy.connectivity = tuple(connectivity)
 
         for neighbour in self.neighbours:
             atom_copy.neighbours.append(neighbour)
@@ -361,10 +366,10 @@ class Atom:
         Create electron shells for an atom
         """
         for i in range(self.shell_nr):
-            current_shell = i + 1
-            self.shells[current_shell] = Shell(self, current_shell)
+            current_shell: int = i + 1
+            self.shells[current_shell]: "Shell" = Shell(self, current_shell)
 
-        self.valence_shell = self.shells[self.shell_nr]
+        self.valence_shell: "Shell" = self.shells[self.shell_nr]
 
     def in_ring(self, structure: "Structure") -> bool:
         """
@@ -548,7 +553,7 @@ class Atom:
 
         return electron_pair_nr
 
-    def drop_electrons(self) -> None:
+    def _drop_electrons(self) -> None:
         """
         Drop excited electrons that did not end up forming pairs with electrons from bonded atoms to lower orbitals
         """
@@ -590,7 +595,7 @@ class Atom:
 
                 # If a double-bonded oxygen can provide resonance, the valence of the atom is 2 +
                 # the number of non-aromatic bonds
-                if oxygen is not None and oxygen.resonance_possible(self):
+                if oxygen is not None and oxygen._resonance_possible(self):
                     valence += 2
                 # Otherwise, the valence of the atom is 3 + the number of non-aromatic bonds
                 else:
@@ -630,7 +635,7 @@ class Atom:
             return True
         return False
 
-    def resonance_possible(self, neighbour: "Atom") -> bool:
+    def _resonance_possible(self, neighbour: "Atom") -> bool:
         """
         Return True if the current atom can participate in resonance with a neighbouring aromatic system,
             False otherwise
@@ -643,7 +648,7 @@ class Atom:
             return True
         return False
 
-    def promote_lone_pair_to_p_orbital(self) -> None:
+    def _promote_lone_pair_to_p_orbital(self) -> None:
         """
         Promote the electrons of a single lone pair in an aromatic system to a p-orbital,
             such that they can be delocalised appropriately to participate in the system
@@ -653,8 +658,6 @@ class Atom:
 
         # Remove hybridisation
         self.valence_shell.dehybridise()
-        p_orbital: Optional["Orbital"] = None
-        delocalised_lone_pair = False
 
         p_orbitals: List["Orbital"] = []
         sp2_orbitals: List["Orbital"] = []
@@ -675,13 +678,15 @@ class Atom:
                 if orbital.orbital_type == 's' or orbital.orbital_type == 'p':
                     sp2_orbitals.append(orbital)
 
-        # Should more than one p-orbital be found, make sure we only use 1.
+        assert len(p_orbitals) >= 1
+
+        # Should more than one p-orbital be found, make sure we only delocalise the electrons of 1 to a p-orbital,
+        # and the rest to sp2 orbitals
 
         if len(p_orbitals) > 1:
             for i in range(0, len(p_orbitals) - 1):
                 sp2_orbitals.append(p_orbitals[i])
 
-        assert len(p_orbitals) >= 1
         p_orbital = p_orbitals[-1]
 
         # Change one selected sp3 orbital to a p orbital
@@ -689,41 +694,67 @@ class Atom:
         p_orbital.orbital_type = 'p'
         p_orbital.orbital_nr = 1
 
-        # Change the
+        # Change the other sp3 orbitals to sp2 orbitals
 
         for i, orbital in enumerate(sp2_orbitals):
             orbital.orbital_type = 'sp2'
             orbital.orbital_nr = i + 1
 
+        # Change the hybridisation to sp2
+
         self.hybridisation = 'sp2'
+
+        # Store the new orbitals in the electrons of the valence shell
 
         for orbital in self.valence_shell.orbitals:
             for electron in orbital.electrons:
                 if electron.atom == self:
                     electron.set_orbital(orbital)
-                        
-    def get_orbitals(self, orbital_type):
-        orbitals = []
+
+    # TODO: Change orbital type to Enum
+    def _get_orbitals(self, orbital_type: str) -> List["Orbital"]:
+        """
+        Return all orbitals of a certain orbital type
+
+        Parameters
+        ----------
+        orbital_type: str, orbital type
+        """
+        orbitals: List["Orbital"] = []
         for orbital in self.valence_shell.orbitals:
             if orbital.orbital_type == orbital_type:
                 orbitals.append(orbital)
 
         return orbitals
 
-    def get_hybrid_orbitals(self, orbital_type):
-        orbitals = []
+    def _get_hybrid_orbitals(self, orbital_type: str) -> List["Orbital"]:
+        """
+        Return all orbitals that are a hybrid orbital with the given orbital type
+
+        Parameters
+        ----------
+        orbital_type: str, orbital type or subtype
+            e.g. given orbital type 'p', function will return any orbitals containing 'p', such as 'sp' and 'sp2'
+        """
+        orbitals: List["Orbital"] = []
         for orbital in self.valence_shell.orbitals:
             if orbital_type in orbital.orbital_type:
                 orbitals.append(orbital)
 
         return orbitals
-                        
-    def promote_pi_bonds_to_d_orbitals(self):
+
+    # TODO: Check when this function is needed
+    def _promote_pi_bonds_to_d_orbitals(self) -> None:
+        """
+        Promote pi-bonds from sp[x]d[y] orbitals to d-orbitals,
+            e.g. SF4, which contains 5 electron pairs and 4 bonded atoms
+        """
 
         if self._is_promotable() and 'd' in self.hybridisation:
             
-            donor_orbitals = []
-            receiver_orbitals = []
+            donor_orbitals: List["Orbital"] = []
+            receiver_orbitals: List["Orbital"] = []
+
             for orbital in self.valence_shell.orbitals:
                 if 'p' in orbital.orbital_type and orbital.orbital_type != 'p' and orbital.electron_nr == 2:
                     if orbital.electrons[0].atom != orbital.electrons[1].atom:
@@ -746,9 +777,13 @@ class Atom:
                 receiver_orbital.add_electron(moved_electron)
 
                 receiver_orbital.set_bond(donor_orbital.bond, 'pi')
-                donor_orbital._remove_bond()
+                donor_orbital.remove_bond()
 
-    def promote_pi_bond_to_d_orbital(self):
+    # TODO: Check when this function is called
+    def _promote_pi_bond_to_d_orbital(self) -> None:
+        """
+        Promote pi-bonds from sp[x]d[y] orbitals to d-orbitals
+        """
         assert self._is_promotable()
 
         donor_orbitals = []
@@ -774,46 +809,75 @@ class Atom:
         receiver_orbital.add_electron(moved_electron)
 
         receiver_orbital.set_bond(donor_orbital.bond, 'pi')
-        donor_orbital._remove_bond()
+        donor_orbital.remove_bond()
 
         self.valence_shell.dehybridise()
 
         self.hybridise()
 
-    def reset_hybridisation(self):
+    def _reset_hybridisation(self) -> None:
+        """
+        Reset the hybridisation of the atom. Called after updating an atom's direct neighbourhood
+        """
         self.valence_shell.dehybridise()
         self.hybridise()
 
-    def _get_nr_implicit_hydrogens(self):
-        hydrogens = 0
+    def _get_nr_implicit_hydrogens(self) -> int:
+        """
+        Returns the number of implicit hydrogens for the atom given its atom type and bonds to non-H atoms
+
+        """
+        nr_hydrogens: int = 0
+
+        # These are the only atom types for which hydrogens can be implicit in SMILES
         if self.type in ['B', 'C', 'N', 'O', 'P', 'S', 'F', 'Cl', 'Br', 'I']:
 
             valence = self.get_valence()
             if valence in ATOM_PROPERTIES.element_to_valences[self.type]:
-                hydrogens = 0
+                nr_hydrogens = 0
             else:
                 max_bonds = self.valence_shell.get_lone_electrons()
-                hydrogens = max_bonds - valence
+                nr_hydrogens = max_bonds - valence
 
-        return hydrogens
+        return nr_hydrogens
 
-    def add_bond(self, bond):
+    def _add_bond(self, bond: "Bond") -> None:
+        """
+        Add neighbouring bond to the atom. Does not rearrange electrons or make a bond.
+
+        To make a new bond, use the 'make_bond' method of class Structure instead
+
+        Parameters
+        ----------
+        bond: Bond instance
+        """
         self.bonds.append(bond)
 
-    def hybridise(self):
+    def hybridise(self) -> None:
+        """
+        Hybridise the atom and valence shell
+        """
 
-        hybridisation = self.get_hybridisation()
+        hybridisation = self.__get_hybridisation()
         self.valence_shell.hybridise(hybridisation)
-        self.set_hybridisation()
+        self.__set_hybridisation()
 
-    def set_hybridisation(self):
+    def __set_hybridisation(self) -> None:
+        """
+        Set the hybridisation for the atom
+        """
+
         self.hybridisation = 's'
         for orbital in self.valence_shell.orbitals:
             if orbital.orbital_type in {'sp', 'sp2', 'sp3', 'sp3d', 'sp3d2'}:
                 self.hybridisation = orbital.orbital_type
                 break
 
-    def get_hybridisation(self):
+    # TODO: Use enums for hybridisation
+    def __get_hybridisation(self) -> str:
+        """
+        Returns the hybridisation of the atom based on steric number
+        """
         steric_number = self.__get_nr_electron_pairs() + len(self.bonds)
         hybridisation = None
         if steric_number in ATOM_PROPERTIES.steric_nr_to_hybridisation:
@@ -824,24 +888,24 @@ class Atom:
 
 class AtomDrawProperties:
     def __init__(self, x=0, y=0):
-        self.rings = []
+        self.rings: List[int] = []
         self.original_rings = []
         self.anchored_rings = []
-        self.is_bridge_atom = False
-        self.is_bridge = False
+        self.is_bridge_atom: bool = False
+        self.is_bridge: bool = False
         self.bridged_ring = None
-        self.is_drawn = True
-        self.has_hydrogen = False
-        self.positioned = False
-        self.previous_position = Vector(0, 0)
-        self.position = Vector(x, y)
-        self.angle = None
-        self.force_positioned = False
-        self.connected_to_ring = False
-        self.draw_explicit = False
-        self.drawn_neighbours = []
-        self.previous_atom = None
-        self.colour = 'black'
+        self.is_drawn: bool = True
+        self.has_hydrogen: bool = False
+        self.positioned: bool = False
+        self.previous_position: "Vector" = Vector(0, 0)
+        self.position: "Vector" = Vector(x, y)
+        self.angle: Optional[float] = None
+        self.force_positioned: bool = False
+        self.connected_to_ring: bool = False
+        self.draw_explicit: bool = False
+        self.drawn_neighbours: List["Atom"] = []
+        self.previous_atom: Optional["Atom"] = None
+        self.colour: str = 'black'
 
     def set_position(self, vector):
         self.position = vector

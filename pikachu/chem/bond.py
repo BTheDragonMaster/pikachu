@@ -201,15 +201,15 @@ class Bond:
         s_bonding_orbital_1 = None
         s_bonding_orbital_2 = None
 
-        s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals('s')
+        s_bonding_orbitals_1 = self.atom_1._get_hybrid_orbitals('s')
         for orbital in s_bonding_orbitals_1:
             if orbital.electron_nr == 1:
                 s_bonding_orbital_1 = orbital
 
         if not s_bonding_orbital_1:
             if self.atom_1._is_promotable():
-                self.atom_1.promote_pi_bond_to_d_orbital()
-                s_bonding_orbitals_1 = self.atom_1.get_hybrid_orbitals('s')
+                self.atom_1._promote_pi_bond_to_d_orbital()
+                s_bonding_orbitals_1 = self.atom_1._get_hybrid_orbitals('s')
 
                 for orbital in s_bonding_orbitals_1:
                     if orbital.electron_nr == 1:
@@ -220,15 +220,15 @@ class Bond:
                 self.atom_1.valence_shell.print_shell()
                 raise StructureError("sigma bond")
 
-        s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals('s')
+        s_bonding_orbitals_2 = self.atom_2._get_hybrid_orbitals('s')
         for orbital in s_bonding_orbitals_2:
             if orbital.electron_nr == 1:
                 s_bonding_orbital_2 = orbital
 
         if not s_bonding_orbital_2:
             if self.atom_2._is_promotable():
-                self.atom_2.promote_pi_bond_to_d_orbital()
-                s_bonding_orbitals_2 = self.atom_2.get_hybrid_orbitals('s')
+                self.atom_2._promote_pi_bond_to_d_orbital()
+                s_bonding_orbitals_2 = self.atom_2._get_hybrid_orbitals('s')
 
                 for orbital in s_bonding_orbitals_2:
                     if orbital.electron_nr == 1:
@@ -279,10 +279,15 @@ class Bond:
 
         if self.chiral_dict:
             self.chiral_dict = {}
+
         if self.chiral:
             self.chiral = False
 
         self.type = 'single'
+
+        self.atom_1._reset_hybridisation()
+        self.atom_2._reset_hybridisation()
+
         self.set_bond_summary()
 
     def make_double(self):
@@ -316,8 +321,8 @@ class Bond:
         self.electrons.append(electron_2)
         self.type = 'double'
 
-        self.atom_1.reset_hybridisation()
-        self.atom_2.reset_hybridisation()
+        self.atom_1._reset_hybridisation()
+        self.atom_2._reset_hybridisation()
 
         self.atom_1.chiral = None
         self.atom_2.chiral = None
@@ -337,7 +342,7 @@ class Bond:
         else:
             p_bonding_orbitals_1 = []
             electrons_found = 0
-            p_orbitals_1 = self.atom_1.get_orbitals('p')
+            p_orbitals_1 = self.atom_1._get_orbitals('p')
 
             for p_orbital in p_orbitals_1:
                 if p_orbital.electron_nr == 1:
@@ -351,7 +356,7 @@ class Bond:
 
             p_bonding_orbitals_2 = []
             electrons_found = 0
-            p_orbitals_2 = self.atom_2.get_orbitals('p')
+            p_orbitals_2 = self.atom_2._get_orbitals('p')
 
             for p_orbital in p_orbitals_2:
                 if p_orbital.electron_nr == 1:

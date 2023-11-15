@@ -145,29 +145,6 @@ def smiles_to_molfile(smiles, molfile, options=None):
         MolFileWriter(structure, molfile, drawing_options=options).write_mol_file()
 
 
-def svg_from_smiles_timed(smiles, svg_out):
-    start_time = time.time()
-    print("Start")
-    time_1 = time.time()
-    print(time_1 - start_time)
-    structure = read_smiles(smiles)
-    print("reading smiles")
-    time_2 = time.time()
-    print(time_2 - time_1)
-    structure = structure.kekulise()
-    print("Kekulising")
-    time_3 = time.time()
-    print(time_3 - time_2)
-    drawer = Drawer(structure)
-    print("Drawing")
-    time_4 = time.time()
-    print(time_4 - time_3)
-    drawer.save_svg(svg_out)
-    print("Saving")
-    time_5 = time.time()
-    print(time_5 - time_4)
-
-
 def svg_from_structure(structure, svg_out, options=None):
     """
     Save structure drawing of Structure object to .svg
@@ -344,7 +321,7 @@ def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBE
         drawer.show_molecule()
     elif visualisation == 'svg':
         assert out_file
-        drawer.save_svg(out_file)
+        drawer.save_svg_matplotlib(out_file)
     elif visualisation == 'png':
         assert out_file
         drawer.save_png(out_file)
@@ -388,7 +365,7 @@ def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY
         drawer.show_molecule()
     elif visualisation == 'svg':
         assert out_file
-        drawer.save_svg(out_file)
+        drawer.save_svg_matplotlib(out_file)
     elif visualisation == 'png':
         assert out_file
         drawer.save_png(out_file)
@@ -451,7 +428,7 @@ def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colour
         drawer.show_molecule()
     elif visualisation == 'svg':
         assert out_file
-        drawer.save_svg(out_file)
+        drawer.save_svg_matplotlib(out_file)
     elif visualisation == 'png':
         assert out_file
         drawer.save_png(out_file)

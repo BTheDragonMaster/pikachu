@@ -683,7 +683,7 @@ class Structure:
         for cycle in cycles:
             for atom in cycle:
                 if atom.hybridisation == 'sp3':
-                    atom.promote_lone_pair_to_p_orbital()
+                    atom._promote_lone_pair_to_p_orbital()
                     if atom.type == 'N':
                         atom.pyrrole = True
                     elif atom.type == 'S':
@@ -888,7 +888,7 @@ class Structure:
 
     def promote_pi_bonds(self):
         for atom in self.graph:
-            atom.promote_pi_bonds_to_d_orbitals()
+            atom._promote_pi_bonds_to_d_orbitals()
 
     def remove_bond_between_atoms(self, atom_1, atom_2):
         bond = self.bond_lookup[atom_1][atom_2]
@@ -980,8 +980,7 @@ class Structure:
 
     def set_connectivities(self):
         for atom in self.graph:
-            if atom.type != 'H':
-                atom.set_connectivity()
+            atom.set_connectivity()
 
     def set_atom_neighbours(self):
         for atom in self.graph:
@@ -1191,7 +1190,7 @@ class Structure:
 
     def drop_electrons(self):
         for atom in self.graph:
-            atom.drop_electrons()
+            atom._drop_electrons()
 
     def add_shells_non_hydrogens(self):
         for atom in self.graph:
@@ -1284,8 +1283,8 @@ class Structure:
 
         bond = Bond(atom_1, atom_2, bond_type, bond_nr)
 
-        atom_1.add_bond(bond)
-        atom_2.add_bond(bond)
+        atom_1._add_bond(bond)
+        atom_2._add_bond(bond)
 
         self.bonds[bond_nr] = bond
 
@@ -1325,8 +1324,8 @@ class Structure:
         orbital_1.set_bond(bond, 'sigma')
         orbital_2.set_bond(bond, 'sigma')
 
-        atom_1.add_bond(bond)
-        atom_2.add_bond(bond)
+        atom_1._add_bond(bond)
+        atom_2._add_bond(bond)
 
         self.bonds[bond_nr] = bond
 
@@ -1369,8 +1368,8 @@ class Structure:
 
         bond.chiral_symbol = chiral_symbol
 
-        atom_1.add_bond(bond)
-        atom_2.add_bond(bond)
+        atom_1._add_bond(bond)
+        atom_2._add_bond(bond)
 
         self.bonds[bond_nr] = bond
 
@@ -1549,8 +1548,8 @@ class Structure:
 
             bond.set_bond_summary()
             
-            orbitals_1 = new_atom_1.get_orbitals('p')
-            orbitals_2 = new_atom_2.get_orbitals('p')
+            orbitals_1 = new_atom_1._get_orbitals('p')
+            orbitals_2 = new_atom_2._get_orbitals('p')
             
             if orbitals_1 and orbitals_2:
                 orbital_1 = orbitals_1[0]
