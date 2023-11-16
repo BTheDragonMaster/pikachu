@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
-import time
-import os
 
-import matplotlib.pyplot as plt
+from typing import Optional, List, Union
 
 from pikachu.smiles.smiles import Smiles
-from pikachu.errors import StructureError, ColourError
 from pikachu.smiles.graph_to_smiles import GraphToSmiles
 from pikachu.drawing.drawing import Drawer, Options, draw_multiple
 from pikachu.drawing.colours import *
@@ -14,14 +11,14 @@ from pikachu.chem.molfile.write_molfile import MolFileWriter
 from pikachu.chem.structure import Structure
 
 
-def smiles_from_file(smiles_file, read_all=False):
+def smiles_from_file(smiles_file: str, read_all: bool = True) -> Union[str, List[str]]:
     if not read_all:
         with open(smiles_file, 'r') as smiles:
             smiles_string = smiles.readline().strip()
 
         return smiles_string
     else:
-        smiles_strings = []
+        smiles_strings: List[str] = []
         with open(smiles_file, 'r') as smiles:
             for line in smiles:
                 smiles_string = line.strip()
@@ -53,7 +50,7 @@ def read_smiles(smiles_string: str) -> Structure:
         return structure
 
 
-def structure_to_smiles(structure, kekule=False):
+def structure_to_smiles(structure: Structure, kekule: bool = False) -> str:
     """
     Return SMILES string from structure object
 
@@ -72,7 +69,7 @@ def structure_to_smiles(structure, kekule=False):
     return GraphToSmiles(structure).smiles
 
 
-def draw_structure(structure, options=None):
+def draw_structure(structure: Structure, options: Optional[Options] = None) -> None:
     """
     Display structure from structure object
 
@@ -88,7 +85,7 @@ def draw_structure(structure, options=None):
     drawer.show_molecule()
 
 
-def position_smiles(smiles):
+def position_smiles(smiles: str) -> Drawer:
     """
     Return structure with stored atom coordinates
 
@@ -111,7 +108,7 @@ def position_smiles(smiles):
     return drawer
 
 
-def draw_smiles(smiles, options=None, kekulise=True):
+def draw_smiles(smiles: str, options: Optional[Options] = None, kekulise: bool = True) -> None:
     """
     Display structure from SMILES string
 
@@ -134,7 +131,7 @@ def draw_smiles(smiles, options=None, kekulise=True):
     drawer.show_molecule()
 
 
-def smiles_to_molfile(smiles, molfile, options=None):
+def smiles_to_molfile(smiles: str, molfile: str, options: Optional[Options] = None) -> None:
     if not options:
         options = Options()
 
@@ -145,7 +142,7 @@ def smiles_to_molfile(smiles, molfile, options=None):
         MolFileWriter(structure, molfile, drawing_options=options).write_mol_file()
 
 
-def svg_from_structure(structure, svg_out, options=None):
+def svg_from_structure(structure: Structure, svg_out: str, options: Optional[Options] = None) -> None:
     """
     Save structure drawing of Structure object to .svg
 
@@ -161,17 +158,17 @@ def svg_from_structure(structure, svg_out, options=None):
     drawer.write_svg(svg_out)
 
 
-def svg_string_from_structure(structure, options=None):
+def svg_string_from_structure(structure: Structure, options: Optional[Options] = None) -> str:
     if not options:
         options = Options()
 
     drawer = Drawer(structure, options=options)
-    svg_string = drawer.save_svg_string()
+    svg_string = drawer.get_svg_string_matplotlib()
 
     return svg_string
 
 
-def png_from_structure(structure, png_out, options=None):
+def png_from_structure(structure: Structure, png_out: str, options: Optional[Options] = None) -> None:
     """
     Save structure drawing of Structure object to .png
 
@@ -184,10 +181,10 @@ def png_from_structure(structure, png_out, options=None):
         options = Options()
 
     drawer = Drawer(structure, options=options)
-    drawer.save_png(png_out)
+    drawer.save_png_matplotlib(png_out)
 
 
-def svg_from_smiles(smiles, svg_out, options=None, kekulise=True):
+def svg_from_smiles(smiles: str, svg_out: str, options: Optional[Options] = None, kekulise: bool = True):
     """
     Save structure drawing of SMILES string to .svg
 
@@ -207,7 +204,7 @@ def svg_from_smiles(smiles, svg_out, options=None, kekulise=True):
     drawer.write_svg(svg_out)
 
 
-def png_from_smiles(smiles, png_out, options=None):
+def png_from_smiles(smiles: str, png_out: str, options: Optional[Options] = None) -> None:
     """
     Save structure drawing of SMILES string to .png
 
@@ -220,15 +217,17 @@ def png_from_smiles(smiles, png_out, options=None):
     if not options:
         options = Options()
     drawer = Drawer(structure, options=options)
-    drawer.save_png(png_out)
+    drawer.save_png_matplotlib(png_out)
 
 
-def highlight_substructure(substructure_smiles, parent_smiles, search_mode='all',
-                           colour=None,
-                           check_chiral_centres=True,
-                           check_bond_chirality=True,
-                           visualisation='show',
-                           out_file=None):
+def highlight_substructure(substructure_smiles: str,
+                           parent_smiles: str,
+                           search_mode: str = 'all',
+                           colour: Optional[str] = None,
+                           check_chiral_centres: bool = True,
+                           check_bond_chirality: bool = True,
+                           visualisation: str = 'show',
+                           out_file: Optional[str] = None):
     """
     Find occurrences of (a) substructure(s) in a parent structure and highlight it in a drawing
 
@@ -324,7 +323,7 @@ def highlight_subsmiles_single(substructure_smiles, parent_smiles, colour=RASPBE
         drawer.save_svg_matplotlib(out_file)
     elif visualisation == 'png':
         assert out_file
-        drawer.save_png(out_file)
+        drawer.save_png_matplotlib(out_file)
 
 
 def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY,
@@ -368,7 +367,7 @@ def highlight_subsmiles_all(substructure_smiles, parent_smiles, colour=RASPBERRY
         drawer.save_svg_matplotlib(out_file)
     elif visualisation == 'png':
         assert out_file
-        drawer.save_png(out_file)
+        drawer.save_png_matplotlib(out_file)
 
 
 def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colours=None,
@@ -431,4 +430,4 @@ def highlight_subsmiles_multiple(substructure_smiles_list, parent_smiles, colour
         drawer.save_svg_matplotlib(out_file)
     elif visualisation == 'png':
         assert out_file
-        drawer.save_png(out_file)
+        drawer.save_png_matplotlib(out_file)

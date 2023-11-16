@@ -1175,9 +1175,11 @@ class Drawer:
                         self.__draw_halflines(line, midpoint)
                 elif bond.type in {'double', 'aromatic'}:
                     aromatic = False
+
                     if bond.type == 'aromatic':
                         aromatic = True
-                    if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
+
+                    if not self.__is_terminal(bond.atom_1) and not self.__is_terminal(bond.atom_2):
                         self.__draw_halflines(line, midpoint)
 
                         common_ring_numbers = self.__get_common_rings(bond.atom_1, bond.atom_2)
@@ -1198,7 +1200,7 @@ class Drawer:
                             second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing,
                                                                           self.options.double_bond_length)
                             second_line_midpoint = second_line.get_midpoint()
-                            self.draw_halflines_double(second_line, second_line_midpoint, aromatic)
+                            self.__draw_halflines_double(second_line, second_line_midpoint, aromatic)
 
                         else:
 
@@ -1212,10 +1214,10 @@ class Drawer:
                                                                           self.options.bond_spacing,
                                                                           self.options.double_bond_length)
                             second_line_midpoint = second_line.get_midpoint()
-                            self.draw_halflines_double(second_line, second_line_midpoint, aromatic)
+                            self.__draw_halflines_double(second_line, second_line_midpoint, aromatic)
 
                     else:
-                        if self.is_terminal(bond.atom_1) and self.is_terminal(bond.atom_2):
+                        if self.__is_terminal(bond.atom_1) and self.__is_terminal(bond.atom_2):
                             dummy_1 = Vector(bond.atom_1.draw.position.x + 1, bond.atom_1.draw.position.y + 1)
                             dummy_2 = Vector(bond.atom_1.draw.position.x - 1, bond.atom_1.draw.position.y - 1)
                             double_bond_line_1 = line.double_line_towards_center(dummy_1,
@@ -1227,12 +1229,12 @@ class Drawer:
                                                                                  self.options.double_bond_length)
                             double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
 
-                            self.draw_halflines_double(double_bond_line_1, double_bond_line_1_midpoint)
-                            self.draw_halflines_double(double_bond_line_2, double_bond_line_2_midpoint, aromatic)
+                            self.__draw_halflines_double(double_bond_line_1, double_bond_line_1_midpoint)
+                            self.__draw_halflines_double(double_bond_line_2, double_bond_line_2_midpoint, aromatic)
 
                         else:
 
-                            if self.is_terminal(bond.atom_1):
+                            if self.__is_terminal(bond.atom_1):
                                 terminal_atom = bond.atom_1
                                 branched_atom = bond.atom_2
                             else:
@@ -1510,10 +1512,10 @@ class Drawer:
         self.define_rings()
 
         if not self.multiple:
-            self.process_structure()
+            self.__process_structure()
             self.set_chiral_bonds()
             if not coords_only:
-                self.draw_structure()
+                self.plot_structure()
         else:
             self.restore_ring_information()
 
@@ -1627,7 +1629,7 @@ class Drawer:
         color: str, denoting colour of wedge. Default: black
         """
         for line in lines:
-            self.plot_line(line, ax, color=color)
+            self.__plot_line(line, ax, color=color)
 
     def __plot_chiral_bond(self, orientation: str, chiral_center: Atom, line: Line, ax: Axes, midpoint: Vector) -> None:
         """
@@ -1782,13 +1784,13 @@ class Drawer:
         for halfline in halflines:
             truncated_line = halfline.get_truncated_line(self.options.short_bond_length)
             if not aromatic:
-                svg_line = self.draw_line(truncated_line, color=halfline.atom.draw.colour)
+                svg_line = self.__draw_line(truncated_line, color=halfline.atom.draw.colour)
             else:
-                svg_line = self.draw_dashed_line(truncated_line, color=halfline.atom.draw.colour)
+                svg_line = self.__draw_dashed_line(truncated_line, color=halfline.atom.draw.colour)
             self.__add_svg_element(svg_line, halfline.atom)
 
     # TODO: Can we integrate this function with the one above?
-    def draw_halflines_double(self, line: Line, midpoint: Vector, aromatic=False) -> None:
+    def __draw_halflines_double(self, line: Line, midpoint: Vector, aromatic=False) -> None:
         """
         Add an SVG element representing one line of a pre-truncated double bond to the drawing
 
@@ -1803,13 +1805,13 @@ class Drawer:
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
             if not aromatic:
-                svg_line = self.draw_line(halfline, color=halfline.atom.draw.colour)
+                svg_line = self.__draw_line(halfline, color=halfline.atom.draw.colour)
             else:
-                svg_line = self.draw_dashed_line(halfline, color=halfline.atom.draw.colour)
+                svg_line = self.__draw_dashed_line(halfline, color=halfline.atom.draw.colour)
             self.__add_svg_element(svg_line, halfline.atom)
 
     @staticmethod
-    def draw_dashed_line(line: Line, color: str = 'black') -> str:
+    def __draw_dashed_line(line: Line, color: str = 'black') -> str:
         """
         Create an SVG element representing the dashed line of half of an aromatic bond
 
@@ -1830,7 +1832,7 @@ class Drawer:
         return svg_line
 
     @staticmethod
-    def draw_line(line: Line, color: str = 'black') -> str:
+    def __draw_line(line: Line, color: str = 'black') -> str:
         """
         Create an SVG element representing the line of half of a bond
 
@@ -1841,7 +1843,7 @@ class Drawer:
 
         Returns
         ----------
-        svg_line: str, SVG element depicting half of an aromatic bond
+        svg_line: str, SVG element depicting half of a bond
         """
         # Create this loop to limit svg size: default colour is black
         if color != 'black':
@@ -1850,7 +1852,7 @@ class Drawer:
             svg_line = f'<line x1="{line.point_1.x}" y1="{line.point_1.y}" x2="{line.point_2.x}" y2="{line.point_2.y}" />'
         return svg_line
 
-    def plot_halflines(self, line: Line, ax: Axes, midpoint: Vector, aromatic: bool = False) -> None:
+    def __plot_halflines(self, line: Line, ax: Axes, midpoint: Vector, aromatic: bool = False) -> None:
         """
         Plot one line of a bond in matplotlib
 
@@ -1866,14 +1868,39 @@ class Drawer:
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
             truncated_line = halfline.get_truncated_line(self.options.short_bond_length)
-            self.plot_line(truncated_line, ax, color=halfline.atom.draw.colour, aromatic=aromatic)
+            self.__plot_line(truncated_line, ax, color=halfline.atom.draw.colour, aromatic=aromatic)
 
-    def plot_halflines_double(self, line: Line, ax: Axes, midpoint: Vector, aromatic: bool = False) -> None:
+    def __plot_halflines_double(self, line: Line, ax: Axes, midpoint: Vector, aromatic: bool = False) -> None:
+        """
+        Plot one line of a pre-truncated double bond in matplotlib
+
+        Parameters
+        ----------
+        line: Line instance, line denoting the position of one line of a bond. This line has been pre-truncated
+        midpoint: Vector instance, denoting the midpoint on the line. Used to split the line in two before drawing
+            such that each bond half can be coloured separately
+        ax: matplotlib Axes instance
+        aromatic: bool, if True, draw a dashed line; if False, draw a solid line
+        """
         halflines = line.divide_in_two(midpoint)
         for halfline in halflines:
-            self.plot_line(halfline, ax, color=halfline.atom.draw.colour, aromatic=aromatic)
+            self.__plot_line(halfline, ax, color=halfline.atom.draw.colour, aromatic=aromatic)
 
-    def plot_line(self, line: Line, ax: Axes, color: str = 'black', aromatic: bool = False) -> None:
+    def __plot_line(self, line: Line, ax: Axes, color: str = 'black', aromatic: bool = False) -> None:
+        """
+        Plot the line of half of a bond in matplotlib
+
+        Parameters
+        ----------
+        line: Line instance, line denoting the position of half of the line of a bond
+        ax: matplotlib Axes instance, canvas to draw to
+        color: str, colour of the line
+        aromatic: bool, draw dashed line if True, solid line otherwise
+
+        Returns
+        ----------
+        svg_line: str, SVG element depicting half of a bond
+        """
         if not aromatic:
             ax.plot([line.point_1.x, line.point_2.x],
                     [line.point_1.y, line.point_2.y], color=color, linewidth=self.options.bond_thickness)
@@ -1884,6 +1911,9 @@ class Drawer:
 
     @staticmethod
     def get_image_as_array() -> np.ndarray:
+        """
+        Returns numpy array representing a pixelated version of the drawing
+        """
         # Return image as np.ndarray that represents RGB image
         canvas = plt.gca().figure.canvas
         canvas.draw()
@@ -1894,6 +1924,13 @@ class Drawer:
 
     @staticmethod
     def save_svg_matplotlib(out_file: str) -> None:
+        """
+        Save matplotlib canvas to an SVG file
+
+        Parameters
+        ----------
+        out_file: str, path to output SVG
+        """
         if out_file.endswith('.svg'):
             pass
         else:
@@ -1904,7 +1941,10 @@ class Drawer:
         plt.close('all')
 
     @staticmethod
-    def save_svg_string() -> str:
+    def get_svg_string_matplotlib() -> str:
+        """
+        Returns str, SVG string of matplotlib canvas
+        """
         svg_string = StringIO()
         plt.savefig(svg_string, format='svg')
         svg = svg_string.getvalue()
@@ -1915,7 +1955,14 @@ class Drawer:
         return svg
 
     @staticmethod
-    def save_png(out_file: str) -> None:
+    def save_png_matplotlib(out_file: str) -> None:
+        """
+        Save matplotlib canvas to a PNG file
+
+        Parameters
+        ----------
+        out_file: str, path to output PNG
+        """
         if out_file.endswith('.png'):
             pass
         else:
@@ -1926,12 +1973,22 @@ class Drawer:
 
     @staticmethod
     def show_molecule() -> None:
+        """
+        Show canvas in matplotlib GUI
+        """
         plt.show()
         plt.clf()
         plt.close()
 
     @staticmethod
-    def chirality_correct(bond: Bond) -> bool:
+    def __chiral_bond_drawn_correctly(bond: Bond) -> bool:
+        """
+        Returns True if a chiral double bond is represented correctly in the drawing, False otherwise
+
+        Parameters
+        ----------
+        bond: Bond instance, must be a chiral double bond
+        """
         assert bond.chiral
 
         must_be_fixed = False
@@ -1964,10 +2021,22 @@ class Drawer:
         else:
             return True
 
-    def fix_chiral_bond(self, double_bond: Bond) -> None:
+    def __fix_chiral_bond(self, double_bond: Bond) -> None:
+        """
+        Correct the position of an incorrectly represented chiral double bond
+
+        Parameters
+        ----------
+        double_bond: Bond instance, chiral double bond
+
+        """
+        # If the bond is in a ring, mirror one of the atoms adjacent to the bond to the inside of the ring
+
         if len(double_bond.atom_1.draw.rings) and len(double_bond.atom_2.draw.rings) and \
                 len(set(double_bond.atom_1.draw.rings).intersection(set(double_bond.atom_2.draw.rings))) >= 1:
             self.__flip_stereobond_in_ring(double_bond)
+
+        # Otherwise, rotate subtrees in the structure around adjacent bonds
 
         else:
             if len(double_bond.atom_1.draw.rings) > 0:
@@ -1985,7 +2054,8 @@ class Drawer:
                 neighbour = neighbours[0]
                 self._flip_subtree(neighbour, root_atom, parent_atom)
 
-            # Only need to flip once if both neighbours are in the same ring
+            # Only need to flip once if both neighbours are in the same ring,
+            # as then the neighbours occur in the same subtree
 
             elif len(neighbours) == 2 and len(
                     set(neighbours[0].draw.rings).intersection(set(neighbours[1].draw.rings))) >= 1:
@@ -2001,26 +2071,33 @@ class Drawer:
 
             self.fixed_chiral_bonds.add(double_bond)
 
-    def fix_chiral_bonds_in_rings(self) -> None:
+    def __fix_chiral_bonds_in_rings(self) -> None:
+        """
+        Iterate over all sequences of alternating chiral double bonds in rings and correct them in order
+        """
         double_bond_sequences = self.structure.find_double_bond_sequences()
 
         for double_bond_sequence in double_bond_sequences:
             for double_bond in double_bond_sequence:
-                chirality_correct = self.chirality_correct(double_bond)
+                chirality_correct = self.__chiral_bond_drawn_correctly(double_bond)
                 if chirality_correct:
                     self.fixed_chiral_bonds.add(double_bond)
                 else:
-                    self.fix_chiral_bond(double_bond)
+                    self.__fix_chiral_bond(double_bond)
 
         for bond in self.structure.bonds.values():
             if bond.type == 'double' and bond.chiral and bond not in self.fixed_chiral_bonds:
-                chirality_correct = self.chirality_correct(bond)
+                chirality_correct = self.__chiral_bond_drawn_correctly(bond)
                 if chirality_correct:
                     self.fixed_chiral_bonds.add(bond)
                 else:
-                    self.fix_chiral_bond(bond)
+                    self.__fix_chiral_bond(bond)
 
-    def draw_structure(self) -> None:
+    # TODO: Refactor this such that a dictionary of all drawn components is created first
+    def plot_structure(self) -> None:
+        """
+        Plot the positioned atoms and bonds to a matplotlib canvas
+        """
 
         # Find the plotting dimensions of the molecule such that the canvas can be scaled to fit the molecule
 
@@ -2040,8 +2117,8 @@ class Drawer:
                 if atom.draw.position.y > max_y:
                     max_y = atom.draw.position.y
 
-        height = max_y - min_y
-        width = max_x - min_x
+        height: float = max_y - min_y
+        width: float = max_x - min_x
 
         fig, ax = plt.subplots(figsize=((width + 2 * self.options.padding) / 50.0,
                                         (height + 2 * self.options.padding) / 50.0), dpi=100)
@@ -2056,14 +2133,8 @@ class Drawer:
         params = {'mathtext.default': 'regular'}
         plt.rcParams.update(params)
 
-        ring_centers_x = []
-        ring_centers_y = []
-
         for ring in self.rings:
             self.set_ring_center(ring)
-
-            ring_centers_x.append(ring.center.x)
-            ring_centers_y.append(ring.center.y)
 
         for bond_nr, bond in self.structure.bonds.items():
             if bond.atom_1.draw.positioned and bond.atom_2.draw.positioned:
@@ -2075,14 +2146,14 @@ class Drawer:
                         orientation, chiral_center = self.chiral_bond_to_orientation[bond]
                         self.__plot_chiral_bond(orientation, chiral_center, line, ax, midpoint)
                     else:
-                        self.plot_halflines(line, ax, midpoint)
+                        self.__plot_halflines(line, ax, midpoint)
                 elif bond.type in {'double', 'aromatic'}:
                     aromatic = False
                     if bond.type == 'aromatic':
                         aromatic = True
                     
-                    if not self.is_terminal(bond.atom_1) and not self.is_terminal(bond.atom_2):
-                        self.plot_halflines(line, ax, midpoint)
+                    if not self.__is_terminal(bond.atom_1) and not self.__is_terminal(bond.atom_2):
+                        self.__plot_halflines(line, ax, midpoint)
 
                         common_ring_numbers = self.__get_common_rings(bond.atom_1, bond.atom_2)
 
@@ -2096,7 +2167,7 @@ class Drawer:
                             ring_centre = common_ring.center
                             second_line = line.double_line_towards_center(ring_centre, self.options.bond_spacing, self.options.double_bond_length)
                             second_line_midpoint = second_line.get_midpoint()
-                            self.plot_halflines_double(second_line, ax, second_line_midpoint, aromatic)
+                            self.__plot_halflines_double(second_line, ax, second_line_midpoint, aromatic)
 
                         else:
                             bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
@@ -2105,11 +2176,11 @@ class Drawer:
                                 gravitational_point = Vector.get_average(vectors)
                                 second_line = line.double_line_towards_center(gravitational_point, self.options.bond_spacing, self.options.double_bond_length)
                                 second_line_midpoint = second_line.get_midpoint()
-                                self.plot_halflines_double(second_line, ax, second_line_midpoint, aromatic)
+                                self.__plot_halflines_double(second_line, ax, second_line_midpoint, aromatic)
                             else:
                                 print("Shouldn't happen!")
                     else:
-                        if self.is_terminal(bond.atom_1) and self.is_terminal(bond.atom_2):
+                        if self.__is_terminal(bond.atom_1) and self.__is_terminal(bond.atom_2):
                             dummy_1 = Vector(bond.atom_1.draw.position.x + 1, bond.atom_1.draw.position.y + 1)
                             dummy_2 = Vector(bond.atom_1.draw.position.x - 1, bond.atom_1.draw.position.y - 1)
                             double_bond_line_1 = line.double_line_towards_center(dummy_1,
@@ -2121,12 +2192,12 @@ class Drawer:
                                                                                  self.options.double_bond_length)
                             double_bond_line_2_midpoint = double_bond_line_2.get_midpoint()
 
-                            self.plot_halflines_double(double_bond_line_1, ax, double_bond_line_1_midpoint)
-                            self.plot_halflines_double(double_bond_line_2, ax, double_bond_line_2_midpoint, aromatic)
+                            self.__plot_halflines_double(double_bond_line_1, ax, double_bond_line_1_midpoint)
+                            self.__plot_halflines_double(double_bond_line_2, ax, double_bond_line_2_midpoint, aromatic)
 
                         else:
 
-                            if self.is_terminal(bond.atom_1):
+                            if self.__is_terminal(bond.atom_1):
                                 terminal_atom = bond.atom_1
                                 branched_atom = bond.atom_2
                             else:
@@ -2170,11 +2241,11 @@ class Drawer:
                                     if intersection_2 and intersection_2.x < 100000 and intersection_2.y < 100000:
                                         double_bond_line_2.point_2 = intersection_2
 
-                                self.plot_halflines(double_bond_line_1, ax, double_bond_line_1_midpoint)
-                                self.plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint, aromatic)
+                                self.__plot_halflines(double_bond_line_1, ax, double_bond_line_1_midpoint)
+                                self.__plot_halflines(double_bond_line_2, ax, double_bond_line_2_midpoint, aromatic)
 
                             else:
-                                self.plot_halflines(line, ax, midpoint)
+                                self.__plot_halflines(line, ax, midpoint)
 
                                 bond_neighbours = bond.atom_1.drawn_neighbours + bond.atom_2.drawn_neighbours
                                 if bond_neighbours:
@@ -2183,17 +2254,17 @@ class Drawer:
                                     second_line = line.get_parallel_line(gravitational_point,
                                                                          self.options.bond_spacing)
                                     second_line_midpoint = second_line.get_midpoint()
-                                    self.plot_halflines(second_line, ax, second_line_midpoint, aromatic)
+                                    self.__plot_halflines(second_line, ax, second_line_midpoint, aromatic)
                                 else:
                                     print("Shouldn't happen!")
 
                 elif bond.type == 'triple':
-                    self.plot_halflines(line, ax, midpoint)
+                    self.__plot_halflines(line, ax, midpoint)
                     line_1, line_2 = line.get_parallel_lines(self.options.bond_spacing)
                     line_1_midpoint = line_1.get_midpoint()
                     line_2_midpoint = line_2.get_midpoint()
-                    self.plot_halflines(line_1, ax, line_1_midpoint)
-                    self.plot_halflines(line_2, ax, line_2_midpoint)
+                    self.__plot_halflines(line_1, ax, line_1_midpoint)
+                    self.__plot_halflines(line_2, ax, line_2_midpoint)
 
         for atom in self.structure.graph:
             if atom.draw.positioned:
@@ -2380,10 +2451,22 @@ class Drawer:
                              verticalalignment='center',
                              color=atom.draw.colour)
 
+    # TODO: make this work with direct SVG writing
     @staticmethod
     def set_r_group_indices_subscript(atom_text: str) -> str:
+        """
+        Change numbers to subscript in rest group text
+
+        Parameters
+        ----------
+        atom_text: str, text representing the rest group
+
+        Returns
+        -------
+        atom_text: str, text representing the rest group with subscript for numbers
+        """
         # Take str and return the same str with subscript digits
-        # (pattern is necessary to not to get confused with isotopes)
+        # (pattern is necessary to not get confused with isotopes)
         sub_translation = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
         match = re.search('[RXZ]\d+', atom_text)
         if match:
@@ -2393,18 +2476,28 @@ class Drawer:
         return atom_text
 
     @staticmethod
-    def is_terminal(atom: Atom) -> bool:
+    def __is_terminal(atom: Atom) -> bool:
+        """
+        Returns True if the atom only has one drawn neighbour and thus is terminal, False otherwise
+
+        Parameters
+        ----------
+        atom: Atom instance, must be a drawn atom
+        """
         if len(atom.drawn_neighbours) <= 1:
             return True
 
         return False
 
-    def process_structure(self) -> None:
-        self.position()
+    def __process_structure(self) -> None:
+        """
+        Position all atoms and resolve overlaps
+        """
+        self.__position()
         self.structure.refresh_structure()
         self.restore_ring_information()
 
-        self.fix_chiral_bonds_in_rings()
+        self.__fix_chiral_bonds_in_rings()
 
         self.resolve_primary_overlaps()
 
@@ -2414,13 +2507,14 @@ class Drawer:
             for bond in self.drawn_bonds:
                 if self.can_rotate_around_bond(bond):
 
-                    tree_depth_1 = self.get_subgraph_size(bond.atom_1, {bond.atom_2})
-                    tree_depth_2 = self.get_subgraph_size(bond.atom_2, {bond.atom_1})
+                    tree_depth_1: int = self.get_subgraph_size(bond.atom_1, {bond.atom_2})
+                    tree_depth_2: int = self.get_subgraph_size(bond.atom_2, {bond.atom_1})
 
-                    # Check neighbouring bonds to ensure neither are chiral; only then the bond is rotatable at the end of the indicated atom
+                    # Check neighbouring bonds to ensure neither are chiral; only then the bond is rotatable
+                    # at the end of the indicated atom
 
-                    atom_1_rotatable = True
-                    atom_2_rotatable = True
+                    atom_1_rotatable: bool = True
+                    atom_2_rotatable: bool = True
 
                     for neighbouring_bond in bond.atom_1.bonds:
                         if neighbouring_bond.type == 'double' and neighbouring_bond.chiral:
@@ -2455,7 +2549,9 @@ class Drawer:
 
                         if len(neighbours_2) == 1:
                             neighbour = neighbours_2[0]
-                            angle = neighbour.draw.position.get_rotation_away_from_vector(atom_1.draw.position, atom_2.draw.position, math.radians(120))
+                            angle = neighbour.draw.position.get_rotation_away_from_vector(atom_1.draw.position,
+                                                                                          atom_2.draw.position,
+                                                                                          math.radians(120))
 
                             self.rotate_subtree(neighbour, atom_2, angle, atom_2.draw.position)
 
@@ -2469,18 +2565,24 @@ class Drawer:
                             if atom_2.draw.rings and atom_1.draw.rings:
                                 continue
 
-                            neighbour_1 = neighbours_2[0]
-                            neighbour_2 = neighbours_2[1]
+                            neighbour_1: Atom = neighbours_2[0]
+                            neighbour_2: Atom = neighbours_2[1]
 
                             if len(neighbour_1.draw.rings) == 1 and len(neighbour_2.draw.rings) == 1:
+
                                 # If the neighbours are in different rings, or in rings at all, do nothing
                                 if neighbour_1.draw.rings[0] != neighbour_2.draw.rings[0]:
                                     continue
+
                             elif neighbour_1.draw.rings or neighbour_2.draw.rings:
                                 continue
                             else:
-                                angle_1 = neighbour_1.draw.position.get_rotation_away_from_vector(atom_1.draw.position, atom_2.draw.position, math.radians(120))
-                                angle_2 = neighbour_2.draw.position.get_rotation_away_from_vector(atom_1.draw.position, atom_2.draw.position, math.radians(120))
+                                angle_1 = neighbour_1.draw.position.get_rotation_away_from_vector(atom_1.draw.position,
+                                                                                                  atom_2.draw.position,
+                                                                                                  math.radians(120))
+                                angle_2 = neighbour_2.draw.position.get_rotation_away_from_vector(atom_1.draw.position,
+                                                                                                  atom_2.draw.position,
+                                                                                                  math.radians(120))
 
                                 self.rotate_subtree(neighbour_1, atom_2, angle_1, atom_2.draw.position)
                                 self.rotate_subtree(neighbour_2, atom_2, angle_2, atom_2.draw.position)
@@ -2503,15 +2605,16 @@ class Drawer:
 
             self.resolve_secondary_overlaps(sorted_overlap_scores)
 
-    def position(self) -> None:
-        start_atom = None
+    def __position(self) -> None:
+        """
+        Position all atoms
+        """
+        start_atom: Optional[Atom] = None
 
         for atom in self.structure.graph:
             if atom.draw.bridged_ring is not None:
                 start_atom = atom
                 break
-
-        # is this necessary?
 
         for ring in self.rings:
             if ring.bridged:
@@ -2523,166 +2626,231 @@ class Drawer:
         if start_atom is None:
             start_atom = list(self.drawn_atoms)[0]
 
+        # Iteratively position all atoms
+
         self.create_next_bond(start_atom, None, 0.0)
 
-    def create_next_bond(self, atom, previous_atom=None, angle=0.0,
-                         previous_branch_shortest=False, skip_positioning=False):
+    # TODO: improve docstring
+    def create_next_bond(self, atom: Atom, previous_atom: Optional[Atom] = None, angle: float = 0.0,
+                         previous_branch_shortest: bool = False) -> None:
+        """
+        Iteratively position atoms one bond at a time
 
-        if atom.draw.positioned and not skip_positioning:
+        Parameters
+        ----------
+        atom: Atom instance, current atom
+        previous_atom: Atom instance, previous atom
+        angle: float, angle of the previous atom with respect to the previous bond
+        previous_branch_shortest: bool, True if the previous branch has the shortest tree depth, False otherwise
+
+        """
+
+        # TODO: check if this is necessary
+
+        if atom.draw.positioned:
             return
 
-        if not skip_positioning:
-            if not previous_atom:
-                dummy = Vector(self.options.bond_length, 0)
-                dummy.rotate(math.radians(-60.0))
+        if previous_atom is None:
+            # Create a 'dummy' previous position if the atom is the first
+            # TODO: Check that the dummy is placed and rotated correctly
+            dummy: Vector = Vector(self.options.bond_length, 0)
+            dummy.rotate(math.radians(-60.0))
 
-                atom.draw.previous_position = dummy
-                atom.draw.previous_atom = None
-                atom.draw.set_position(Vector(self.options.bond_length, 0))
-                atom.draw.angle = math.radians(-60.0)
+            atom.draw.previous_position = dummy
+            atom.draw.previous_atom = None
+            # Place the first atom one bond length right to the origin
+            atom.draw.set_position(Vector(self.options.bond_length, 0))
 
-                if atom.draw.bridged_ring is None:
-                    atom.draw.positioned = True
+            atom.draw.angle = math.radians(-60.0)
 
-            # If the previous atom was part of a ring
+            # If the atom is not part of a bridged ring, it is now positioned
 
-            elif len(previous_atom.draw.rings) > 0:
-                neighbours = previous_atom.drawn_neighbours
-                joined_vertex = None
-                # Initialise position to the origin
-                position = Vector(0, 0)
-
-                # If the previous atom was not part of a bridged ring and the previous atom was part of more than one ring
-
-                if previous_atom.draw.bridged_ring is None and len(previous_atom.draw.rings) > 1:
-                    # Find the vertex adjoining the current bridged ring that is also in both ring systems. This is the
-                    # joined vertex.
-                    for neighbour in neighbours:
-                        if len(set(neighbour.draw.rings) & set(previous_atom.draw.rings)) == len(previous_atom.draw.rings):
-                            joined_vertex = neighbour
-                            break
-
-                # If there is no joined vertex
-
-                if not joined_vertex:
-                    # For each neighbour that is in the same ring:
-                    #
-                    for neighbour in neighbours:
-
-                        if neighbour.draw.positioned and self.atoms_are_in_same_ring(neighbour, previous_atom):
-                            position.add(Vector.subtract_vectors(neighbour.draw.position, previous_atom.draw.position))
-
-                    position.invert()
-                    position.normalise()
-                    position.multiply_by_scalar(self.options.bond_length)
-                    position.add(previous_atom.draw.position)
-
-                else:
-
-                    position = joined_vertex.draw.position.copy()
-                    position.rotate_around_vector(math.pi, previous_atom.draw.position)
-
-                atom.draw.set_previous_position(previous_atom)
-                atom.draw.set_position(position)
+            if atom.draw.bridged_ring is None:
                 atom.draw.positioned = True
 
-            else:
-                position = Vector(self.options.bond_length, 0)
-                position.rotate(angle)
+        # If the previous atom was part of a ring
+
+        elif len(previous_atom.draw.rings) > 0:
+            # note that, as atoms within a ring all get placed all at the same time, this means that the current atom
+            # is never in the same ring as the previous atom
+            neighbours = previous_atom.drawn_neighbours
+            joined_vertex = None
+            # Initialise position to the origin
+            position: Vector = Vector(0, 0)
+
+            # If the previous atom was not part of a bridged ring and the previous atom was part of more than one ring
+            # Example: the central two carbon atoms in a tryptophan ring system
+
+            if previous_atom.draw.bridged_ring is None and len(previous_atom.draw.rings) > 1:
+                # Find the vertex adjoining the current bridged ring that is also in both ring systems. This is the
+                # joined vertex.
+                for neighbour in neighbours:
+                    if len(set(neighbour.draw.rings) & set(previous_atom.draw.rings)) == len(previous_atom.draw.rings):
+                        joined_vertex = neighbour
+                        break
+
+            # If there is no joined vertex because the atom is part of a bridged ring OR it is only part of one ring
+
+            if not joined_vertex:
+                # TODO: Check that this also works for bridged rings
+                # Position the atom one bond length away from the previous atom, with the bond perpendicular
+                # to the imaginary line between both ring neighbours
+
+                # First find the ring neighbours:
+
+                for neighbour in neighbours:
+
+                    if neighbour.draw.positioned and self.atoms_are_in_same_ring(neighbour, previous_atom):
+                        # Calculate a vector that is perpendicular to the imaginary line between both neighbours
+                        # and points towards the center of gravity of the neighbours
+                        position.add(Vector.subtract_vectors(neighbour.draw.position, previous_atom.draw.position))
+
+                # Invert this vector around the origin to obtain a vector in the desired direction
+                position.invert()
+
+                # Scale the vector such that is has the length of a bond
+                position.normalise()
+                position.multiply_by_scalar(self.options.bond_length)
+
+                # Add the position of the previous atom to the vector to get the position of the current atom
                 position.add(previous_atom.draw.position)
 
-                atom.draw.set_position(position)
-                atom.draw.set_previous_position(previous_atom)
-                atom.draw.positioned = True
+            else:
+                # If there IS a joined vertex, place the new atom exactly 180 degrees away from this vertex
+                # with the previous atom as rotating point, placing the new atom exactly opposite the vertex
 
-        # If the atom is part of a bridged ring: position the entire bridged ring
-        if atom.draw.bridged_ring is not None:
-            next_ring = self.id_to_ring[atom.draw.bridged_ring]
+                position = joined_vertex.draw.position.copy()
+                position.rotate_around_vector(math.pi, previous_atom.draw.position)
+
+            atom.draw.set_previous_position(previous_atom)
+            atom.draw.set_position(position)
+            atom.draw.positioned = True
+
+        else:
+            # If the previous atom was not part of a ring, simply create a vector of length bond length,
+            # rotate it around the origin, and translate it to the position of the previous atom to obtain
+            # the desired position
+            position: Vector = Vector(self.options.bond_length, 0)
+            position.rotate(angle)
+            position.add(previous_atom.draw.position)
+
+            atom.draw.set_position(position)
+            atom.draw.set_previous_position(previous_atom)
+            atom.draw.positioned = True
+
+        # After we have placed the atom, we have to:
+        #   1. Also place the atoms from any ring systems that the atom is a part of.
+        #   2. Find the desired angle between this atom and the next atom based on adjacent branches
+
+        # If the atom is part of a ring: position the entire bridged ring at once
+        if len(atom.draw.rings) > 0:
+            # Prioritise the placement of bridged rings
+            if atom.draw.bridged_ring:
+                next_ring: Ring = self.id_to_ring[atom.draw.bridged_ring]
+            else:
+                next_ring: Ring = self.id_to_ring[atom.draw.rings[0]]
+
+            # Only position the ring if it has not yet been positioned
 
             if not next_ring.positioned:
+                # Get a vector in the direction of the previous atom
                 next_center = Vector.subtract_vectors(atom.draw.previous_position, atom.draw.position)
+                # Invert that vector around the origin to get a vector into the direction of the ring center
                 next_center.invert()
+
+                # Scale the vector to the radius of the ring
                 next_center.normalise()
-                scalar = Polygon.find_polygon_radius(self.options.bond_length, len(next_ring.members))
-
-                next_center.multiply_by_scalar(scalar)
-                next_center.add(atom.draw.position)
-
-                self.create_ring(next_ring, next_center, atom)
-
-        # If the atom is part of a ring: position the entire ring
-        elif len(atom.draw.rings) > 0:
-            next_ring = self.id_to_ring[atom.draw.rings[0]]
-
-            if not next_ring.positioned:
-                next_center = Vector.subtract_vectors(atom.draw.previous_position, atom.draw.position)
-                next_center.invert()
-                next_center.normalise()
-
-                radius = Polygon.find_polygon_radius(self.options.bond_length, len(next_ring.members))
-
+                radius: float = Polygon.find_polygon_radius(self.options.bond_length, len(next_ring.members))
                 next_center.multiply_by_scalar(radius)
+
+                # Add the position of the previous atom to translate the vector into the correct position
                 next_center.add(atom.draw.position)
 
+                # Finally, create the ring, specifying the current atom as an anchor
+                # Note that this function will automatically call create_next_bond once the ring has been placed
                 self.create_ring(next_ring, next_center, atom)
 
         # If the atom is not part of a ring, position just the atom
         else:
-            neighbours = atom.drawn_neighbours[:]
+            neighbours: List[Atom] = atom.drawn_neighbours[:]
 
             if previous_atom:
                 if previous_atom in neighbours:
                     neighbours.remove(previous_atom)
 
-            previous_angle = atom.draw.get_angle()
+            previous_angle: float = atom.draw.get_angle()
 
             if len(neighbours) == 1:
-                next_atom = neighbours[0]
+                # Note: this atom cannot have been positioned before; if it were, it would be part of a ring
+                # TODO: Should we add an assert statement here to confirm the atom has not been positioned?
+                next_atom: Atom = neighbours[0]
 
-                current_bond = self.structure.bond_lookup[atom][next_atom]
-                previous_bond = None
+                current_bond: Bond = self.structure.bond_lookup[atom][next_atom]
+                previous_bond: Optional[Bond] = None
 
                 if previous_atom:
                     previous_bond = self.structure.bond_lookup[previous_atom][atom]
+
+                # There are certain bond configurations which lead to the molecule being linear around those bonds
 
                 if current_bond.type == 'triple' or (previous_bond and previous_bond.type == 'triple') or \
                         (current_bond.type == 'double' and previous_bond and previous_bond.type == 'double' and
                          previous_atom and len(previous_atom.draw.rings) == 0 and
                          len(atom.neighbours) == 2):
 
+                    # If the atoms connected by two subsequent double bonds are carbons, it is difficult to recognise
+                    # these bonds as two separate bonds. Therefore, we must make sure that such carbons are explicitly
+                    # drawn to break up the continuous line in the drawing
+
                     if current_bond.type == 'double' and previous_bond.type == 'double':
 
                         atom.draw.draw_explicit = True
+
+                    # TODO: Use this attribute to make sure linear double bonds align
 
                     if previous_atom:
                         previous_bond.draw.center = True
 
                     current_bond.draw.center = True
 
-                    if current_bond.type == 'double' or current_bond.type == 'triple' or (previous_atom and previous_bond.type == 'triple'):
-                        next_atom.draw.angle = 0.0
+                    # TODO: Is there ever a situation where this is not true?
 
-                    # next_atom.draw.draw_explicit = True
+                    if current_bond.type == 'double' or current_bond.type == 'triple' or \
+                            (previous_atom and previous_bond.type == 'triple'):
+                        next_atom.draw.angle = 0.0
 
                     self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
 
+                # If the previous atom was in a ring
+
                 elif previous_atom and len(previous_atom.draw.rings) > 0:
 
-                    proposed_angle_1 = math.radians(60.0)
-                    proposed_angle_2 = proposed_angle_1 * -1
+                    # Two possible positions for a single neighbour:
+                    # at an angle of 60 or -60 degrees
+                    proposed_angle_1: float = math.radians(60.0)
+                    proposed_angle_2: float = proposed_angle_1 * -1
+
+                    # Create vectors around the origin that have the length of the bond
 
                     proposed_vector_1 = Vector(self.options.bond_length, 0)
                     proposed_vector_2 = Vector(self.options.bond_length, 0)
 
+                    # Rotate them into their desired directions.
+                    # TODO: Should we not use the angles w.r.t. the previous bond?
+
                     proposed_vector_1.rotate(proposed_angle_1)
                     proposed_vector_2.rotate(proposed_angle_2)
+
+                    # Move the vector relative to the previous atom
 
                     proposed_vector_1.add(atom.draw.position)
                     proposed_vector_2.add(atom.draw.position)
 
-                    centre_of_mass = self.get_current_centre_of_mass()
-                    distance_1 = proposed_vector_1.get_squared_distance(centre_of_mass)
-                    distance_2 = proposed_vector_2.get_squared_distance(centre_of_mass)
+                    # Choose the position that is the furthest away from the centre of mass of the structure
+
+                    centre_of_mass: Vector = self.get_current_centre_of_mass()
+                    distance_1: float = proposed_vector_1.get_squared_distance(centre_of_mass)
+                    distance_2: float = proposed_vector_2.get_squared_distance(centre_of_mass)
 
                     if distance_1 < distance_2:
                         next_atom.draw.angle = proposed_angle_2
@@ -3715,7 +3883,7 @@ def draw_multiple(structure: Structure, coords_only: bool = False, options: Unio
     drawer.structure.refresh_structure()
 
     if not coords_only:
-        drawer.draw_structure()
+        drawer.plot_structure()
 
     return drawer
 
