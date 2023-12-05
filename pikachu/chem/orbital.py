@@ -110,7 +110,7 @@ class Orbital:
         self.bond = bond
         self.bonding_orbital = bonding_orbital
 
-    def remove_bond(self):
+    def _remove_bond(self):
         self.bond = None
         self.bonding_orbital = None
 

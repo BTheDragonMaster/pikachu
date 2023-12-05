@@ -159,6 +159,33 @@ class Atom:
 
         return None
 
+    def get_ring_index(self, structure: "Structure") -> Optional[int]:
+        cycles = structure.cycles.all_cycles
+
+        for i, cycle in enumerate(cycles):
+            if self in cycle:
+                return i
+
+        return None
+
+    def get_ring(self, structure: "Structure") -> Optional[List["Atom"]]:
+        cycles = structure.cycles.all_cycles
+
+        for i, cycle in enumerate(cycles):
+            if self in cycle:
+                return cycle
+
+        return None
+
+    def is_inside_ring(self, structure: "Structure") -> bool:
+        cycles = structure.cycles.all_cycles
+
+        for i, cycle in enumerate(cycles):
+            if self in cycle:
+                return True
+
+        return False
+
     def _set_neighbours(self, structure: "Structure") -> None:
         """
         Set atom neighbours from a list of atoms
@@ -777,7 +804,7 @@ class Atom:
                 receiver_orbital.add_electron(moved_electron)
 
                 receiver_orbital.set_bond(donor_orbital.bond, 'pi')
-                donor_orbital.remove_bond()
+                donor_orbital._remove_bond()
 
     # TODO: Check when this function is called
     def _promote_pi_bond_to_d_orbital(self) -> None:
@@ -809,7 +836,7 @@ class Atom:
         receiver_orbital.add_electron(moved_electron)
 
         receiver_orbital.set_bond(donor_orbital.bond, 'pi')
-        donor_orbital.remove_bond()
+        donor_orbital._remove_bond()
 
         self.valence_shell.dehybridise()
 
@@ -952,6 +979,11 @@ class AtomAnnotations:
 
     def get_annotation(self, name):
         return getattr(self, name)
+
+    def has_annotation(self, name):
+        if getattr(self, name, None) is not None:
+            return True
+        return False
 
     def print_annotations(self):
         for annotation in self.annotations:
