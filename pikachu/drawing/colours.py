@@ -150,6 +150,7 @@ string_to_colour = {"Red": RED,
                     "dark_gray": DARK_GREY,
                     }
 
+
 def get_hex(colour):
     if colour.startswith('#') and len(colour) == 7:
         return colour

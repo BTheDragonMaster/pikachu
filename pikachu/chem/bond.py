@@ -181,8 +181,8 @@ class Bond:
         orbital_1.remove_electron(electron_2)
         orbital_2.remove_electron(electron_1)
 
-        orbital_1.remove_bond()
-        orbital_2.remove_bond()
+        orbital_1._remove_bond()
+        orbital_2._remove_bond()
 
         self.atom_1._remove_neighbour(self.atom_2)
         self.atom_2._remove_neighbour(self.atom_1)
@@ -271,8 +271,8 @@ class Bond:
         orbital_1.remove_electron(electron_2)
         orbital_2.remove_electron(electron_1)
 
-        orbital_1.remove_bond()
-        orbital_2.remove_bond()
+        orbital_1._remove_bond()
+        orbital_2._remove_bond()
 
         self.electrons.remove(electron_1)
         self.electrons.remove(electron_2)
