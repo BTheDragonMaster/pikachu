@@ -398,7 +398,7 @@ class Drawer:
 
         annotation_values: Set[str] = set()
         for atom in self.structure.graph:
-            if atom.draw.is_drawn and atom.annotations.has_annotation(self.annotation):
+            if atom.annotations.has_annotation(self.annotation):
                 annotation_values.add(atom.annotations.get_annotation(self.annotation))
 
         annotation_values: List[str] = list(annotation_values)
@@ -2865,6 +2865,10 @@ class Drawer:
 
                         atom.draw.draw_explicit = True
 
+                    if current_bond.type == 'triple':
+                        atom.draw.draw_explicit = True
+                        next_atom.draw.draw_explicit = True
+
                     # TODO: Use this attribute to make sure linear double bonds align
 
                     if previous_atom:
@@ -2967,11 +2971,12 @@ class Drawer:
                             next_atom.draw.angle = -proposed_angle
                     else:
                         next_atom.draw.angle = -proposed_angle
-
-                    if round(math.degrees(next_atom.draw.angle), 0) == 360 or \
-                            round(math.degrees(next_atom.draw.angle), 0) == -360 or \
-                            round(math.degrees(next_atom.draw.angle), 0) == 0:
-                        atom.draw.draw_explicit = True
+                    #
+                    # if round(math.degrees(next_atom.draw.angle), 0) == 360 or \
+                    #         round(math.degrees(next_atom.draw.angle), 0) == -360 or \
+                    #         round(math.degrees(next_atom.draw.angle), 0) == 0:
+                    #     print("Because we have an angle of 0", atom, next_atom)
+                    #     atom.draw.draw_explicit = True
 
                     self.create_next_bond(next_atom, atom, previous_angle + next_atom.draw.angle)
 
