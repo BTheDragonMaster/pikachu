@@ -104,6 +104,8 @@ class Structure:
 
             for atom_1, atoms_and_chirality in bond.chiral_dict.items():
                 new_1 = None
+                print("pikachu", bond, atom_1)
+                print(bond.chiral_dict)
                 if isinstance(atom_1, Atom):
                     new_1 = new_atoms[atom_1.nr]
                 else:
