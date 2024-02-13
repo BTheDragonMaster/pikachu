@@ -1,6 +1,5 @@
 from pikachu.smiles.smiles import Smiles
 from pikachu.chem.structure import Structure
-from pikachu.chem.bond import Bond
 
 
 class IndexTracker:
@@ -140,6 +139,31 @@ class GroupDefiner:
         if not self.atom_1:
             raise Exception("Can't find atoms adjacent to bond.")
 
+#
+# def combine_structures(structures):
+#     structure_1, structure_2 = structures
+#
+#     max_atom_nr = 0
+#     max_bond_nr = 0
+#
+#     for atom in structure_2.graph:
+#         if atom.nr > max_atom_nr:
+#             max_atom_nr = atom.nr
+#
+#     for bond_nr in structure_2.bonds:
+#         if bond_nr > max_bond_nr:
+#             max_bond_nr = bond_nr
+#
+#     index_difference_atom = max_atom_nr + 1
+#     index_difference_bond = max_bond_nr + 1
+#
+#     for atom_1 in structure_1.graph:
+#         atom_1.nr += index_difference_atom
+#
+#     structure_1.refresh_structure()
+
+
+
 
 def combine_structures(structures):
     """
@@ -187,6 +211,7 @@ def combine_structures(structures):
             bond_idx += 1
 
         bond.nr = bond_idx
+
         bond_nrs.append(bond_idx)
         new_bond_dict[bond_idx] = bond
         bond_idx += 1
@@ -206,11 +231,12 @@ def combine_structures(structures):
         new_bonds.update(structure.bonds)
 
     new_structure = Structure(new_graph, new_bonds)
-    
+
     for new_annotation, default in new_annotations:
         new_structure.add_attribute(new_annotation, default)
-        
+
     new_structure.make_bond_lookup()
+
     new_structure.refresh_structure(find_cycles=True)
 
     return new_structure
