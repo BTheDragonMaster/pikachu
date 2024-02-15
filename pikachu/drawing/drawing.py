@@ -465,6 +465,7 @@ class Drawer:
                 dist = distances[atom]
                 if dist < minimum:
                     current_atom = atom
+                    minimum = dist
 
             unvisited.remove(current_atom)
 
