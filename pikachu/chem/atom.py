@@ -169,7 +169,7 @@ class Atom:
         return None
 
     def get_ring(self, structure: "Structure") -> Optional[List["Atom"]]:
-        cycles = structure.cycles.all_cycles
+        cycles = structure.sssr
 
         for i, cycle in enumerate(cycles):
             if self in cycle:
@@ -408,7 +408,7 @@ class Atom:
 
         """
         assert self in structure.graph
-        cycles: List[List["Atom"]] = structure.cycles.all_cycles
+        cycles: List[List["Atom"]] = structure.sssr
 
         for cycle in cycles:
             if self in cycle:
