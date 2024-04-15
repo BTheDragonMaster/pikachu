@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 DESCRIPTION = 'PIKACHU: Python-based Informatics Kit for Analysing CHemical Units'
 LONG_DESCRIPTION = 'An easy-to-use cheminformatics kit with few dependencies.'
 
