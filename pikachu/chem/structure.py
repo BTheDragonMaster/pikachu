@@ -1535,7 +1535,7 @@ class Structure:
         matching = Match.from_structure(kekule_structure)
         unmatched_nodes = matching.unmatched_nodes()
         if unmatched_nodes != 0:
-            raise Exception("This structure cannot be kekulised!")
+            raise KekulisationError("This structure cannot be kekulised!")
         else:
             double_bond_pairs = set()
             single_bond_pairs = set()
