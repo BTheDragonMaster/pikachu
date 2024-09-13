@@ -1,6 +1,7 @@
 from pprint import pprint
 import sys
 from typing import Set, Generator
+from collections import Counter
 
 from pikachu.chem.bond_properties import BOND_PROPERTIES
 from pikachu.chem.atom_properties import ATOM_PROPERTIES
