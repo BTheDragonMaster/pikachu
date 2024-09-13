@@ -1614,6 +1614,29 @@ class Structure:
             mass += ATOM_PROPERTIES.element_to_amu[atom.type]
         return mass
 
+    def get_sum_formula(self):
+        element_counts = Counter()
+        # Iterate through atoms in the graph and count each element
+        for atom in self.graph:
+            element_counts[atom.type] += 1
+
+        # Define the order of elements (Hill system)
+        if 'C' in element_counts:
+            order = ['C', 'H'] + sorted(set(element_counts.keys()) - {'C', 'H'})
+        else:
+            order = sorted(element_counts.keys())
+
+        # Build the sum formula string
+        formula_parts = []
+        for element in order:
+            count = element_counts[element]
+            if count == 1:
+                formula_parts.append(element)
+            else:
+                formula_parts.append(f"{element}{count}")
+
+        return "".join(formula_parts)
+
     def print_graph(self):
         pprint(self.graph)
 
