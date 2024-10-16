@@ -73,6 +73,34 @@ class Structure:
             return False
         return False
 
+    def get_subtree_size(self, atom: Atom, masked_atoms: Set[Atom], traverse_h=False) -> int:
+        """
+        Returns the size of a subtree starting at atom and ignoring all bonds adjacent to atoms in masked_atoms
+
+        Parameters
+        ----------
+
+        atom: Atom instance, starting point of subtree
+        masked_atoms: set of {atom, ->}, atoms to be ignored
+        traverse_h: if True, include hydrogens. Default: False
+
+        Returns
+        -------
+        int, number of atoms in the subtree
+
+        """
+        masked_atoms.add(atom)
+
+        for neighbour in atom.neighbours:
+            if neighbour not in masked_atoms:
+                if neighbour.type == 'H':
+                    if traverse_h:
+                        self.get_subtree_size(neighbour, masked_atoms)
+                else:
+                    self.get_subtree_size(neighbour, masked_atoms)
+
+        return len(masked_atoms) - 1
+
     def get_subtree(self, atom, parent_atom):
         pass
 
@@ -1705,7 +1733,7 @@ class Structure:
         matching = Match.from_structure(kekule_structure)
         unmatched_nodes = matching.unmatched_nodes()
         if unmatched_nodes != 0:
-            raise Exception("This structure cannot be kekulised!")
+            raise KekulisationError("This structure cannot be kekulised!")
         else:
             double_bond_pairs = set()
             single_bond_pairs = set()
