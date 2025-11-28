@@ -3259,10 +3259,10 @@ class Drawer:
         """
         Resolve overlaps when a ring has two outgoing edges
         """
-        overlaps: list[dict[str, Union[Atom, list[int], list[Atom]]]] = []
+        overlaps: List[Dict[str, Union[Atom, List[int], List[Atom]]]] = []
 
         # Keep track of which atoms are resolved
-        resolved_atoms: dict[Atom, bool] = {}
+        resolved_atoms: Dict[Atom, bool] = {}
 
         for atom in self.structure.graph:
             if atom.draw.is_drawn:
@@ -3477,7 +3477,7 @@ class Drawer:
             as atom
 
         """
-        non_ring_neighbours: list[Atom] = []
+        non_ring_neighbours: List[Atom] = []
 
         for neighbour in atom.drawn_neighbours:
             nr_overlapping_rings = len(set(atom.draw.rings).intersection(set(neighbour.draw.rings)))
@@ -3626,7 +3626,7 @@ class Drawer:
         if center is None:
             center = Vector(0, 0)
 
-        ordered_neighbour_ids: list[int] = ring.get_ordered_neighbours(self.ring_overlaps)
+        ordered_neighbour_ids: List[int] = ring.get_ordered_neighbours(self.ring_overlaps)
         starting_angle: float = 0
 
         if start_atom:
@@ -3869,7 +3869,7 @@ class Drawer:
                 break
 
             ring: Ring = self.id_to_ring[ring_id]
-            involved_ring_ids: Union[list[int], set[int]] = []
+            involved_ring_ids: Union[List[int], Set[int]] = []
             self.get_bridged_ring_subrings(ring.id, involved_ring_ids)
             involved_ring_ids = set(involved_ring_ids)
 
@@ -3902,8 +3902,8 @@ class Drawer:
         Mark explicit hydrogens as drawn and implicit hydrogens as not drawn. Store these hydrogens in the adjacent,
         drawn atoms.
         """
-        hidden: list[Atom] = []
-        exposed: list[Atom] = []
+        hidden: List[Atom] = []
+        exposed: List[Atom] = []
 
         self.structure.refresh_structure()
 
@@ -3941,7 +3941,7 @@ class Drawer:
 
         self.drawn_atoms = self.structure.get_drawn_atoms()
 
-    def get_bridged_rings(self) -> list[Ring]:
+    def get_bridged_rings(self) -> List[Ring]:
         """
         Returns a list of bridged ring systems
 
@@ -3951,14 +3951,14 @@ class Drawer:
             contain at least two rings which share an overlap of 2 or more bonds
 
         """
-        bridged_rings: list[Ring] = []
+        bridged_rings: List[Ring] = []
         for ring in self.rings:
             if ring.bridged:
                 bridged_rings.append(ring)
 
         return bridged_rings
 
-    def get_bridged_ring_subrings(self, ring_id: int, involved_ring_ids: list[int]) -> None:
+    def get_bridged_ring_subrings(self, ring_id: int, involved_ring_ids: List[int]) -> None:
         """
         Edit list of ring IDs until it contains all rings that are involved in a bridged ring system with the original
             ring
@@ -3977,7 +3977,7 @@ class Drawer:
                     rings_connected_by_bridge(self.ring_overlaps, ring_id, neighbour_id):
                 self.get_bridged_ring_subrings(neighbour_id, involved_ring_ids)
 
-    def create_bridged_ring(self, involved_ring_ids: set[int]) -> None:
+    def create_bridged_ring(self, involved_ring_ids: Set[int]) -> None:
         """
         Create and store a bridged ring system from a list of involved ring identifiers
 
@@ -3987,10 +3987,10 @@ class Drawer:
             ring system
         """
         # Keeps track of all atoms involved in the ring system
-        atoms: set[Atom] = set()
+        atoms: Set[Atom] = set()
 
         # Keeps track of all rings that neighbour the bridged ring system
-        neighbours: set[int] = set()
+        neighbours: Set[int] = set()
 
         for ring_id in involved_ring_ids:
             ring: Ring = self.id_to_ring[ring_id]
@@ -4003,7 +4003,7 @@ class Drawer:
                 neighbours.add(neighbour_id)
 
         leftovers = set()
-        ring_members: set[Atom] = set()
+        ring_members: Set[Atom] = set()
 
         for atom in atoms:
             intersect = involved_ring_ids & set(atom.draw.rings)
