@@ -1,5 +1,8 @@
 from pikachu.errors import StructureError
 from pikachu.chem.chirality import get_chiral_permutations
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SubstructureMatch:
@@ -47,9 +50,16 @@ class SubstructureMatch:
         while None in self.bonds.values() and self.active:
             counter += 1
             next_child_bond = self.get_next_child_bond()
+            logger.debug(f"Next bond: {next_child_bond}")
             if next_child_bond:
                 next_child_atom, next_parent_atom, next_parent_bond = self.find_next_matching_atoms(next_child_bond)
-
+                logger.debug(f"Next child: {next_child_atom}")
+                if next_child_atom:
+                    logger.debug(f"Next child neighbours: {next_child_atom.neighbours}")
+                if next_parent_atom:
+                    logger.debug(f"Next parent neighbours: {next_parent_atom.neighbours}")
+                logger.debug(f"Next parent: {next_parent_atom}")
+                logger.debug(f"=====================================")
                 if next_child_atom and next_parent_atom and next_parent_bond:
                     self.add_match(next_child_atom, next_parent_atom, next_child_bond, next_parent_bond)
                 else:
@@ -61,17 +71,23 @@ class SubstructureMatch:
                         self.active = False
             else:
                 self.active = False
+        logger.debug(f"Match is active: {self.active}")
 
     def traceback(self):
         # Iterate over the current attempted path in reverse
+        logger.debug(self.current_attempted_path)
 
         for i in range(len(self.current_attempted_path) - 1, 0, -1):
 
             current_parent_atom = self.current_attempted_path[i]
             previous_parent_atom = self.current_attempted_path[i - 1]
 
+            logger.debug(f"Traceback: current parent atom: {current_parent_atom}")
+            logger.debug(f"Traceback: previous parent atom: {previous_parent_atom}")
+
             if current_parent_atom == 'hop' or previous_parent_atom == 'hop':
                 self.failed_attempted_paths.add(tuple(self.current_attempted_path[:i]))
+                logger.debug("-----------------")
                 continue
 
             current_child_atom = None
@@ -83,19 +99,37 @@ class SubstructureMatch:
                 if previous_parent_atom == parent_atom:
                     previous_child_atom = child_atom
 
-            assert current_child_atom and previous_child_atom
+            logger.debug(f"Traceback: previous child atom: {previous_child_atom}")
+            logger.debug(f"Traceback: current child atom: {current_child_atom}")
+
+            if not current_child_atom or not previous_child_atom:
+                continue
 
             # This can happen because of structure hopping: in this case, you want to move on to the next atom,
             # as no alternative candidate bonds exists from the previous child atom
 
             if not self.child.bond_exists(current_child_atom, previous_child_atom):
+                logger.debug("No bond between child atoms. Continuing.")
+                logger.debug("-----------------")
                 continue
             else:
                 next_child_bond = self.child.bond_lookup[current_child_atom][previous_child_atom]
                 self.remove_match(current_child_atom, next_child_bond)
 
                 new_path = self.current_attempted_path[:i]
-                candidate_bonds = self.parent_atom_to_bonds[previous_parent_atom]
+
+                all_bonds = previous_parent_atom.bonds
+                already_tried = self.parent_atom_to_bonds[previous_parent_atom]
+                already_matched = set(self.bonds.values())
+
+                candidate_bonds = [
+                    b for b in all_bonds
+                    if b not in already_tried
+                       and b not in already_matched
+                       and not b.has_neighbour('H')
+                ]
+
+                logger.debug(f"Candidate parent bonds: {candidate_bonds}")
 
                 for bond in candidate_bonds:
                     # Make sure the bond is not already currently matched to another bond
@@ -113,6 +147,8 @@ class SubstructureMatch:
                             return next_child_atom, next_parent_atom, next_child_bond, next_parent_bond
 
                 self.failed_attempted_paths.add(tuple(new_path))
+
+            logger.debug("-----------------")
 
         return None, None, None, None
 
@@ -141,6 +177,11 @@ class SubstructureMatch:
         candidate_parent_bonds = self.get_candidate_parent_bonds()
         for parent_bond in candidate_parent_bonds:
             if parent_bond.bond_summary == child_bond.bond_summary:
+
+                logger.debug(f"Bond summaries match for {parent_bond} and {child_bond}")
+                logger.debug(parent_bond.bond_summary)
+                logger.debug(child_bond.bond_summary)
+
                 next_child_atom = child_bond.get_connected_atom(self.current_child_atom)
                 next_parent_atom = parent_bond.get_connected_atom(self.current_parent_atom)
 
@@ -148,12 +189,18 @@ class SubstructureMatch:
                 # both parent atom and child atom must be free to match to one another.
                 if self.atoms[next_child_atom] == next_parent_atom or \
                         (not self.atoms[next_child_atom] and next_parent_atom not in self.atoms.values()):
+                    logger.debug(f"Bonds is matchable for {parent_bond} and {child_bond}")
 
                     if next_parent_atom._has_similar_connectivity(next_child_atom.connectivity):
+                        logger.debug(f"{parent_bond} and {child_bond} have similar connectivity")
                         if parent_bond not in self.parent_atom_to_bonds[self.current_parent_atom]:
+                            logger.debug(f"Bond is matchable")
                             self.parent_atom_to_bonds[self.current_parent_atom].append(parent_bond)
 
                         return next_child_atom, next_parent_atom, parent_bond
+                    else:
+                        logger.debug(f"Connectivity parent atom: {next_parent_atom.connectivity}")
+                        logger.debug(f"Connectivity child atom: {next_child_atom.connectivity}")
 
         return None, None, None
 
@@ -348,6 +395,9 @@ def find_substructures(structure, child):
     for atom in atom_connectivities_parent[starting_connectivity]:
         if atom.type == starting_atom.type:
             seeds.append(atom)
+
+    logger.debug(f"Seeds in parent structure found: {seeds}")
+    logger.debug(f"Starting atom in child: {starting_atom}")
 
     matches = []
 
