@@ -139,31 +139,6 @@ class GroupDefiner:
         if not self.atom_1:
             raise Exception("Can't find atoms adjacent to bond.")
 
-#
-# def combine_structures(structures):
-#     structure_1, structure_2 = structures
-#
-#     max_atom_nr = 0
-#     max_bond_nr = 0
-#
-#     for atom in structure_2.graph:
-#         if atom.nr > max_atom_nr:
-#             max_atom_nr = atom.nr
-#
-#     for bond_nr in structure_2.bonds:
-#         if bond_nr > max_bond_nr:
-#             max_bond_nr = bond_nr
-#
-#     index_difference_atom = max_atom_nr + 1
-#     index_difference_bond = max_bond_nr + 1
-#
-#     for atom_1 in structure_1.graph:
-#         atom_1.nr += index_difference_atom
-#
-#     structure_1.refresh_structure()
-
-
-
 
 def combine_structures(structures):
     """
