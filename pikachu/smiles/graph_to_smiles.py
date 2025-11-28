@@ -7,6 +7,10 @@ from pikachu.chem.atom import Atom
 import copy
 from pprint import pprint
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def get_cyclic_label(cycle_nr):
     """
@@ -27,14 +31,15 @@ def get_cyclic_label(cycle_nr):
         return str(cycle_nr)
 
 
-def determine_chirality(order, chirality):
-    original_order = tuple(order)
+def determine_chirality(old_order, new_order, chirality):
+    original_order = tuple(old_order)
+    logger.debug(f"Original chiral order: {original_order}" )
     if len(original_order) == 4:
         chiral_permutations = get_chiral_permutations(original_order)
     else:
         chiral_permutations = get_chiral_permutations_lonepair(original_order)
-    order.sort(key=lambda x: x.nr)
-    new_order = tuple(order)
+    new_order = tuple(new_order)
+    logger.debug(f"New atom order: {new_order}")
     if new_order in chiral_permutations:
         if chirality == 'counterclockwise':
             new_chirality = 'counterclockwise'
@@ -383,8 +388,14 @@ class GraphToSmiles:
 
                     indices_and_atoms.append((index, neighbour))
 
-                atom_order = [atom for _,atom in sorted(indices_and_atoms)]
-                chirality = determine_chirality(atom_order, atom.chiral)
+                logger.debug(indices_and_atoms)
+                logger.debug(atom.neighbours)
+
+                new_atom_order = [a for _, a in sorted(indices_and_atoms)]
+                old_atom_order = atom.neighbours
+                logger.debug(atom)
+                chirality = determine_chirality(old_atom_order, new_atom_order, atom.chiral)
+                logger.debug("======")
                 if chirality == 'counterclockwise':
                     chiral_symbol = '@'
                 elif chirality == 'clockwise':
@@ -531,7 +542,6 @@ class GraphToSmiles:
                     self.atom_to_index[current_atom] = len(self.components)
                     self.components.append(self.representations[current_atom])
                     atoms_added.add(current_atom)
-
 
 
     def get_neighbour_nr(self, node):
