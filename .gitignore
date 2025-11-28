@@ -1,1 +1,116 @@
-*.smi
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+.cache
+pytest_cache/
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb-parsed
+
+# Cython / compiled extensions
+*.c
+*.cpp
+*.so
+*.pyd
+*.dll
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+
+# Eclipse / PyDev
+.project
+.pydevproject
+.metadata/
+
+# ----------------------------
+# OS files
+# ----------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+
+# ----------------------------
+# Environment / secrets
+# ----------------------------
+.env.local
+.env.development
+.env.production
+.env.test
+
+# ----------------------------
+# Other common files
+# ----------------------------
+# MyPy
+.mypy_cache/
+
+# Pyright
+pyrightconfig.json
+
+# Ruff / Black
+ruff_cache/
+.black_cache/
+
+# Sphinx docs
+docs/_build/
+
+# Coverage XML
+coverage.xml
+
+# Wheel metadata
+*.whl
