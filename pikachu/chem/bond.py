@@ -10,6 +10,19 @@ if TYPE_CHECKING:
 class Bond:
     bond_types = {'single', 'double', 'triple', 'quadruple', 'aromatic', 'ionic', 'dummy'}
 
+    def __new__(cls, atom_1, atom_2, bond_type, bond_nr):
+        self = super().__new__(cls)
+        self.atom_1 = atom_1
+        self.atom_2 = atom_2
+        self.type = bond_type
+        self.nr = bond_nr
+
+        return self
+
+    def __getnewargs__(self):
+        # Return the arguments that *must* be passed to __new__
+        return self.atom_1, self.atom_2, self.type, self.nr
+
     def __init__(self, atom_1, atom_2, bond_type, bond_nr):
         atoms = [atom_1, atom_2]
         atoms.sort(key=lambda a: a.nr)
