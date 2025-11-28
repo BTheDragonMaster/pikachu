@@ -15,8 +15,8 @@ class TestSubstructureMatching(unittest.TestCase):
 
     def test_find_substructures(self):
 
-        structure_1 = load(os.path.join(TEST_DIR, "correct_structure.struct"))
-        structure_2 = load(os.path.join(TEST_DIR, "incorrect_structure.struct"))
+        structure_1 = load(os.path.join(TEST_DIR, "structure_1.struct"))
+        structure_2 = load(os.path.join(TEST_DIR, "structure_2.struct"))
         # draw_structure(structure_1)
         # draw_structure(structure_2)
         # Assert there is at least one match, even when the stereochemistry is not correct

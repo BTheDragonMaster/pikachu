@@ -16,8 +16,8 @@ class TestStructure(unittest.TestCase):
 
     def test_find_substructures(self):
 
-        structure_1 = load(os.path.join(TEST_DIR, "correct_structure.struct"))
-        structure_2 = load(os.path.join(TEST_DIR, "incorrect_structure.struct"))
+        structure_1 = load(os.path.join(TEST_DIR, "structure_1.struct"))
+        structure_2 = load(os.path.join(TEST_DIR, "structure_2.struct"))
 
         self.assertEqual(len(structure_1.find_substructures(structure_2)), 0)
 
