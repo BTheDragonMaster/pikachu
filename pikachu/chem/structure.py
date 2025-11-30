@@ -1,8 +1,10 @@
 from pprint import pprint
 import sys
 from typing import Set, Generator
+from collections import Counter
 
 from pikachu.chem.bond_properties import BOND_PROPERTIES
+from pikachu.chem.atom_properties import ATOM_PROPERTIES
 from pikachu.errors import StructureError, KekulisationError
 from pikachu.chem.atom import Atom
 from pikachu.chem.bond import Bond
@@ -106,7 +108,7 @@ class Structure:
         self.atoms = {}
         for atom in self.graph:
             self.atoms[atom.nr] = atom
-            
+
     def deepcopy(self):
 
         new_graph = {}
@@ -115,14 +117,14 @@ class Structure:
 
         for atom_nr, atom in self.atoms.items():
             new_atoms[atom_nr] = atom.copy()
-        
+
         for atom_1, atoms in self.graph.items():
             new_atom_1 = new_atoms[atom_1.nr]
             new_graph[new_atom_1] = []
             for atom_2 in atoms:
                 new_atom_2 = new_atoms[atom_2.nr]
                 new_graph[new_atom_1].append(new_atom_2)
-                
+
         for bond_nr, bond in self.bonds.items():
             new_atom_1 = new_atoms[bond.atom_1.nr]
             new_atom_2 = new_atoms[bond.atom_2.nr]
@@ -154,7 +156,7 @@ class Structure:
                 new_atom_1.bonds.append(new_bond)
             if new_bond not in new_atom_2.bonds:
                 new_atom_2.bonds.append(new_bond)
-                
+
         new_structure = Structure(new_graph, new_bonds)
 
         new_structure.add_shells_non_hydrogens()
@@ -237,11 +239,18 @@ class Structure:
 
         return None
 
-    def colour_substructure_single(self, substructure, colour="hot pink", check_chiral_centres=True,
-                                   check_bond_chirality=True):
-        matches = self.find_substructures(substructure,
-                                          check_chiral_centres=check_chiral_centres,
-                                          check_chiral_double_bonds=check_bond_chirality)
+    def colour_substructure_single(
+        self,
+        substructure,
+        colour="hot pink",
+        check_chiral_centres=True,
+        check_bond_chirality=True,
+    ):
+        matches = self.find_substructures(
+            substructure,
+            check_chiral_centres=check_chiral_centres,
+            check_chiral_double_bonds=check_bond_chirality,
+        )
 
         if matches:
             match = matches[0]
@@ -250,11 +259,18 @@ class Structure:
                     if atom == parent_atom:
                         atom.draw.colour = colour
 
-    def colour_substructure_all(self, substructure, colour="hot pink", check_chiral_centres=True,
-                                check_bond_chirality=True):
-        matches = self.find_substructures(substructure,
-                                          check_chiral_centres=check_chiral_centres,
-                                          check_chiral_double_bonds=check_bond_chirality)
+    def colour_substructure_all(
+        self,
+        substructure,
+        colour="hot pink",
+        check_chiral_centres=True,
+        check_bond_chirality=True,
+    ):
+        matches = self.find_substructures(
+            substructure,
+            check_chiral_centres=check_chiral_centres,
+            check_chiral_double_bonds=check_bond_chirality,
+        )
 
         for match in matches:
             for parent_atom in match.atoms.values():
@@ -269,19 +285,20 @@ class Structure:
         kekulised_structure = self.kekulise()
 
         for atom in kekulised_structure.graph:
-            atom_dict = {'id': atom.nr,
-                         'atom': atom.type}
+            atom_dict = {"id": atom.nr, "atom": atom.type}
             nodes.append(atom_dict)
 
         for bond_nr, bond in kekulised_structure.bonds.items():
-            assert bond.type != 'aromatic'
-            bond_dict = {'id': bond_nr,
-                         'source': bond.atom_1.nr,
-                         'target': bond.atom_2.nr,
-                         'bond': BOND_PROPERTIES.bond_type_to_weight[bond.type]}
+            assert bond.type != "aromatic"
+            bond_dict = {
+                "id": bond_nr,
+                "source": bond.atom_1.nr,
+                "target": bond.atom_2.nr,
+                "bond": BOND_PROPERTIES.bond_type_to_weight[bond.type],
+            }
             links.append(bond_dict)
 
-        dash_molecule2d_input = {'nodes': nodes, 'links': links}
+        dash_molecule2d_input = {"nodes": nodes, "links": links}
         return dash_molecule2d_input
 
     def get_drawn_atoms(self):
@@ -306,13 +323,16 @@ class Structure:
 
             # iterate over all double bonds
 
-            if bond.type == 'double' or bond.type == 'triple':
+            if bond.type == "double" or bond.type == "triple":
 
                 # double bonds neighboured by three bonds on each atom, e.g. a C=C bond
 
-                if len(bond.atom_1.bonds) + len(bond.atom_1.lone_pairs) == 3 and \
-                        len(bond.atom_2.bonds) + len(bond.atom_2.lone_pairs) == 3 and \
-                        len(bond.atom_1.lone_pairs) < 2 and len(bond.atom_2.lone_pairs) < 2:
+                if (
+                    len(bond.atom_1.bonds) + len(bond.atom_1.lone_pairs) == 3
+                    and len(bond.atom_2.bonds) + len(bond.atom_2.lone_pairs) == 3
+                    and len(bond.atom_1.lone_pairs) < 2
+                    and len(bond.atom_2.lone_pairs) < 2
+                ):
 
                     # define atoms adjacent to the atoms involved in the double bond
                     # also keep track of the chiral symbol that defines these bonds
@@ -336,14 +356,14 @@ class Structure:
 
                     for bond_1 in bond.atom_1.bonds:
 
-                        if bond_1.type == 'single':
+                        if bond_1.type == "single":
 
                             # Looks at the bonds between the atom adjacent to the stereobond and its neighbours
                             if bond.atom_1 == bond_1.atom_1:
-                                if bond_1.chiral_symbol == '/':
-                                    direction = 'up'
-                                elif bond_1.chiral_symbol == '\\':
-                                    direction = 'down'
+                                if bond_1.chiral_symbol == "/":
+                                    direction = "up"
+                                elif bond_1.chiral_symbol == "\\":
+                                    direction = "down"
                                 else:
                                     direction = None
 
@@ -360,10 +380,10 @@ class Structure:
 
                             elif bond.atom_1 == bond_1.atom_2:
 
-                                if bond_1.chiral_symbol == '/':
-                                    direction = 'down'
-                                elif bond_1.chiral_symbol == '\\':
-                                    direction = 'up'
+                                if bond_1.chiral_symbol == "/":
+                                    direction = "down"
+                                elif bond_1.chiral_symbol == "\\":
+                                    direction = "up"
                                 else:
                                     direction = None
 
@@ -376,12 +396,12 @@ class Structure:
 
                     for bond_2 in bond.atom_2.bonds:
 
-                        if bond_2.type == 'single':
+                        if bond_2.type == "single":
                             if bond.atom_2 == bond_2.atom_1:
-                                if bond_2.chiral_symbol == '/':
-                                    direction = 'up'
-                                elif bond_2.chiral_symbol == '\\':
-                                    direction = 'down'
+                                if bond_2.chiral_symbol == "/":
+                                    direction = "up"
+                                elif bond_2.chiral_symbol == "\\":
+                                    direction = "down"
                                 else:
                                     direction = None
 
@@ -393,10 +413,10 @@ class Structure:
                                     chiral_2_2 = direction
 
                             elif bond.atom_2 == bond_2.atom_2:
-                                if bond_2.chiral_symbol == '/':
-                                    direction = 'down'
-                                elif bond_2.chiral_symbol == '\\':
-                                    direction = 'up'
+                                if bond_2.chiral_symbol == "/":
+                                    direction = "down"
+                                elif bond_2.chiral_symbol == "\\":
+                                    direction = "up"
                                 else:
                                     direction = None
 
@@ -418,9 +438,9 @@ class Structure:
 
                     if chiral_1 and chiral_2:
                         if chiral_1_1 == chiral_1_2:
-                            raise StructureError('chiral double bond')
+                            raise StructureError("chiral double bond")
                         if chiral_2_2 == chiral_2_1:
-                            raise StructureError('chiral double bond')
+                            raise StructureError("chiral double bond")
 
                         if chiral_1_1:
                             first_atom = atom_1_1
@@ -430,18 +450,41 @@ class Structure:
                             if not chiral_1_2 and isinstance(atom_1_2, Atom):
                                 # Make sure where chiral symbols are not defined, they are added
 
-                                if (atom_1_1.nr > bond.atom_1.nr and atom_1_2.nr > bond.atom_1.nr) or \
-                                        (atom_1_1.nr < bond.atom_1.nr and atom_1_2.nr < bond.atom_1.nr):
-                                    if self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '\\'
+                                if (
+                                    atom_1_1.nr > bond.atom_1.nr
+                                    and atom_1_2.nr > bond.atom_1.nr
+                                ) or (
+                                    atom_1_1.nr < bond.atom_1.nr
+                                    and atom_1_2.nr < bond.atom_1.nr
+                                ):
+                                    if (
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_1
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_2
+                                        ].chiral_symbol = "\\"
                                     else:
-                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '/'
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_2
+                                        ].chiral_symbol = "/"
 
                                 else:
-                                    if self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '/'
+                                    if (
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_1
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_2
+                                        ].chiral_symbol = "/"
                                     else:
-                                        self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol = '\\'
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_2
+                                        ].chiral_symbol = "\\"
 
                         else:
                             first_atom = atom_1_2
@@ -452,18 +495,41 @@ class Structure:
 
                             if isinstance(atom_1_1, Atom):
 
-                                if (atom_1_1.nr > bond.atom_1.nr and atom_1_2.nr > bond.atom_1.nr) or \
-                                   (atom_1_1.nr < bond.atom_1.nr and atom_1_2.nr < bond.atom_1.nr):
-                                    if self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '\\'
+                                if (
+                                    atom_1_1.nr > bond.atom_1.nr
+                                    and atom_1_2.nr > bond.atom_1.nr
+                                ) or (
+                                    atom_1_1.nr < bond.atom_1.nr
+                                    and atom_1_2.nr < bond.atom_1.nr
+                                ):
+                                    if (
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_2
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_1
+                                        ].chiral_symbol = "\\"
                                     else:
-                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '/'
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_1
+                                        ].chiral_symbol = "/"
 
                                 else:
-                                    if self.bond_lookup[bond.atom_1][atom_1_2].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '/'
+                                    if (
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_2
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_1
+                                        ].chiral_symbol = "/"
                                     else:
-                                        self.bond_lookup[bond.atom_1][atom_1_1].chiral_symbol = '\\'
+                                        self.bond_lookup[bond.atom_1][
+                                            atom_1_1
+                                        ].chiral_symbol = "\\"
 
                         if chiral_2_1:
                             second_atom = atom_2_1
@@ -474,18 +540,41 @@ class Structure:
 
                                 # Make sure where chiral symbols are not defined, they are added
 
-                                if (atom_2_1.nr > bond.atom_2.nr and atom_2_2.nr > bond.atom_2.nr) or \
-                                        (atom_2_1.nr < bond.atom_2.nr and atom_2_2.nr < bond.atom_2.nr):
-                                    if self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '\\'
+                                if (
+                                    atom_2_1.nr > bond.atom_2.nr
+                                    and atom_2_2.nr > bond.atom_2.nr
+                                ) or (
+                                    atom_2_1.nr < bond.atom_2.nr
+                                    and atom_2_2.nr < bond.atom_2.nr
+                                ):
+                                    if (
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_1
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_2
+                                        ].chiral_symbol = "\\"
                                     else:
-                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '/'
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_2
+                                        ].chiral_symbol = "/"
 
                                 else:
-                                    if self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '/'
+                                    if (
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_1
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_2
+                                        ].chiral_symbol = "/"
                                     else:
-                                        self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol = '\\'
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_2
+                                        ].chiral_symbol = "\\"
 
                         else:
                             second_atom = atom_2_2
@@ -495,18 +584,41 @@ class Structure:
                             # Make sure where chiral symbols are not defined, they are added
 
                             if isinstance(atom_2_1, Atom):
-                                if (atom_2_1.nr > bond.atom_2.nr and atom_2_2.nr > bond.atom_2.nr) or \
-                                        (atom_2_1.nr < bond.atom_2.nr and atom_2_2.nr < bond.atom_2.nr):
-                                    if self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '\\'
+                                if (
+                                    atom_2_1.nr > bond.atom_2.nr
+                                    and atom_2_2.nr > bond.atom_2.nr
+                                ) or (
+                                    atom_2_1.nr < bond.atom_2.nr
+                                    and atom_2_2.nr < bond.atom_2.nr
+                                ):
+                                    if (
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_2
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_1
+                                        ].chiral_symbol = "\\"
                                     else:
-                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '/'
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_1
+                                        ].chiral_symbol = "/"
 
                                 else:
-                                    if self.bond_lookup[bond.atom_2][atom_2_2].chiral_symbol == '/':
-                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '/'
+                                    if (
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_2
+                                        ].chiral_symbol
+                                        == "/"
+                                    ):
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_1
+                                        ].chiral_symbol = "/"
                                     else:
-                                        self.bond_lookup[bond.atom_2][atom_2_1].chiral_symbol = '\\'
+                                        self.bond_lookup[bond.atom_2][
+                                            atom_2_1
+                                        ].chiral_symbol = "\\"
 
                         if isinstance(first_atom, Atom):
                             bond.chiral_dict[first_atom] = {}
@@ -518,38 +630,70 @@ class Structure:
                             bond.chiral_dict[second_other_atom] = {}
 
                         if first_chiral_symbol == second_chiral_symbol:
-                            if isinstance(first_atom, Atom) and isinstance(second_atom, Atom):
-                                bond.chiral_dict[first_atom][second_atom] = 'cis'
-                                bond.chiral_dict[second_atom][first_atom] = 'cis'
+                            if isinstance(first_atom, Atom) and isinstance(
+                                second_atom, Atom
+                            ):
+                                bond.chiral_dict[first_atom][second_atom] = "cis"
+                                bond.chiral_dict[second_atom][first_atom] = "cis"
 
-                            if isinstance(first_other_atom, Atom) and isinstance(second_other_atom, Atom):
-                                bond.chiral_dict[first_other_atom][second_other_atom] = 'cis'
-                                bond.chiral_dict[second_other_atom][first_other_atom] = 'cis'
+                            if isinstance(first_other_atom, Atom) and isinstance(
+                                second_other_atom, Atom
+                            ):
+                                bond.chiral_dict[first_other_atom][
+                                    second_other_atom
+                                ] = "cis"
+                                bond.chiral_dict[second_other_atom][
+                                    first_other_atom
+                                ] = "cis"
 
-                            if isinstance(first_atom, Atom) and isinstance(second_other_atom, Atom):
-                                bond.chiral_dict[first_atom][second_other_atom] = 'trans'
-                                bond.chiral_dict[second_other_atom][first_atom] = 'trans'
+                            if isinstance(first_atom, Atom) and isinstance(
+                                second_other_atom, Atom
+                            ):
+                                bond.chiral_dict[first_atom][
+                                    second_other_atom
+                                ] = "trans"
+                                bond.chiral_dict[second_other_atom][
+                                    first_atom
+                                ] = "trans"
 
-                            if isinstance(first_other_atom, Atom) and isinstance(second_atom, Atom):
-                                bond.chiral_dict[first_other_atom][second_atom] = 'trans'
-                                bond.chiral_dict[second_atom][first_other_atom] = 'trans'
+                            if isinstance(first_other_atom, Atom) and isinstance(
+                                second_atom, Atom
+                            ):
+                                bond.chiral_dict[first_other_atom][
+                                    second_atom
+                                ] = "trans"
+                                bond.chiral_dict[second_atom][
+                                    first_other_atom
+                                ] = "trans"
 
                         else:
-                            if isinstance(first_atom, Atom) and isinstance(second_atom, Atom):
-                                bond.chiral_dict[first_atom][second_atom] = 'trans'
-                                bond.chiral_dict[second_atom][first_atom] = 'trans'
+                            if isinstance(first_atom, Atom) and isinstance(
+                                second_atom, Atom
+                            ):
+                                bond.chiral_dict[first_atom][second_atom] = "trans"
+                                bond.chiral_dict[second_atom][first_atom] = "trans"
 
-                            if isinstance(first_other_atom, Atom) and isinstance(second_other_atom, Atom):
-                                bond.chiral_dict[first_other_atom][second_other_atom] = 'trans'
-                                bond.chiral_dict[second_other_atom][first_other_atom] = 'trans'
+                            if isinstance(first_other_atom, Atom) and isinstance(
+                                second_other_atom, Atom
+                            ):
+                                bond.chiral_dict[first_other_atom][
+                                    second_other_atom
+                                ] = "trans"
+                                bond.chiral_dict[second_other_atom][
+                                    first_other_atom
+                                ] = "trans"
 
-                            if isinstance(first_atom, Atom) and isinstance(second_other_atom, Atom):
-                                bond.chiral_dict[first_atom][second_other_atom] = 'cis'
-                                bond.chiral_dict[second_other_atom][first_atom] = 'cis'
+                            if isinstance(first_atom, Atom) and isinstance(
+                                second_other_atom, Atom
+                            ):
+                                bond.chiral_dict[first_atom][second_other_atom] = "cis"
+                                bond.chiral_dict[second_other_atom][first_atom] = "cis"
 
-                            if isinstance(first_other_atom, Atom) and isinstance(second_atom, Atom):
-                                bond.chiral_dict[first_other_atom][second_atom] = 'cis'
-                                bond.chiral_dict[second_atom][first_other_atom] = 'cis'
+                            if isinstance(first_other_atom, Atom) and isinstance(
+                                second_atom, Atom
+                            ):
+                                bond.chiral_dict[first_other_atom][second_atom] = "cis"
+                                bond.chiral_dict[second_atom][first_other_atom] = "cis"
 
                         bond.chiral = True
 
@@ -711,13 +855,13 @@ class Structure:
     def promote_lone_pairs_in_aromatic_cycles(cycles):
         for cycle in cycles:
             for atom in cycle:
-                if atom.hybridisation == 'sp3':
+                if atom.hybridisation == "sp3":
                     atom._promote_lone_pair_to_p_orbital()
-                    if atom.type == 'N':
+                    if atom.type == "N":
                         atom.pyrrole = True
-                    elif atom.type == 'S':
+                    elif atom.type == "S":
                         atom.thiophene = True
-                    elif atom.type == 'O':
+                    elif atom.type == "O":
                         atom.furan = True
 
     def get_bounding_box(self):
@@ -736,7 +880,7 @@ class Structure:
                     min_y = atom.draw.position.y
                 if atom.draw.position.y > max_y:
                     max_y = atom.draw.position.y
-                    
+
         return min_x, min_y, max_x, max_y
 
     def find_aromatic_cycles(self):
@@ -778,7 +922,9 @@ class Structure:
         previous_system_nr = -1
         current_system_nr = 1
 
-        aromatic_systems = [list(aromatic_cycle) for aromatic_cycle in self.aromatic_cycles]
+        aromatic_systems = [
+            list(aromatic_cycle) for aromatic_cycle in self.aromatic_cycles
+        ]
 
         while current_system_nr != previous_system_nr:
             previous_system_nr = current_system_nr
@@ -802,7 +948,7 @@ class Structure:
                     aromatic_systems.pop(index)
 
                 aromatic_systems.append(new_system)
-                
+
             current_system_nr = len(aromatic_systems)
 
         aromatic_ring_systems = []
@@ -816,7 +962,7 @@ class Structure:
     def find_double_bond_sequences(self):
         double_bond_fragments = []
         for bond in self.bonds.values():
-            if bond.type == 'single':
+            if bond.type == "single":
                 stereobond_1 = None
                 stereobond_2 = None
                 for bond_1 in bond.atom_1.bonds:
@@ -848,9 +994,13 @@ class Structure:
                         if fragment_1[-1] == fragment_2[0]:
                             new_fragment = fragment_1[:] + fragment_2[1:]
                         elif fragment_1[-1] == fragment_2[-1]:
-                            new_fragment = fragment_1[:] + list(reversed(fragment_2[:-1]))
+                            new_fragment = fragment_1[:] + list(
+                                reversed(fragment_2[:-1])
+                            )
                         elif fragment_1[0] == fragment_2[0]:
-                            new_fragment = list(reversed(fragment_2[1:])) + fragment_1[:]
+                            new_fragment = (
+                                list(reversed(fragment_2[1:])) + fragment_1[:]
+                            )
                         elif fragment_1[0] == fragment_2[-1]:
                             new_fragment = fragment_2[:-1] + fragment_1[:]
 
@@ -879,12 +1029,11 @@ class Structure:
             for atom_2 in cycle:
                 if atom_1 != atom_2:
                     bond = atom_1.get_bond(atom_2)
-                    if bond and bond.type != 'aromatic':
+                    if bond and bond.type != "aromatic":
                         bond.make_aromatic()
 
     def refine_structure(self):
-        """
-        """
+        """ """
 
         self.add_shells()
         self.add_hydrogens()
@@ -1018,7 +1167,7 @@ class Structure:
     def get_connectivities(self):
         connectivities = {}
         for atom in self.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 connectivity = atom.connectivity
                 if connectivity not in connectivities:
                     connectivities[connectivity] = []
@@ -1050,7 +1199,9 @@ class Structure:
                 chirality_matches = False
                 break
             else:
-                matching_chirality = chiral_bond.check_same_chirality(parent_bond, match)
+                matching_chirality = chiral_bond.check_same_chirality(
+                    parent_bond, match
+                )
                 if not matching_chirality:
                     chirality_matches = False
                     break
@@ -1066,7 +1217,9 @@ class Structure:
             parent_atom = match[chiral_centre]
             if parent_atom.chiral:
 
-                chirality_matches = check_same_chirality(chiral_centre, parent_atom, match)
+                chirality_matches = check_same_chirality(
+                    chiral_centre, parent_atom, match
+                )
                 if not chirality_matches:
                     break
             else:
@@ -1081,12 +1234,12 @@ class Structure:
 
         for bond_nr, bond in self.bonds:
             bond_summary = bond.bond_summary
-            if 'H' not in [atom.type for atom in bond.neighbours]:
+            if "H" not in [atom.type for atom in bond.neighbours]:
                 if bond_summary not in bond_summary_to_count_parent:
                     bond_summary_to_count_parent[bond_summary] = 0
                 bond_summary_to_count_parent[bond_summary] += 1
         for bond_nr, bond in substructure.bonds:
-            if 'H' not in [atom.type for atom in bond.neighbours]:
+            if "H" not in [atom.type for atom in bond.neighbours]:
                 bond_summary = bond.bond_summary
                 if bond_summary not in bond_summary_to_count_child:
                     bond_summary_to_count_child[bond_summary] = 0
@@ -1104,7 +1257,9 @@ class Structure:
 
         return can_be_substructure
 
-    def find_substructures(self, substructure, check_chiral_centres=True, check_chiral_double_bonds=True):
+    def find_substructures(
+        self, substructure, check_chiral_centres=True, check_chiral_double_bonds=True
+    ):
         matches = []
         if self.is_substructure_atom_composition(substructure):
             if self.is_substructure_atom_connectivity(substructure):
@@ -1156,7 +1311,7 @@ class Structure:
     def get_connectivity_counts(self):
         connectivities = {}
         for atom in self.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 if atom.type not in connectivities:
                     connectivities[atom.type] = {}
                 connectivity = atom.connectivity
@@ -1173,7 +1328,9 @@ class Structure:
             for connectivity in atom_connectivities_child[atom_type]:
                 substructure_connectivity_counts[atom_type][connectivity] = 0
                 for atom in self.graph:
-                    if atom.type == atom_type and atom._has_similar_connectivity(connectivity):
+                    if atom.type == atom_type and atom._has_similar_connectivity(
+                        connectivity
+                    ):
                         substructure_connectivity_counts[atom_type][connectivity] += 1
 
         return substructure_connectivity_counts
@@ -1183,7 +1340,9 @@ class Structure:
         for substructure_connectivity in atom_connectivities_child:
             substructure_connectivities[substructure_connectivity] = []
             for atom in self.graph:
-                if atom.type != 'H' and atom._has_similar_connectivity(substructure_connectivity):
+                if atom.type != "H" and atom._has_similar_connectivity(
+                    substructure_connectivity
+                ):
                     substructure_connectivities[substructure_connectivity].append(atom)
 
         return substructure_connectivities
@@ -1191,14 +1350,18 @@ class Structure:
     def is_substructure_atom_connectivity(self, child):
 
         atom_connectivities_child = child.get_connectivity_counts()
-        atom_connectivities_self = self.get_substructure_connectivity_counts(atom_connectivities_child)
+        atom_connectivities_self = self.get_substructure_connectivity_counts(
+            atom_connectivities_child
+        )
 
         can_be_substructure = True
 
         for atom_type in atom_connectivities_child:
             for connectivity in atom_connectivities_child[atom_type]:
                 connectivity_nr_self = atom_connectivities_self[atom_type][connectivity]
-                connectivity_nr_child = atom_connectivities_child[atom_type][connectivity]
+                connectivity_nr_child = atom_connectivities_child[atom_type][
+                    connectivity
+                ]
                 if connectivity_nr_child > connectivity_nr_self:
                     can_be_substructure = False
                     break
@@ -1209,10 +1372,10 @@ class Structure:
         bond_dict = {}
 
         for atom in self.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 bond_dict[atom] = 0
                 for neighbour in atom.neighbours:
-                    if neighbour.type != 'H':
+                    if neighbour.type != "H":
                         bond_dict[atom] += 1
 
         return bond_dict
@@ -1223,7 +1386,7 @@ class Structure:
 
     def add_shells_non_hydrogens(self):
         for atom in self.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 atom._add_electron_shells()
 
     def add_shells(self):
@@ -1263,13 +1426,13 @@ class Structure:
             for i in range(hydrogens_to_add):
                 max_atom_nr += 1
                 max_bond_nr += 1
-                hydrogen = Atom('H', max_atom_nr, None, 0, False)
-                self.add_bond(atom, hydrogen, 'single', max_bond_nr)
+                hydrogen = Atom("H", max_atom_nr, None, 0, False)
+                self.add_bond(atom, hydrogen, "single", max_bond_nr)
 
     def form_pi_bonds(self):
         for bond_nr in self.bonds:
             bond = self.bonds[bond_nr]
-            if bond.type != 'single':
+            if bond.type != "single":
                 bond.combine_p_orbitals()
 
     def form_sigma_bonds(self):
@@ -1279,7 +1442,7 @@ class Structure:
     def get_atom_counts(self):
         atom_counts = {}
         for atom in self.graph:
-            if atom.type != 'H':
+            if atom.type != "H":
                 if atom.type not in atom_counts:
                     atom_counts[atom.type] = 0
                 atom_counts[atom.type] += 1
@@ -1296,9 +1459,9 @@ class Structure:
 
     def make_dummy_bond(self, atom_1, atom_2, bond_nr, dummy=False):
         if dummy:
-            bond_type = 'dummy'
+            bond_type = "dummy"
         else:
-            bond_type = 'single'
+            bond_type = "single"
 
         if atom_1 in self.graph:
             self.graph[atom_1].append(atom_2)
@@ -1327,7 +1490,7 @@ class Structure:
 
     def make_bond(self, atom_1, atom_2, bond_nr):
 
-        bond = Bond(atom_1, atom_2, 'single', bond_nr)
+        bond = Bond(atom_1, atom_2, "single", bond_nr)
 
         electron_1 = None
         electron_2 = None
@@ -1350,8 +1513,8 @@ class Structure:
         orbital_1.add_electron(electron_2)
         orbital_2.add_electron(electron_1)
 
-        orbital_1.set_bond(bond, 'sigma')
-        orbital_2.set_bond(bond, 'sigma')
+        orbital_1.set_bond(bond, "sigma")
+        orbital_2.set_bond(bond, "sigma")
 
         atom_1._add_bond(bond)
         atom_2._add_bond(bond)
@@ -1433,7 +1596,7 @@ class Structure:
                     default = None
 
                 atom.annotations.set_annotation(annotation, default)
-        
+
     def add_attributes(self, annotations, defaults=None, boolean=False):
         if defaults:
             assert len(defaults) == len(annotations)
@@ -1474,6 +1637,35 @@ class Structure:
 
         return atoms
 
+    def get_mass(self):
+        mass = 0
+        for atom in self.graph:
+            mass += ATOM_PROPERTIES.element_to_amu[atom.type]
+        return mass
+
+    def get_sum_formula(self):
+        element_counts = Counter()
+        # Iterate through atoms in the graph and count each element
+        for atom in self.graph:
+            element_counts[atom.type] += 1
+
+        # Define the order of elements (Hill system)
+        if 'C' in element_counts:
+            order = ['C', 'H'] + sorted(set(element_counts.keys()) - {'C', 'H'})
+        else:
+            order = sorted(element_counts.keys())
+
+        # Build the sum formula string
+        formula_parts = []
+        for element in order:
+            count = element_counts[element]
+            if count == 1:
+                formula_parts.append(element)
+            else:
+                formula_parts.append(f"{element}{count}")
+
+        return "".join(formula_parts)
+
     def print_graph(self):
         pprint(self.graph)
 
@@ -1487,7 +1679,7 @@ class Structure:
         pi_subgraph = {}
 
         for bond in self.bonds.values():
-            if bond.type == 'aromatic':
+            if bond.type == "aromatic":
 
                 # prune the subgraph as kekulisation can only occur in atoms
                 # that have an unpaired electron
@@ -1495,10 +1687,16 @@ class Structure:
                 unpaired_electrons_1 = 0
                 unpaired_electrons_2 = 0
 
-                if len(bond.aromatic_system.get_contributed_electrons(bond.atom_1)) == 1:
+                if (
+                    len(bond.aromatic_system.get_contributed_electrons(bond.atom_1))
+                    == 1
+                ):
                     unpaired_electrons_1 += 1
 
-                if len(bond.aromatic_system.get_contributed_electrons(bond.atom_2)) == 1:
+                if (
+                    len(bond.aromatic_system.get_contributed_electrons(bond.atom_2))
+                    == 1
+                ):
                     unpaired_electrons_2 += 1
 
                 if unpaired_electrons_1 and unpaired_electrons_2:
@@ -1541,13 +1739,17 @@ class Structure:
             single_bond_pairs = set()
 
             for node in matching.nodes:
-                double_bond_pair = tuple(sorted([node.atom, node.mate.atom], key=lambda x: x.nr))
+                double_bond_pair = tuple(
+                    sorted([node.atom, node.mate.atom], key=lambda x: x.nr)
+                )
                 if double_bond_pair not in double_bond_pairs:
                     double_bond_pairs.add(double_bond_pair)
 
                 for neighbour in node.neighbors:
                     if neighbour.index != node.mate.index:
-                        single_bond_pair = tuple(sorted([node.atom, neighbour.atom], key=lambda x: x.nr))
+                        single_bond_pair = tuple(
+                            sorted([node.atom, neighbour.atom], key=lambda x: x.nr)
+                        )
                         if single_bond_pair not in single_bond_pairs:
                             single_bond_pairs.add(single_bond_pair)
 
@@ -1556,7 +1758,9 @@ class Structure:
             for atom in aromatic_unmatched:
                 for neighbour in atom.neighbours:
                     if neighbour in atom.aromatic_system.atoms:
-                        single_bond_pair = tuple(sorted([atom, neighbour], key=lambda x: x.nr))
+                        single_bond_pair = tuple(
+                            sorted([atom, neighbour], key=lambda x: x.nr)
+                        )
                         if single_bond_pair not in single_bond_pairs:
                             single_bond_pairs.add(single_bond_pair)
 
@@ -1567,31 +1771,34 @@ class Structure:
 
             new_atom_1 = kekule_structure.atoms[pair[0].nr]
             new_atom_2 = kekule_structure.atoms[pair[1].nr]
-            
+
             bond = kekule_structure.bond_lookup[new_atom_1][new_atom_2]
-            bond.type = 'double'
+            bond.type = "double"
             bond.aromatic = False
-            
+
             bond.atom_1.aromatic = False
             bond.atom_2.aromatic = False
 
             bond.set_bond_summary()
-            
-            orbitals_1 = new_atom_1._get_orbitals('p')
-            orbitals_2 = new_atom_2._get_orbitals('p')
-            
+
+            orbitals_1 = new_atom_1._get_orbitals("p")
+            orbitals_2 = new_atom_2._get_orbitals("p")
+
             if orbitals_1 and orbitals_2:
                 orbital_1 = orbitals_1[0]
                 orbital_2 = orbitals_2[0]
-                
-                if not len(orbital_1.electrons) == 1 or not len(orbital_2.electrons) == 1:
+
+                if (
+                    not len(orbital_1.electrons) == 1
+                    or not len(orbital_2.electrons) == 1
+                ):
                     raise KekulisationError(bond.aromatic_system.__repr__())
 
                 orbital_1.add_electron(orbital_2.electrons[0])
                 orbital_2.add_electron(orbital_1.electrons[0])
 
-                orbital_1.set_bond(bond, 'pi')
-                orbital_2.set_bond(bond, 'pi')
+                orbital_1.set_bond(bond, "pi")
+                orbital_2.set_bond(bond, "pi")
 
                 bond.electrons.append(orbital_1.electrons[0])
                 bond.electrons.append(orbital_2.electrons[0])
@@ -1604,7 +1811,7 @@ class Structure:
             new_atom_2 = kekule_structure.atoms[pair[1].nr]
 
             bond = kekule_structure.bond_lookup[new_atom_1][new_atom_2]
-            bond.type = 'single'
+            bond.type = "single"
 
             bond.aromatic = False
             bond.atom_1.aromatic = False
@@ -1624,7 +1831,6 @@ class Structure:
         kekule_structure.aromatic_cycles = []
 
         return kekule_structure
-
 
     def split_disconnected_structures(self):
         """Return list of unconnected structures from structure
@@ -1752,7 +1958,9 @@ class Structure:
 
         return rest_group_graph
 
-    def traverse_substructure(self, atom: Atom, visited: Set[Atom], traverse_h: bool = False) -> Generator[Atom, None, None]:
+    def traverse_substructure(
+        self, atom: Atom, visited: Set[Atom], traverse_h: bool = False
+    ) -> Generator[Atom, None, None]:
         yield atom
         visited.add(atom)
         for neighbour in atom.neighbours:
@@ -1760,12 +1968,11 @@ class Structure:
                 if neighbour not in visited:
                     yield from self.traverse_substructure(neighbour, visited)
             else:
-                if neighbour not in visited and neighbour.type != 'H':
+                if neighbour not in visited and neighbour.type != "H":
                     yield from self.traverse_substructure(neighbour, visited)
 
     def make_bond_nr_dict(self):
-        """
-        """
+        """ """
         self.bond_nr_dict = {}
         for atom, neighbours in self.graph.items():
             self.bond_nr_dict[atom] = len(neighbours)
