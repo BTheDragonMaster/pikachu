@@ -5,9 +5,6 @@ import unittest
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from pikachu.chem.substructure_matching import SubstructureMatch, find_substructures
-from pikachu.general import draw_structure
-
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.join(CURRENT_DIR, "test_data")
 
