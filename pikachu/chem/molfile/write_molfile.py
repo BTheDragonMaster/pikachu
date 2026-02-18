@@ -1,7 +1,9 @@
-import pkg_resources
-from pikachu.drawing.drawing import Drawer, Options, draw_multiple
-from pikachu.math_functions import Vector
 import datetime
+
+import pikachu
+from pikachu.drawing.drawing import Drawer, draw_multiple
+from pikachu.math_functions import Vector
+
 
 
 class MolFileWriter:
@@ -44,7 +46,7 @@ class MolFileWriter:
         self.title = filename.split('.')[0]
         self.atom_to_coords = self.get_atom_coords()
         self.datetime = datetime.datetime.now()
-        self.software_version = pkg_resources.get_distribution('pikachu-chem').version
+        self.software_version = pikachu.__version__
         self.atom_count = self.get_atom_count()
         self.bond_count, self.drawn_bonds = self.get_bond_count()
 
