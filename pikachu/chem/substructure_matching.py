@@ -349,6 +349,11 @@ def check_same_chirality(atom_1, atom_2, match):
                 if atom_b.type == 'H':
                     equivalent_atom_list.append(atom_b)
                     break
+            # In this case, the H-atom must be matched to the unmatched non-H in the parent structure
+            else:
+                for atom_b in atom_2.neighbours:
+                    if atom_b not in match.values():
+                        equivalent_atom_list.append(atom_b)
         else:
             equivalent_atom_list.append(match[atom])
 
