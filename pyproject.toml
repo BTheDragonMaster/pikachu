@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pikachu-chem"
-version = "1.1.4"
+version = "1.1.5"
 description = "PIKACHU: Python-based Informatics Kit for Analysing CHemical Units"
 readme = "README.md"
 authors = [
   { name = "Barbara Terlouw", email = "barbara.terlouw@wur.nl" }
 ]
 dependencies = ["matplotlib"]
+requires-python = ">=3.9"
 
 [tool.setuptools.packages.find]
 include = ["pikachu*"]
