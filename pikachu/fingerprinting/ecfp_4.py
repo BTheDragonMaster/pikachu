@@ -78,6 +78,7 @@ class ECFP:
         self.disambiguated_chiral = {}
         self.seen_atoms = {}
         self.hash_to_feature = {}
+        self.disambiguated_bond_stereo = {}
 
         self.set_initial_identifiers()
         self.ecfp()
@@ -105,10 +106,26 @@ class ECFP:
 
                 self.hash_to_feature[initial_identifier] = Feature(initial_identifier, feature)
 
+                for bond in bonds:
+                    if bond.chiral:
+                        self.disambiguated_bond_stereo[bond] = False
+
     def ecfp(self):
         # Nr of iterations determines the radius of the fingerprinting
         for i in range(self.iterations):
             new_features = []
+
+            # Precompute, once per iteration, which stereo bonds become
+            # resolved at this iteration. This must happen before the atom
+            # loop below: both atoms on a bond need to fold in the same bit
+            # during this same iteration, so we can't flip
+            # disambiguated_bond_stereo until after both have been processed.
+
+            bond_stereo_bits = {}
+            for bond, already_disambiguated in self.disambiguated_bond_stereo.items():
+                if not already_disambiguated and self.stereo_bond_resolved(bond, i):
+                    bond_stereo_bits[bond] = self.get_stereo_bit(bond, i)
+
             for atom in self.identifiers:
 
                 # Start with the hash assigned to the atom in the previous iteration
@@ -195,6 +212,7 @@ class ECFP:
                         # Determine chirality
                         chirality = find_chirality_from_nonh(neighbour_identifiers, neighbour_identifiers_sorted,
                                                              atom.chiral)
+
                         if chirality == 'clockwise':
                             array.append(1)
                         else:
@@ -202,6 +220,17 @@ class ECFP:
 
                         # Make sure atom only gets disambiguated once
                         self.disambiguated_chiral[atom] = True
+
+                # Fold in cis/trans bits for any stereo double bonds attached to this
+                # atom that became resolved this iteration. Sorted by bond.nr so the
+                # order bits are appended in is deterministic (an atom could in
+                # principle sit on more than one stereo double bond).
+                stereo_bond = next(
+                    (bond for bond in atom.get_non_hydrogen_bonds() if bond.chiral),
+                    None
+                )
+                if stereo_bond is not None and stereo_bond in bond_stereo_bits:
+                    array.append(bond_stereo_bits[stereo_bond])
 
                 # New hash is made from all hashes from all previous states
                 new_identifier = hash_32_bit_integer(array)
@@ -221,10 +250,111 @@ class ECFP:
 
                 new_features.append((Feature(new_identifier, feature), new_identifier, atom))
 
+            for bond in bond_stereo_bits:
+                self.disambiguated_bond_stereo[bond] = True
+
             for new_feature, identifier, atom in new_features:
                 # TODO: Make a better feature representation, perhaps as SMILES string
                 self.fingerprint.add(identifier)
                 self.hash_to_feature[identifier] = new_feature
+
+    @staticmethod
+    def get_stereo_substituents(atom, partner):
+        """
+        Return the neighbours of 'atom' on a stereo double bond, excluding the
+        double bond partner itself. Normally one or two such substituents exist
+        (a missing second slot means an implicit H).
+        """
+        return [n for n in atom.neighbours if n != partner]
+
+    def stereo_bond_resolved(self, bond, i):
+        """
+        Check whether both sides of a stereo double bond currently have
+        distinguishable substituents at iteration i, i.e. whether we can
+        unambiguously identify which substituent is which when consulting
+        bond.chiral_dict.
+        """
+        atom_1 = bond.atom_1
+        atom_2 = bond.atom_2
+
+        for atom, partner in ((atom_1, atom_2), (atom_2, atom_1)):
+            # Get the neighbours for a stereo bond
+            substituents = self.get_stereo_substituents(atom, partner)
+
+            if len(substituents) < 2:
+                # Only one real substituent -> nothing to disambiguate
+                continue
+
+            sub_identifiers = []
+            for substituent in substituents:
+                if substituent.type == 'H':
+                    sub_identifiers.append('dummy')
+                else:
+                    sub_identifiers.append(self.identifiers[substituent][i])
+
+            # Can't tell the two substituents on this side apart yet
+            if len(sub_identifiers) != len(set(sub_identifiers)):
+                return False
+
+        return True
+
+    def get_canonical_stereo_substituent(self, atom, partner, i):
+        """
+        Return the substituent on this side of a stereo double bond that
+        should be used to query bond.chiral_dict, chosen by a rule that is
+        invariant across structures (unlike atom.nr, which just reflects
+        SMILES parsing order).
+
+        Rule: prefer identifier-based comparison, since self.identifiers[atom][i]
+        is a structural hash - the same local chemical environment gets the
+        same identifier no matter what molecule it's embedded in or how it
+        was numbered. Hydrogen substituents need no comparison: if only one
+        heavy substituent exists on this side, it's the only candidate and is
+        trivially canonical (the "other slot" being an implicit/explicit H is
+        not a real ambiguity to resolve).
+        """
+        substituents = self.get_stereo_substituents(atom, partner)
+
+        if not substituents:
+            raise ValueError("Stereo bonds must have at least one neighbour")
+
+        keyed_substituents = []
+        for substituent in substituents:
+            if substituent.type == 'H':
+                # Sentinel key: sorts after every real identifier, so H is
+                # only ever picked as canonical when it's the sole substituent
+                # on this side (the tuple's first element, 1, always loses to
+                # any real identifier's first element, 0)
+                key = (1, 0)
+            else:
+                key = (0, self.identifiers[substituent][i])
+            keyed_substituents.append((key, substituent))
+
+        # Pick the substituent with the lowest key. Real identifiers always
+        # beat the H sentinel; between two real identifiers, the structurally
+        # "smaller" one wins - a choice that's reproducible across structures
+        # since self.identifiers[atom][i] depends only on local environment
+        return min(keyed_substituents, key=lambda pair: pair[0])[1]
+
+    def get_stereo_bit(self, bond, i):
+        """
+        Given a bond with defined cis/trans stereochemistry that is resolved
+        at iteration i, return 0 or 1 encoding that relationship.
+        """
+        substituent_1 = self.get_canonical_stereo_substituent(bond.atom_1, bond.atom_2, i)
+        substituent_2 = self.get_canonical_stereo_substituent(bond.atom_2, bond.atom_1, i)
+
+        if substituent_1 is None or substituent_2 is None:
+            return None
+
+        relationship = bond.chiral_dict[substituent_1][substituent_2]
+
+        if relationship == 'cis':
+            return 1
+        elif relationship == 'trans':
+            return 0
+        else:
+            raise ValueError(f"Expected 'cis' or 'trans' in chiral_dict, got {relationship}")
 
 
 def build_ecfp_bitvector(structures, depth=2, bits=1024):
