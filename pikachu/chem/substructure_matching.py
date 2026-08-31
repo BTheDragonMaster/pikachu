@@ -343,12 +343,19 @@ def filter_duplicate_matches(matches):  # refactor to 'filter_duplicate_matches'
 
 def check_same_chirality(atom_1, atom_2, match):
     equivalent_atom_list = []
+
     for atom in atom_1.neighbours:
         if atom.type == 'H':
             for atom_b in atom_2.neighbours:
                 if atom_b.type == 'H':
                     equivalent_atom_list.append(atom_b)
                     break
+            # In this case, the H-atom must be matched to the unmatched non-H in the parent structure
+            # Note that cyclic structures can exist, therefore we only consider unmatched neighbours
+            else:
+                for atom_b in atom_2.neighbours:
+                    if atom_b not in [match.get(x) for x in atom_1.neighbours]:
+                        equivalent_atom_list.append(atom_b)
         else:
             equivalent_atom_list.append(match[atom])
 

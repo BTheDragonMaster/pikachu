@@ -1,5 +1,6 @@
 from pikachu.smiles.smiles import Smiles
 from pikachu.chem.structure import Structure
+from pikachu.chem.atom import Atom
 
 
 class IndexTracker:
@@ -148,7 +149,7 @@ def combine_structures(structures):
 
     struct1, struct2 = structures
 
-    # make sure you dont add atoms with the same atom.nr
+    # make sure you don't add atoms with the same atom.nr
     atom_nrs = []
     for atom in struct2.graph:
         atom_nrs.append(atom.nr)
@@ -189,6 +190,31 @@ def combine_structures(structures):
 
         bond_nrs.append(bond_idx)
         new_bond_dict[bond_idx] = bond
+
+        new_chiral_dict = {}
+
+        # Re-index chiral dict
+        for atom_1, atoms_and_chirality in bond.chiral_dict.items():
+            new_1 = None
+
+            if isinstance(atom_1, Atom):
+                new_1 = struct1.atoms[atom_1.nr]
+            else:
+                pass
+
+            assert new_1
+
+            new_chiral_dict[new_1] = {}
+
+            for atom_2, chirality in atoms_and_chirality.items():
+                if isinstance(atom_2, Atom):
+                    new_2 = struct1.atoms[atom_2.nr]
+                    new_chiral_dict[new_1][new_2] = chirality
+                else:
+                    pass
+
+        bond.chiral_dict = new_chiral_dict
+
         bond_idx += 1
 
     struct1.bonds = new_bond_dict
